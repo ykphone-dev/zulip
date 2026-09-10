@@ -1,0 +1,763 @@
+/* 옆커폰 theme.
+
+   A restyle of the web app that borrows the current Slack frame (a
+   brand-colored shell with the content pane floating inside it as a
+   rounded card) and Discord's message details (circular avatars, the
+   timestamp beside the sender name, a filled composer with no border,
+   a graphite dark mode). It is layered on top of Zulip's own design
+   tokens and loaded last in the app bundle, so it can redefine tokens
+   and make a short list of structural overrides without editing
+   upstream stylesheets; that keeps rebases onto newer Zulip releases
+   nearly conflict-free.
+
+   Most of the visual change comes from scoping tokens to a region:
+   redefining --color-background inside .column-left, for example,
+   turns every sticky header and mask in the sidebar dark along with
+   it, because upstream already reads that token everywhere. */
+
+:root {
+    /* Brand palette, derived from the 옆커폰 mark (deep purple
+       outline, lavender shadow). */
+    --yk-purple-950: hsl(260deg 38% 11%);
+    --yk-purple-900: hsl(260deg 36% 15%);
+    --yk-purple-850: hsl(260deg 34% 20%);
+    --yk-purple-700: hsl(259deg 44% 36%);
+    --yk-purple-600: hsl(258deg 46% 43%);
+    --yk-purple-500: hsl(258deg 50% 56%);
+    --yk-purple-400: hsl(256deg 55% 66%);
+    --yk-purple-300: hsl(253deg 50% 74%);
+    --yk-purple-100: hsl(256deg 50% 93%);
+    --yk-purple-50: hsl(256deg 50% 97%);
+
+    /* Neutral scale for the light surfaces. */
+    --yk-grey-50: hsl(220deg 20% 98%);
+    --yk-grey-100: hsl(220deg 16% 95%);
+    --yk-grey-150: hsl(220deg 14% 92%);
+    --yk-grey-200: hsl(220deg 12% 86%);
+    --yk-grey-300: hsl(220deg 10% 74%);
+    --yk-grey-500: hsl(220deg 8% 46%);
+    --yk-grey-700: hsl(222deg 12% 24%);
+
+    /* Graphite scale for dark mode, after Discord's dark theme, with a
+       hint of the brand hue so it doesn't read as plain grey. */
+    --yk-graphite-950: hsl(256deg 14% 7%);
+    --yk-graphite-900: hsl(250deg 10% 10%);
+    --yk-graphite-800: hsl(236deg 8% 15%);
+    --yk-graphite-700: hsl(232deg 7% 20%);
+    --yk-graphite-600: hsl(230deg 7% 26%);
+    --yk-graphite-text: hsl(222deg 12% 88%);
+    --yk-graphite-muted: hsl(218deg 8% 62%);
+    --yk-red: hsl(343deg 76% 54%);
+
+    /* Radii and the gap between the shell and the content panes. */
+    --yk-radius-sm: 6px;
+    --yk-radius-md: 8px;
+    --yk-radius-lg: 12px;
+    --yk-frame-gap: 6px;
+    --yk-shadow-floating: light-dark(
+        0 1px 3px hsl(220deg 20% 10% / 10%),
+        0 1px 3px hsl(0deg 0% 0% / 45%)
+    );
+    --yk-shadow-popover: light-dark(
+        0 8px 24px hsl(220deg 20% 10% / 14%),
+        0 8px 24px hsl(0deg 0% 0% / 55%)
+    );
+
+    /* Region surfaces. */
+    --yk-frame-bg: light-dark(var(--yk-purple-950), var(--yk-graphite-950));
+    --yk-pane-bg: light-dark(hsl(0deg 0% 100%), var(--yk-graphite-800));
+    --yk-composer-bg: light-dark(var(--yk-grey-100), var(--yk-graphite-700));
+    --yk-hairline: light-dark(var(--yk-grey-150), hsl(0deg 0% 100% / 8%));
+    --yk-row-hover: light-dark(var(--yk-grey-50), hsl(0deg 0% 100% / 4%));
+    --yk-shell-text: light-dark(
+        hsl(0deg 0% 100% / 80%),
+        var(--yk-graphite-text)
+    );
+    --yk-shell-text-strong: hsl(0deg 0% 100%);
+    --yk-shell-text-muted: light-dark(
+        hsl(0deg 0% 100% / 52%),
+        var(--yk-graphite-muted)
+    );
+    --yk-shell-row-hover: hsl(0deg 0% 100% / 7%);
+    --yk-shell-row-active: light-dark(
+        hsl(258deg 50% 56% / 62%),
+        hsl(258deg 45% 50% / 55%)
+    );
+    --yk-shell-divider: hsl(0deg 0% 100% / 10%);
+
+    /* Shift everything that hangs off the navbar down by the frame gap,
+       so sticky headers and column padding line up with the top edge of
+       the content pane rather than the bottom edge of the navbar. */
+    --navbar-fixed-height: calc(
+        var(--header-height) + var(--navbar-alerts-wrapper-height) +
+            var(--yk-frame-gap)
+    );
+
+    /* ---- Global token overrides ---- */
+
+    --color-background: var(--yk-pane-bg);
+    --color-text-default: light-dark(
+        var(--yk-grey-700),
+        var(--yk-graphite-text)
+    );
+    --color-text-message-default: light-dark(
+        hsl(222deg 14% 12%),
+        var(--yk-graphite-text)
+    );
+    --color-text-link: light-dark(hsl(206deg 80% 36%), hsl(204deg 90% 66%));
+    --color-text-link-hover: light-dark(
+        hsl(206deg 80% 28%),
+        hsl(204deg 90% 74%)
+    );
+    --color-text-url: light-dark(hsl(206deg 80% 36%), hsl(204deg 90% 66%));
+    --color-outline-focus: var(--yk-purple-500);
+    --color-text-placeholder: light-dark(
+        var(--yk-grey-500),
+        var(--yk-graphite-muted)
+    );
+
+    /* Message rows: no card borders, no tinted DM background. */
+    --color-message-list-border: transparent;
+    --color-background-stream-message-content: var(--color-background);
+    --color-background-private-message-content: var(--color-background);
+    --color-background-private-message-header: var(--color-background);
+    --color-message-header-contents-border: transparent;
+    --color-message-header-contents-border-bottom: var(--yk-hairline);
+    --color-private-message-header-border: transparent;
+    --color-private-message-header-border-bottom: var(--yk-hairline);
+    --color-border-message-group-spacer-line: var(--yk-hairline);
+    --color-selected-message-outline: light-dark(
+        hsl(258deg 46% 43% / 40%),
+        hsl(256deg 55% 66% / 50%)
+    );
+    --color-background-direct-mention: light-dark(
+        hsl(46deg 100% 95%),
+        hsl(46deg 30% 14%)
+    );
+    --color-background-group-mention: light-dark(
+        hsl(46deg 100% 96%),
+        hsl(46deg 20% 13%)
+    );
+    --last-message-row-border-radius: 0;
+    --color-date: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    --color-unread-marker: var(--yk-purple-500);
+    --color-text-sender-name-hover: var(--yk-purple-600);
+    --color-text-message-header: light-dark(
+        var(--yk-grey-700),
+        var(--yk-graphite-text)
+    );
+
+    /* Compose box: filled card, no border, brand send button. */
+    --color-compose-box-background: var(--yk-composer-bg);
+    --color-compose-message-content-background: var(--yk-composer-bg);
+    --color-border-compose-content: transparent;
+    --color-message-content-container-border: transparent;
+    --color-message-content-container-border-focus: transparent;
+    --color-message-formatting-controls-container: transparent;
+    --color-compose-send-button-background: var(--yk-purple-600);
+    --color-compose-send-button-background-interactive: var(--yk-purple-700);
+    --color-compose-send-button-focus-border: var(--yk-purple-700);
+    --color-compose-focus-ring: var(--yk-purple-500);
+    --color-compose-recipient-box-background-color: light-dark(
+        hsl(0deg 0% 100%),
+        var(--yk-graphite-600)
+    );
+    --color-compose-recipient-box-border-color: transparent;
+    --color-compose-formatting-button-divider: light-dark(
+        var(--yk-grey-300),
+        hsl(0deg 0% 100% / 18%)
+    );
+    --color-background-compose-new-message-button: light-dark(
+        hsl(0deg 0% 100%),
+        var(--yk-graphite-600)
+    );
+    --color-border-compose-new-message-button: transparent;
+
+    /* Brand buttons follow the logo purple rather than Zulip's
+       electric violet. */
+    --color-background-brand-solid-action-button: light-dark(
+        var(--yk-purple-600),
+        var(--yk-purple-500)
+    );
+    --color-background-brand-solid-action-button-hover: light-dark(
+        var(--yk-purple-700),
+        var(--yk-purple-600)
+    );
+    --color-background-brand-solid-action-button-active: light-dark(
+        var(--yk-purple-850),
+        var(--yk-purple-700)
+    );
+    --color-text-brand-subtle-action-button: light-dark(
+        var(--yk-purple-700),
+        var(--yk-purple-300)
+    );
+    --color-text-brand-text-action-button: light-dark(
+        var(--yk-purple-600),
+        var(--yk-purple-300)
+    );
+
+    /* Popovers and modals. */
+    --color-background-popover: light-dark(
+        hsl(0deg 0% 100%),
+        var(--yk-graphite-700)
+    );
+    --color-background-popover-menu: light-dark(
+        hsl(0deg 0% 100%),
+        var(--yk-graphite-700)
+    );
+    --color-border-popover-menu: light-dark(
+        var(--yk-grey-150),
+        hsl(0deg 0% 100% / 10%)
+    );
+    --box-shadow-popover-menu: var(--yk-shadow-popover);
+    --color-background-modal: var(--yk-pane-bg);
+
+    /* Inbox, recent and right-sidebar surfaces. */
+    --color-background-inbox-row: var(--color-background);
+    --color-background-inbox-row-hover: var(--yk-row-hover);
+    --color-border-inbox-folder-component: var(--yk-hairline);
+    --recent-view-body-border-width: 1px;
+    --color-background-hover-narrow-filter: light-dark(
+        var(--yk-grey-100),
+        hsl(0deg 0% 100% / 6%)
+    );
+    --color-background-active-narrow-filter: light-dark(
+        var(--yk-purple-50),
+        hsl(256deg 30% 22%)
+    );
+    --color-shadow-sidebar-row-hover: transparent;
+    --color-text-sidebar-heading: light-dark(
+        var(--yk-grey-500),
+        var(--yk-graphite-muted)
+    );
+}
+
+/* ---- Typography ---- */
+
+body,
+.tippy-box {
+    font-family:
+        "Pretendard Variable",
+        Pretendard,
+        "Source Sans 3 VF",
+        -apple-system,
+        BlinkMacSystemFont,
+        system-ui,
+        "Apple SD Gothic Neo",
+        "Malgun Gothic",
+        sans-serif !important;
+}
+
+/* ---- Shell: navbar, left sidebar and the frame around the panes ---- */
+
+html,
+body {
+    background-color: var(--yk-frame-bg);
+}
+
+/* The frame gap under the navbar is drawn by the fixed navbar itself,
+   so feed content scrolling up behind it stays hidden. */
+#navbar-fixed-container {
+    box-shadow: 0 var(--yk-frame-gap) 0 0 var(--yk-frame-bg);
+}
+
+.header,
+#navbar-middle .column-middle-inner,
+#message_view_header {
+    --color-background: var(--yk-frame-bg);
+    --color-background-navbar: var(--yk-frame-bg);
+    --color-navbar-bottom-border: transparent;
+    --color-text-message-view-header: var(--yk-shell-text-strong);
+    --color-text-default: var(--yk-shell-text);
+    --color-header-button-hover: hsl(0deg 0% 100% / 10%);
+    --color-header-button-focus: hsl(0deg 0% 100% / 16%);
+    --color-icon-purple: var(--yk-shell-text);
+    --color-background-search: hsl(0deg 0% 100% / 12%);
+    --color-background-search-collapsed: hsl(0deg 0% 100% / 12%);
+    --color-search-box-hover-shadow: transparent;
+    --color-text-search: var(--yk-shell-text-strong);
+    --color-text-search-hover: var(--yk-shell-text-strong);
+    --color-text-search-placeholder: hsl(0deg 0% 100% / 60%);
+    --color-search-icons: var(--yk-shell-text-strong);
+    --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
+    --color-unread-counter-normal: var(--yk-purple-900);
+    --color-background-unread-counter-prominent: var(--yk-red);
+}
+
+.header {
+    color: var(--yk-shell-text);
+}
+
+#top_navbar .header-button {
+    border-radius: var(--yk-radius-sm);
+    /* Square hit target inset from the bar edges, so the hover
+       highlight reads as a button rather than a stripe. */
+    width: 2em;
+    height: 2em;
+    margin: 0 0.125em;
+    color: var(--yk-shell-text);
+
+    &:hover,
+    &:focus-visible {
+        color: var(--yk-shell-text-strong);
+    }
+
+    .header-button-avatar {
+        border-radius: 50%;
+    }
+}
+
+#top_navbar .column-left .brand {
+    /* The mark is a dark purple outline, so give it a white tile to
+       sit on; this also mirrors how workspace icons look in Slack. */
+    background-color: hsl(0deg 0% 100%);
+    border-radius: var(--yk-radius-sm);
+    padding: 0.125em 0.375em;
+    margin-left: 0.25em;
+}
+
+#message_view_header {
+    .narrow_description,
+    .narrow_description a {
+        color: var(--yk-shell-text);
+    }
+
+    .message-header-navbar-title {
+        font-weight: 700;
+    }
+
+    .zulip-icon {
+        color: var(--yk-shell-text);
+    }
+}
+
+#searchbox {
+    .navbar-search {
+        border-radius: var(--yk-radius-md);
+        box-shadow: none;
+    }
+
+    .search_icon {
+        opacity: 0.85;
+    }
+
+    #searchbox-input-container {
+        border: 1px solid transparent;
+    }
+
+    .navbar-search:has(#searchbox-input-container:focus-visible) {
+        outline: 2px solid hsl(0deg 0% 100% / 45%);
+    }
+}
+
+.app-main .column-left {
+    --color-background: var(--yk-frame-bg);
+    --color-text-default: var(--yk-shell-text);
+    --color-text-sidebar-base: var(--yk-shell-text-strong);
+    --color-text-sidebar-row: var(--yk-shell-text);
+    --color-text-active-narrow-filter: var(--yk-shell-text-strong);
+    --color-background-active-narrow-filter: var(--yk-shell-row-active);
+    --color-background-hover-narrow-filter: var(--yk-shell-row-hover);
+    --color-shadow-sidebar-row-hover: transparent;
+    --color-text-sidebar-heading: var(--yk-shell-text-strong);
+    --opacity-sidebar-heading: 0.55;
+    --opacity-sidebar-heading-hover: 1;
+    --opacity-sidebar-heading-icon: 0.5;
+    --color-left-sidebar-navigation-icon: var(--yk-shell-text-muted);
+    --color-sidebar-action: var(--yk-shell-text-muted);
+    --color-sidebar-action-hover: var(--yk-shell-text-strong);
+    --color-background-sidebar-action-hover: var(--yk-shell-row-hover);
+    --color-background-navigation-item-hover: var(--yk-shell-row-hover);
+    --color-background-sidebar-action-heading-hover: var(--yk-shell-row-hover);
+    --color-text-sidebar-action-heading: var(--yk-shell-text-muted);
+    --color-text-sidebar-action-heading-hover: var(--yk-shell-text-strong);
+    --color-left-sidebar-direct-messages-bottom-divider: var(
+        --yk-shell-divider
+    );
+    --color-border-sidebar: var(--yk-shell-divider);
+    --color-border-sidebar-subheader: var(--yk-shell-divider);
+    --color-left-sidebar-inner-box-shadow: transparent;
+    --color-left-sidebar-outer-box-shadow: transparent;
+    --color-left-sidebar-middle-box-shadow-hover: var(--yk-shell-row-hover);
+    --color-left-sidebar-outer-box-shadow-hover: transparent;
+    --color-topic-indent-border: var(--yk-shell-divider);
+    --color-unmuted-or-followed-topic-list-item: var(--yk-shell-text-strong);
+    --color-outline-focus: hsl(0deg 0% 100% / 60%);
+    --opacity-left-sidebar-muted: 0.45;
+    --opacity-left-sidebar-muted-hover: 0.7;
+
+    /* Unread pills: white for normal counts, red for mentions. */
+    --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
+    --color-unread-counter-normal: var(--yk-purple-900);
+    --box-shadow-unread-counter-normal: none;
+    --color-background-unread-counter-prominent: var(--yk-red);
+    --color-unread-counter-prominent: hsl(0deg 0% 100%);
+    --color-unread-counter-quiet: var(--yk-shell-text-muted);
+    --color-unread-counter-muted: hsl(0deg 0% 100% / 35%);
+    --color-background-unread-counter-dot: var(--yk-shell-text-strong);
+    --color-background-unread-counter-no-alpha: hsl(0deg 0% 100% / 90%);
+    --color-masked-unread-marker: hsl(0deg 0% 100% / 35%);
+
+    /* Filter input at the top of the sidebar. */
+    --color-background-input: hsl(0deg 0% 100% / 10%);
+    --color-background-input-focus: hsl(0deg 0% 100% / 16%);
+    --color-text-placeholder: hsl(0deg 0% 100% / 50%);
+}
+
+.app-main .column-left .left-sidebar {
+    color: var(--yk-shell-text);
+}
+
+#left-sidebar {
+    .left-sidebar-title {
+        font-size: 0.8571em; /* 12px at 14px/em */
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+
+    .top_left_row,
+    .bottom_left_row {
+        border-radius: var(--yk-radius-sm);
+    }
+
+    .active-direct-messages-section {
+        &#direct-messages-section-header {
+            border-radius: var(--yk-radius-sm) var(--yk-radius-sm) 0 0;
+        }
+
+        #direct-messages-list {
+            border-radius: 0 0 var(--yk-radius-sm) var(--yk-radius-sm);
+        }
+    }
+
+    .active-filter,
+    .top-left-active-filter,
+    .active-sub-filter {
+        .stream-name,
+        .sidebar-topic-name,
+        .conversation-partners,
+        .left-sidebar-navigation-label {
+            font-weight: 600;
+        }
+    }
+
+    .direct-message-section-bottom-divider {
+        border-color: var(--yk-shell-divider);
+    }
+
+    .input-element {
+        color: var(--yk-shell-text-strong);
+    }
+
+    .input-element-wrapper,
+    .filter-input-wrapper {
+        border-radius: var(--yk-radius-sm);
+    }
+
+    .simplebar-track .simplebar-scrollbar::before {
+        background-color: hsl(0deg 0% 100% / 40%);
+        box-shadow: none;
+    }
+}
+
+/* ---- Content panes ---- */
+
+/* The middle column starts below the navbar plus the frame gap, so its
+   rounded top corners show against the shell. Upstream pads the feed by
+   the navbar height instead, which is folded into the margin here. The
+   parent becomes a block formatting context so that margin cannot
+   collapse through it and shift the absolutely positioned sidebars. */
+.app-main {
+    display: flow-root;
+}
+
+.app-main .column-middle {
+    margin-top: var(--navbar-fixed-height);
+    min-height: calc(
+        var(--full-height-dynamic-viewport) - var(--navbar-fixed-height)
+    );
+    border-radius: var(--yk-radius-lg) var(--yk-radius-lg) 0 0;
+}
+
+#message_feed_container {
+    padding-top: var(--header-padding-bottom);
+}
+
+#recent_view {
+    padding-top: var(--header-padding-bottom);
+}
+
+.inbox-container #inbox-pane {
+    margin-top: var(--header-padding-bottom);
+}
+
+.app-main .column-right .right-sidebar {
+    margin-top: var(--navbar-fixed-height);
+    margin-left: var(--yk-frame-gap);
+    width: calc(var(--right-sidebar-width) - var(--yk-frame-gap));
+    height: calc(100% - var(--navbar-fixed-height));
+    padding-top: var(--header-padding-bottom);
+    padding-left: 8px;
+    background-color: var(--color-background);
+    border-radius: var(--yk-radius-lg) 0 0 0;
+}
+
+.right-sidebar-title {
+    font-size: 0.8571em; /* 12px at 14px/em */
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.user_sidebar_entry {
+    border-radius: var(--yk-radius-sm);
+}
+
+/* ---- Message feed ---- */
+
+.message-feed .recipient_row {
+    border-radius: 0;
+}
+
+.message_header {
+    .message-header-contents {
+        /* The stream tint arrives as an inline style; a flat bar with
+           a hairline underneath keeps the feed calm. */
+        background: var(--color-background) !important;
+        border-radius: 0;
+        height: 2.2em;
+        font-weight: 700;
+    }
+
+    &.message_header_stream .stream_label,
+    &.message_header_private_message .message_label_clickable {
+        padding-left: 12px;
+    }
+}
+
+.message-feed .message_header .message-header-contents {
+    margin-top: 12px;
+}
+
+.message-feed .recipient_row .message_row:last-of-type {
+    border-bottom: none;
+
+    .messagebox {
+        border-radius: 0;
+    }
+}
+
+.message_row {
+    transition: background-color 60ms ease-out;
+
+    &:not(.selected_message):hover {
+        background-color: var(--yk-row-hover);
+    }
+}
+
+.messagebox-content {
+    padding-left: 12px;
+    padding-right: 8px;
+
+    .message_sender .sender_name {
+        font-size: 1.0714em; /* 15px at 14px/em */
+        font-weight: 700;
+    }
+
+    .message-time {
+        color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+        font-size: 0.8571em; /* 12px at 14px/em */
+    }
+}
+
+/* Put the timestamp beside the sender name, the way Slack and Discord
+   do, instead of at the far right. The sender column is sized to the
+   name so the time follows it; the message body spans that column and
+   the flexible one after it, so wrapping is unchanged. Me-messages and
+   edit mode keep their upstream layouts. */
+.messagebox-includes-sender
+    .messagebox-content:not(.is-me-message, .content_edit_mode) {
+    grid-template-columns:
+        var(--message-box-avatar-column-width) minmax(0, max-content)
+        minmax(0, 1fr) max-content 8px;
+    grid-template-areas:
+        "avatar sender    time      controls ."
+        "avatar message   message   .        ."
+        ".      more      more      .        ."
+        ".      reactions reactions .        ."
+        ".      reminders reminders .        .";
+
+    .message_sender {
+        max-width: 60vw;
+    }
+
+    .message-time {
+        place-self: baseline start;
+        padding: 0 0 0 0.7em;
+    }
+
+    .slow-send-spinner {
+        justify-self: start;
+    }
+}
+
+.inline_profile_picture,
+.user_sidebar_entry.with_avatar .user-profile-picture {
+    border-radius: 50%;
+}
+
+.selected_message .messagebox-content {
+    border-radius: var(--yk-radius-sm);
+}
+
+/* Action toolbar as a small floating card. It stays in the sender
+   line, where upstream reserves its column; pulling it above the row
+   would put it underneath the sticky recipient bar for the first
+   message of every conversation. */
+.messagebox-content .message_controls {
+    align-self: center;
+    height: 1.75em;
+    padding: 0 2px;
+    gap: 1px;
+    background-color: var(--color-background-popover);
+    border: 1px solid var(--color-border-popover-menu);
+    border-radius: var(--yk-radius-md);
+    box-shadow: var(--yk-shadow-floating);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.15s ease,
+        visibility 0.15s ease;
+
+    .message_control_button {
+        border-radius: 4px;
+        min-width: 1.75em;
+
+        &:hover {
+            background-color: light-dark(
+                var(--yk-grey-100),
+                hsl(0deg 0% 100% / 8%)
+            );
+        }
+    }
+}
+
+.messagebox:hover .message_controls,
+.messagebox:has(.message_control_button:focus-visible) .message_controls,
+.messagebox:has(.message-actions-menu-button[aria-expanded="true"])
+    .message_controls,
+.messagebox:has(.message_control_button.active-emoji-picker-reference)
+    .message_controls {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Date dividers as centered pills. */
+.message_feed_divider:has(.date-divider-content) {
+    grid-template-columns: minmax(20px, 1fr) auto minmax(20px, 1fr);
+    padding: 10px 0;
+
+    &:has(.timerender-content)::after {
+        display: block;
+        grid-area: right_divider_content;
+        content: " ";
+        height: 0;
+        width: auto;
+        border-bottom: 1px solid var(--color-border-message-group-spacer-line);
+    }
+
+    .date-divider-content {
+        grid-area: middle_divider_content;
+        justify-content: center;
+        text-transform: none;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        letter-spacing: 0;
+
+        &::before,
+        &::after {
+            display: none;
+        }
+
+        .date_row_text {
+            padding: 0.2em 0.9em;
+            border: 1px solid var(--color-border-message-group-spacer-line);
+            border-radius: 999px;
+            background-color: var(--color-background);
+            color: var(--color-text-default);
+            font-weight: 600;
+        }
+    }
+}
+
+/* When a subscription status also appears, keep the date on the right
+   so the two never share the middle cell. */
+.message_feed_divider:has(.stream-status):has(.date-divider-content) {
+    .date-divider-content {
+        grid-area: right_divider_content;
+        justify-content: end;
+    }
+
+    &::after {
+        display: none;
+    }
+}
+
+/* ---- Compose ---- */
+
+/* Inset the composer from the pane edges. The box's own left/right
+   margins track the sidebars in upstream CSS, so the inset goes on the
+   container instead. */
+#compose-container {
+    box-sizing: border-box;
+    padding: 0 12px;
+}
+
+#compose-content {
+    border: none;
+    border-radius: var(--yk-radius-lg);
+    margin-bottom: 12px;
+    padding: 8px 10px;
+    box-shadow: none;
+}
+
+#compose-send-button {
+    border-radius: var(--yk-radius-md);
+}
+
+.message-send-controls #send_later {
+    border-radius: 0 var(--yk-radius-md) var(--yk-radius-md) 0;
+}
+
+#compose_select_recipient_widget,
+#stream_message_recipient_topic,
+.compose-recipient-box {
+    border-radius: var(--yk-radius-sm);
+}
+
+/* ---- Popovers, modals, buttons ---- */
+
+.tippy-box[data-theme="popover-menu"],
+.tippy-box[data-theme="dropdown-widget"],
+.tippy-box[data-theme="light-border"] {
+    border-radius: var(--yk-radius-md);
+}
+
+.tippy-box[data-theme="popover-menu"] .popover-menu-link,
+.tippy-box[data-theme="popover-menu"] .popover-menu-list .link-item > a {
+    border-radius: var(--yk-radius-sm);
+}
+
+.modal__container {
+    border-radius: var(--yk-radius-lg);
+    box-shadow: var(--yk-shadow-popover);
+}
+
+.action-button,
+.icon-button {
+    border-radius: var(--yk-radius-sm);
+}
+
+.unread_count {
+    border-radius: 999px;
+    padding: 0 6px;
+    font-weight: 600;
+}
