@@ -524,16 +524,19 @@ body:has(#ykphone-rail) {
 }
 
 .ykphone-rail-logo .brand {
-    /* The mark is a dark purple outline, so give it a white tile to
-       sit on, like a workspace icon in Slack. */
+    /* The mark has a transparent background and its own white
+       bubble, so it sits directly on the rail without a tile. */
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.7143em; /* 38px at 14px/em */
-    height: 2.7143em;
+    width: 3em; /* 42px at 14px/em */
+    height: 2.7143em; /* 38px at 14px/em */
     margin-bottom: 0.5em;
-    background-color: hsl(0deg 0% 100%);
     border-radius: var(--yk-radius-md);
+
+    &:hover {
+        background-color: var(--yk-shell-row-hover);
+    }
 
     &:focus-visible {
         outline: 2px solid var(--color-outline-focus);
@@ -547,8 +550,8 @@ body:has(#ykphone-rail) {
     pointer-events: none;
     width: auto;
     height: auto;
-    max-width: 2.1429em; /* 30px at 14px/em */
-    max-height: 2.1429em;
+    max-width: 2.7143em; /* 38px at 14px/em */
+    max-height: 2.1429em; /* 30px at 14px/em */
 }
 
 .ykphone-rail-items {
