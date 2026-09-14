@@ -54,6 +54,10 @@
     --yk-radius-md: 8px;
     --yk-radius-lg: 12px;
     --yk-frame-gap: 6px;
+    /* 63px at 14px/1em; the icon rail at the left edge. */
+    --yk-rail-width: 4.5em;
+    /* Space between the sidebar card's edge and its rows. */
+    --yk-card-inset: 6px;
     /* 392px at 14px/1em; the thread side panel takes this much of the
        right column while a thread is open. */
     --yk-thread-panel-width: min(28em, 40vw);
@@ -68,6 +72,8 @@
 
     /* Region surfaces. */
     --yk-frame-bg: light-dark(var(--yk-purple-950), var(--yk-graphite-950));
+    /* The sidebar card: one tone lighter than the frame. */
+    --yk-card-bg: light-dark(var(--yk-purple-900), var(--yk-graphite-900));
     --yk-pane-bg: light-dark(hsl(0deg 0% 100%), var(--yk-graphite-800));
     --yk-composer-bg: light-dark(var(--yk-grey-100), var(--yk-graphite-700));
     --yk-hairline: light-dark(var(--yk-grey-150), hsl(0deg 0% 100% / 8%));
@@ -81,12 +87,19 @@
         hsl(0deg 0% 100% / 52%),
         var(--yk-graphite-muted)
     );
-    --yk-shell-row-hover: hsl(0deg 0% 100% / 7%);
+    --yk-shell-row-hover: hsl(0deg 0% 100% / 8%);
     --yk-shell-row-active: light-dark(
         hsl(258deg 50% 56% / 62%),
         hsl(258deg 45% 50% / 55%)
     );
     --yk-shell-divider: hsl(0deg 0% 100% / 10%);
+
+    /* The left sidebar's content starts after the rail, the frame gap
+       and the card's own inset; the middle column's margin follows,
+       since upstream derives it from this token. */
+    --left-sidebar-padding-left: calc(
+        var(--yk-rail-width) + var(--yk-frame-gap) + var(--yk-card-inset)
+    );
 
     /* Shift everything that hangs off the navbar down by the frame gap,
        so sticky headers and column padding line up with the top edge of
@@ -310,15 +323,6 @@ body {
     }
 }
 
-#top_navbar .column-left .brand {
-    /* The mark is a dark purple outline, so give it a white tile to
-       sit on; this also mirrors how workspace icons look in Slack. */
-    background-color: hsl(0deg 0% 100%);
-    border-radius: var(--yk-radius-sm);
-    padding: 0.125em 0.375em;
-    margin-left: 0.25em;
-}
-
 #message_view_header {
     .narrow_description,
     .narrow_description a {
@@ -354,7 +358,7 @@ body {
 }
 
 .app-main .column-left {
-    --color-background: var(--yk-frame-bg);
+    --color-background: var(--yk-card-bg);
     --color-text-default: var(--yk-shell-text);
     --color-text-sidebar-base: var(--yk-shell-text-strong);
     --color-text-sidebar-row: var(--yk-shell-text);
@@ -409,6 +413,24 @@ body {
 
 .app-main .column-left .left-sidebar {
     color: var(--yk-shell-text);
+    /* Sized to the viewport so that the card surface can end at the
+       frame gap; upstream leaves the height to the content. */
+    height: calc(
+        100% - var(--navbar-fixed-height) - var(--header-padding-bottom)
+    );
+
+    /* The card is drawn behind the sidebar's content rather than as
+       its background, so the box (and the JS that sizes the channel
+       list from its padding) keeps upstream's geometry. */
+    &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: var(--navbar-fixed-height) var(--yk-frame-gap)
+            var(--yk-frame-gap) calc(var(--yk-rail-width) + var(--yk-frame-gap));
+        border-radius: var(--yk-radius-lg);
+        background-color: var(--yk-card-bg);
+    }
 }
 
 #left-sidebar {
@@ -457,9 +479,314 @@ body {
         border-radius: var(--yk-radius-sm);
     }
 
+    /* The sidebar filter as a pill. */
+    .left-sidebar-search-section {
+        border-radius: var(--yk-radius-md);
+    }
+
     .simplebar-track .simplebar-scrollbar::before {
         background-color: hsl(0deg 0% 100% / 40%);
         box-shadow: none;
+    }
+}
+
+/* ---- Icon rail ---- */
+
+body:has(#ykphone-rail) {
+    /* With the logo in the rail, the navbar's left column holds only
+       the sidebar toggle, so the hidden-sidebar layout no longer needs
+       to clear a logo. */
+    --middle-column-left-margin-fluid-layout: calc(var(--header-height) + 10px);
+}
+
+/* Fixed like the sidebar next to it, and inside the same column, so
+   hiding the column (navbar toggle, narrow-screen overlay) takes the
+   rail along. */
+#ykphone-rail {
+    position: fixed;
+    /* Above .left-sidebar (100; its padding box covers the rail's
+       area and is the later sibling) and below .overlay (105). */
+    z-index: 101;
+    top: var(--navbar-fixed-height);
+    bottom: 0;
+    left: 0;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25em;
+    /* Also paints the frame gap beside the card, so the overlay on
+       narrow screens has no see-through strip. */
+    width: calc(var(--yk-rail-width) + var(--yk-frame-gap));
+    padding: 0.5em var(--yk-frame-gap) 0.75em 0;
+    background-color: var(--yk-frame-bg);
+    color: var(--yk-shell-text);
+}
+
+.ykphone-rail-logo .brand {
+    /* The mark is a dark purple outline, so give it a white tile to
+       sit on, like a workspace icon in Slack. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7143em; /* 38px at 14px/em */
+    height: 2.7143em;
+    margin-bottom: 0.5em;
+    background-color: hsl(0deg 0% 100%);
+    border-radius: var(--yk-radius-md);
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 2px;
+    }
+}
+
+.ykphone-rail-logo .nav-logo {
+    display: block;
+    /* Clicks and the tooltip belong to the tile, not the image. */
+    pointer-events: none;
+    width: auto;
+    height: auto;
+    max-width: 2.1429em; /* 30px at 14px/em */
+    max-height: 2.1429em;
+}
+
+.ykphone-rail-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25em;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ykphone-rail-item {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15em;
+    width: 3.1429em; /* 44px at 14px/em */
+    height: 3.1429em;
+    padding: 0;
+    border: none;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--yk-shell-text);
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-shell-row-hover);
+        color: var(--yk-shell-text-strong);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -2px;
+    }
+
+    &.active {
+        background-color: hsl(0deg 0% 100% / 18%);
+        color: var(--yk-shell-text-strong);
+    }
+
+    .zulip-icon {
+        font-size: 1.4286em; /* 20px at 14px/em */
+    }
+}
+
+.ykphone-rail-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.7857em; /* 11px at 14px/em */
+    line-height: 1.2;
+}
+
+.ykphone-rail-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5em;
+    margin-top: auto;
+}
+
+/* The toggle shows the theme it switches to: a moon in light mode, a
+   sun in dark mode, following the resolved theme when automatic. */
+.ykphone-rail-theme-toggle .ykphone-rail-icon-dark {
+    display: none;
+}
+
+:root.dark-theme .ykphone-rail-theme-toggle {
+    .ykphone-rail-icon-light {
+        display: none;
+    }
+
+    .ykphone-rail-icon-dark {
+        display: block;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root.color-scheme-automatic .ykphone-rail-theme-toggle {
+        .ykphone-rail-icon-light {
+            display: none;
+        }
+
+        .ykphone-rail-icon-dark {
+            display: block;
+        }
+    }
+}
+
+.ykphone-rail-avatar {
+    display: block;
+    width: 2.2857em; /* 32px at 14px/em */
+    height: 2.2857em;
+    padding: 0;
+    border: none;
+    background: none;
+    overflow: hidden;
+    border-radius: var(--yk-radius-md);
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 2px;
+    }
+}
+
+.ykphone-rail-avatar-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ---- Sidebar card ---- */
+
+/* The header takes a row of the search block's grid; that block's
+   height is what resize.ts subtracts when sizing the channel list.
+   Upstream insets the block with padding, whose painted background
+   would run past the card's right edge into the frame gap, so that
+   much becomes margin. */
+#left-sidebar-search {
+    grid-template-areas:
+        "header header header"
+        "filter-container add-channel channel-folders-option";
+    margin-right: var(--yk-frame-gap);
+    padding-right: calc(var(--left-sidebar-right-margin) - var(--yk-frame-gap));
+}
+
+.ykphone-sidebar-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.2em 0 0.6em 0.4em;
+}
+
+.ykphone-sidebar-realm-name {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--yk-shell-text-strong);
+}
+
+.ykphone-sidebar-compose {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--yk-shell-text-strong);
+    color: light-dark(var(--yk-purple-900), var(--yk-graphite-900));
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: light-dark(
+            var(--yk-purple-100),
+            hsl(0deg 0% 100% / 85%)
+        );
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 2px;
+    }
+
+    .zulip-icon {
+        font-size: 1.1429em; /* 16px at 14px/em */
+    }
+}
+
+/* The rail carries home, direct messages, mentions and reactions, so
+   the matching VIEWS rows stay in the DOM for their hotkeys and URLs
+   but out of sight, and the VIEWS header row goes with them: the
+   views are kept expanded (ykphone_rail.mount), so its heading and
+   collapse toggle have nothing left to do. Three ids outrank
+   upstream's condensed/zoomed rules (two ids) for the same rows. */
+#left-sidebar #views-label-container,
+#left-sidebar
+    #views-label-container
+    + #left-sidebar-navigation-list
+    .top_left_row:is(
+        .top_left_inbox,
+        .top_left_all_messages,
+        .top_left_mentions,
+        .top_left_my_reactions
+    ) {
+    display: none;
+}
+
+/* Narrow screens: the column opens as an overlay with the rail at its
+   left edge and the card beside it; upstream's overlay chrome (its own
+   padding, border and shadow) gives way to the frame. */
+@media (width < $md_min) {
+    .app-main .column-left.expanded .left-sidebar {
+        height: calc(
+            100% - var(--navbar-fixed-height) - var(--header-padding-bottom)
+        );
+        padding-left: var(--left-sidebar-padding-left);
+        background-color: var(--yk-frame-bg);
+        box-shadow: none;
+        border-right: none;
+    }
+}
+
+@media (width <= $ml_min) {
+    .app-main .column-left.expanded .left-sidebar {
+        /* Upstream makes the overlay fill the viewport here; keep the
+           rail's share out of the content width. */
+        width: calc(100vw - var(--left-sidebar-padding-left));
+    }
+}
+
+@media (height < $short_navbar_cutoff_height) {
+    .app-main .column-left.expanded .left-sidebar {
+        /* Upstream trades the top padding for a margin on short
+           screens; the card is positioned from the box's top, so the
+           offset has to stay padding. */
+        margin-top: 0;
+        padding-top: var(--navbar-fixed-height);
     }
 }
 

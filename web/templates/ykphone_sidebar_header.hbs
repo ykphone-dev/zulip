@@ -1,0 +1,12 @@
+{{! Header of the left-sidebar card: organization name and the new-message button. }}
+<div class="ykphone-sidebar-header">
+    <h2 class="ykphone-sidebar-realm-name">{{realm_name}}</h2>
+    <button
+        type="button"
+        class="ykphone-sidebar-compose auto-hide-left-sidebar-overlay hidden-for-spectators tippy-zulip-tooltip"
+        aria-label="{{t 'New message'}}"
+        data-tippy-content="{{t 'New message'}}"
+    >
+        <i class="zulip-icon zulip-icon-compose-edit" aria-hidden="true"></i>
+    </button>
+</div>

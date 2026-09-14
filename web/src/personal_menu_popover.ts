@@ -14,7 +14,7 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status from "./user_status.ts";
 
 export function initialize(): void {
-    popover_menus.register_popover_menu("#personal-menu", {
+    popover_menus.register_popover_menu("#personal-menu, #ykphone-rail-avatar", {
         theme: "popover-menu",
         placement: "bottom",
         offset: popover_menus.NAVBAR_POPOVER_OFFSET,
@@ -159,12 +159,12 @@ export function initialize(): void {
         onShow(instance) {
             const args = popover_menus_data.get_personal_menu_content_context();
             instance.setContent(parse_html(render_navbar_personal_menu_popover(args)));
-            $("#personal-menu").addClass("active-navbar-menu");
+            $(instance.reference).addClass("active-navbar-menu");
         },
         onHidden(instance) {
             instance.destroy();
             popover_menus.popover_instances.personal_menu = null;
-            $("#personal-menu").removeClass("active-navbar-menu");
+            $(instance.reference).removeClass("active-navbar-menu");
         },
     });
 }

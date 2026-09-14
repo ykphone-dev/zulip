@@ -34,6 +34,7 @@ import * as stream_list from "./stream_list.ts";
 import * as ui_util from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 const LEFT_SIDEBAR_NAVIGATION_AREA_TITLE = $t({defaultMessage: "VIEWS"});
 
@@ -551,7 +552,8 @@ function all_rows(): JQuery {
         .not($collapsed_channels)
         .not($hidden_topic_rows)
         .not($toggle_inactive_or_muted_channels_row)
-        .not(".topic-list-item");
+        .not(".topic-list-item")
+        .not(ykphone_flags.HIDDEN_LEFT_SIDEBAR_ROWS_SELECTOR);
 }
 
 class LeftSidebarListCursor extends ListCursor<JQuery> {

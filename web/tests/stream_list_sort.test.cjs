@@ -191,7 +191,7 @@ test("no_subscribed_streams", () => {
                 folder_id: null,
                 inactive_streams: [],
                 muted_streams: [],
-                section_title: "translated: PINNED CHANNELS",
+                section_title: "translated: Favorites",
                 default_visible_streams: [],
             },
             {
@@ -326,8 +326,8 @@ test("basics", ({override}) => {
     ]);
     assert.deepEqual(sorted_sections[1].inactive_streams, []);
 
-    // Only show pinned channels
-    sorted_sections = sort_groups("pinned").sections;
+    // Only show pinned channels (the section is labelled "Favorites")
+    sorted_sections = sort_groups("favorites").sections;
     assert.deepEqual(sorted_sections.length, 2);
     assert.deepEqual(sorted_sections[0].id, "pinned-streams");
     assert.deepEqual(sorted_sections[0].default_visible_streams, [scalene.stream_id]);
@@ -340,7 +340,7 @@ test("basics", ({override}) => {
     sorted_sections = sort_groups("").sections;
     assert.deepEqual(sorted_sections.length, 5);
     assert.deepEqual(sorted_sections[0].id, "pinned-streams");
-    assert.deepEqual(sorted_sections[0].section_title, "translated: PINNED CHANNELS");
+    assert.deepEqual(sorted_sections[0].section_title, "translated: Favorites");
     assert.deepEqual(sorted_sections[1].id, backend_folder.id.toString());
     assert.deepEqual(sorted_sections[1].section_title, "BACKEND");
     assert.deepEqual(sorted_sections[2].id, frontend_folder.id.toString());
@@ -442,7 +442,7 @@ test("current_section_id_for_stream", ({override}) => {
             id: "pinned-streams",
             inactive_streams: [],
             muted_streams: [8],
-            section_title: "translated: PINNED CHANNELS",
+            section_title: "translated: Favorites",
             default_visible_streams: [1],
         },
         {

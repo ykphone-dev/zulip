@@ -1,6 +1,14 @@
+// DOM event wiring for the 옆커폰 web UI: Slack-style threads (the
+// feed controls and the side panel), the icon rail and the sidebar
+// card header. The state and rendering live in ykphone_thread_panel
+// and ykphone_rail; this module only mounts them and binds handlers,
+// so it is exempt from node coverage.
+
 import $ from "jquery";
 import assert from "minimalistic-assert";
 
+import * as compose_actions from "./compose_actions.ts";
+import * as hashchange from "./hashchange.ts";
 import {$t} from "./i18n.ts";
 import * as keydown_util from "./keydown_util.ts";
 import * as lightbox from "./lightbox.ts";
@@ -9,6 +17,7 @@ import * as message_view from "./message_view.ts";
 import * as rows from "./rows.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
@@ -68,6 +77,35 @@ function add_mount_points(): void {
 export function initialize(): void {
     ykphone_flags.set_channels_open_in_general_chat(true);
     add_mount_points();
+    ykphone_rail.mount();
+
+    // The logo keeps upstream's navbar behaviour (click_handlers.ts binds
+    // "#header-container .brand", which the moved node no longer matches):
+    // plain clicks go to the home view without touching the URL fragment,
+    // modified clicks fall through to the link.
+    $("body").on("click", "#ykphone-rail .brand", (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        hashchange.set_hash_to_home_view();
+    });
+
+    $("body").on("click", ".ykphone-rail-theme-toggle", () => {
+        ykphone_rail.toggle_color_scheme();
+    });
+
+    // Like the compose bar's "Start new conversation" button, this
+    // opens an empty channel composer rather than a reply to the
+    // current conversation.
+    $("body").on("click", ".ykphone-sidebar-compose", () => {
+        compose_actions.start({
+            message_type: "stream",
+            trigger: "sidebar new message",
+            keep_composebox_empty: true,
+        });
+    });
 
     // Feed controls are delegated from #main_div, like upstream's own
     // message controls: the row-selection handler there stops

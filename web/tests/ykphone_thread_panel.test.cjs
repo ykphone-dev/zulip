@@ -400,9 +400,10 @@ run_test("close when narrowed to the open thread", (helpers) => {
     ykphone_thread_panel.close_if_narrowed_to_open_thread();
     assert.equal(ykphone_thread_panel.is_open(), true);
 
+    // Through the narrow-activated hook, as message_view calls it.
     helpers.override(narrow_state, "stream_id", () => verona_id);
     helpers.override(narrow_state, "topic", () => topic_name.toUpperCase());
-    ykphone_thread_panel.close_if_narrowed_to_open_thread();
+    ykphone_thread_panel.handle_narrow_activated();
     assert.equal(ykphone_thread_panel.is_open(), false);
 });
 

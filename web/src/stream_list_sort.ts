@@ -125,7 +125,7 @@ export function sort_groups(
     const pinned_section: StreamListSection = {
         id: "pinned-streams",
         folder_id: null,
-        section_title: $t({defaultMessage: "PINNED CHANNELS"}),
+        section_title: $t({defaultMessage: "Favorites"}),
         default_visible_streams: [],
         muted_streams: [],
         inactive_streams: [],

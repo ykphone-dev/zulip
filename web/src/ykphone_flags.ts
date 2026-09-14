@@ -6,6 +6,13 @@
 
 let general_chat_channels = false;
 
+// Left-sidebar rows the theme hides because the icon rail replaces
+// them: the VIEWS header (views are always expanded) and the views the
+// rail carries. They stay in the DOM so their hotkeys and URLs keep
+// working; sidebar_ui skips them for keyboard navigation.
+export const HIDDEN_LEFT_SIDEBAR_ROWS_SELECTOR =
+    "#views-label-container, .top_left_inbox, .top_left_all_messages, .top_left_mentions, .top_left_my_reactions";
+
 // When set, clicking a channel opens its "general chat" topic instead
 // of the topic-based views, so a channel reads as one Slack-style room
 // and threads (topics) stay out of the main feed.
