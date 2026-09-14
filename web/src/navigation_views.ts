@@ -103,9 +103,9 @@ export const built_in_views_meta_data: Record<string, BuiltInViewBasicMetadata> 
     },
     starred_messages: {
         fragment: "narrow/is/starred",
-        name: $t({defaultMessage: "Starred messages"}),
+        name: $t({defaultMessage: "Later"}),
         is_pinned: true,
-        icon: "zulip-icon-star",
+        icon: "zulip-icon-bookmark",
         css_class_suffix: "starred_messages",
         tooltip_template_id: "starred-message-tooltip-template",
         has_unread_count: true,
@@ -119,7 +119,7 @@ export const built_in_views_meta_data: Record<string, BuiltInViewBasicMetadata> 
     },
     drafts: {
         fragment: "drafts",
-        name: $t({defaultMessage: "Drafts"}),
+        name: $t({defaultMessage: "Drafts & sent"}),
         is_pinned: true,
         icon: "zulip-icon-drafts",
         css_class_suffix: "drafts",

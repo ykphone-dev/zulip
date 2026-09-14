@@ -14,6 +14,7 @@ for the Zulip project:
 
 arrow-down.svg
 bold.svg
+bookmark.svg
 bot.svg
 browse-channels.svg
 compose-scroll-left.svg

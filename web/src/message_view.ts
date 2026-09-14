@@ -69,6 +69,7 @@ import * as unread_ops from "./unread_ops.ts";
 import * as unread_ui from "./unread_ui.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_ui_hooks from "./ykphone_ui_hooks.ts";
 
 const LARGER_THAN_MAX_MESSAGE_ID = 10000000000000000;
@@ -326,7 +327,8 @@ function handle_post_message_list_change(
 }
 
 function get_selected_message_top_offset(): number {
-    const navbar_height = $("#navbar-fixed-container").height()!;
+    const navbar_height =
+        $("#navbar-fixed-container").height()! + ykphone_layout.pane_header_height();
     // 30px height + 10px top margin.
     const sticky_header_outer_height = 40;
     return navbar_height + sticky_header_outer_height;

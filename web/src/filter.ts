@@ -1614,7 +1614,7 @@ export class Filter {
                 case "channels-web-public":
                     return $t({defaultMessage: "Messages in all web-public channels"});
                 case "is-starred":
-                    return $t({defaultMessage: "Starred messages"});
+                    return $t({defaultMessage: "Later"});
                 case "is-mentioned":
                     return $t({defaultMessage: "Mentions"});
                 case "is-dm":

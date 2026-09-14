@@ -133,7 +133,7 @@ export function sort_groups(
     const normal_section: StreamListSection = {
         id: "normal-streams",
         folder_id: null,
-        section_title: $t({defaultMessage: "CHANNELS"}),
+        section_title: $t({defaultMessage: "Channels"}),
         default_visible_streams: [],
         muted_streams: [],
         inactive_streams: [],

@@ -16,6 +16,7 @@ import * as search from "./search.ts";
 import {current_user} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
+import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 
 type MessageViewHeaderContext = {
     title?: string | undefined;
@@ -222,6 +223,7 @@ export function initialize(): void {
 export function render_title_area(): void {
     const filter = narrow_state.filter();
     build_message_view_header(filter);
+    ykphone_pane_header.render();
 }
 
 // This function checks if "modified_sub" which is the stream whose values

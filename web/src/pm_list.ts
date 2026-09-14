@@ -19,7 +19,7 @@ import type {FullUnreadCountsData} from "./unread.ts";
 import * as util from "./util.ts";
 import * as vdom from "./vdom.ts";
 
-export const LEFT_SIDEBAR_DIRECT_MESSAGES_TITLE = $t({defaultMessage: "DIRECT MESSAGES"});
+export const LEFT_SIDEBAR_DIRECT_MESSAGES_TITLE = $t({defaultMessage: "Direct messages"});
 
 let prior_dom: vdom.Tag<PMNode> | undefined;
 

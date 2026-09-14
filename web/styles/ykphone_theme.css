@@ -1,23 +1,28 @@
 /* 옆커폰 theme.
 
-   A restyle of the web app that borrows the current Slack frame (a
-   brand-colored shell with the content pane floating inside it as a
-   rounded card) and Discord's message details (circular avatars, the
-   timestamp beside the sender name, a filled composer with no border,
-   a graphite dark mode). It is layered on top of Zulip's own design
-   tokens and loaded last in the app bundle, so it can redefine tokens
-   and make a short list of structural overrides without editing
-   upstream stylesheets; that keeps rebases onto newer Zulip releases
-   nearly conflict-free.
+   A restyle of the web app after Slack's desktop client: an aubergine
+   shell (icon rail, sidebar, navbar) with the content pane floating
+   inside it, Slack's palette, Lato for Latin text with Pretendard for
+   Hangul, a header row at the top of the message pane, a two-row
+   compose box and Slack's message density. It is layered on top of
+   Zulip's own design tokens and loaded last in the app bundle, so it
+   can redefine tokens and make a short list of structural overrides
+   without editing upstream stylesheets; that keeps rebases onto newer
+   Zulip releases nearly conflict-free.
 
    Most of the visual change comes from scoping tokens to a region:
    redefining --color-background inside .column-left, for example,
    turns every sticky header and mask in the sidebar dark along with
-   it, because upstream already reads that token everywhere. */
+   it, because upstream already reads that token everywhere.
+
+   The palette lives in the --yk-* block below. The brand purple scale
+   is kept there too, so switching the shell back to the 옆커폰 purple
+   is a matter of pointing the region surfaces at it again. */
 
 :root {
     /* Brand palette, derived from the 옆커폰 mark (deep purple
-       outline, lavender shadow). */
+       outline, lavender shadow). Not used by the Slack look, kept for
+       switching back. */
     --yk-purple-950: hsl(260deg 38% 11%);
     --yk-purple-900: hsl(260deg 36% 15%);
     --yk-purple-850: hsl(260deg 34% 20%);
@@ -29,70 +34,92 @@
     --yk-purple-100: hsl(256deg 50% 93%);
     --yk-purple-50: hsl(256deg 50% 97%);
 
-    /* Neutral scale for the light surfaces. */
-    --yk-grey-50: hsl(220deg 20% 98%);
-    --yk-grey-100: hsl(220deg 16% 95%);
-    --yk-grey-150: hsl(220deg 14% 92%);
-    --yk-grey-200: hsl(220deg 12% 86%);
-    --yk-grey-300: hsl(220deg 10% 74%);
-    --yk-grey-500: hsl(220deg 8% 46%);
-    --yk-grey-700: hsl(222deg 12% 24%);
+    /* Slack "Aubergine" shell, light. */
+    --yk-aubergine-navbar: hsl(299deg 61% 13%); /* #350D36 */
+    --yk-aubergine: hsl(299deg 64% 15%); /* #3F0E40 */
+    --yk-aubergine-text: hsl(300deg 11% 79%); /* #CFC3CF */
+    --yk-blue-selected: hsl(206deg 81% 35%); /* #1164A3 */
+    --yk-blue-link: hsl(206deg 80% 35%); /* #1264A3 */
+    --yk-blue-light: hsl(200deg 64% 95%); /* reacted pill fill */
+    --yk-green: hsl(164deg 100% 24%); /* #007A5A */
+    --yk-green-hover: hsl(163deg 74% 30%); /* #148567 */
+    --yk-red: hsl(342deg 76% 50%); /* #E01E5A */
 
-    /* Graphite scale for dark mode, after Discord's dark theme, with a
-       hint of the brand hue so it doesn't read as plain grey. */
-    --yk-graphite-950: hsl(256deg 14% 7%);
-    --yk-graphite-900: hsl(250deg 10% 10%);
-    --yk-graphite-800: hsl(236deg 8% 15%);
-    --yk-graphite-700: hsl(232deg 7% 20%);
-    --yk-graphite-600: hsl(230deg 7% 26%);
-    --yk-graphite-text: hsl(222deg 12% 88%);
-    --yk-graphite-muted: hsl(218deg 8% 62%);
-    --yk-red: hsl(343deg 76% 54%);
+    /* Slack pane neutrals, light. */
+    --yk-ink: hsl(300deg 2% 11%); /* #1D1C1D */
+    --yk-ink-muted: hsl(0deg 0% 38%); /* #616061 */
+    --yk-white-warm: hsl(0deg 0% 97%); /* #F8F8F8, hover rows */
+    --yk-line: hsl(0deg 0% 87%); /* #DDDDDD, separators */
+    --yk-line-strong: hsl(300deg 1% 73%); /* #BBBABB, borders */
 
-    /* Radii and the gap between the shell and the content panes. */
+    /* Slack "Aubergine" dark. */
+    --yk-dark-navbar: hsl(264deg 14% 8%); /* #121016 */
+    --yk-dark-shell: hsl(260deg 12% 10%); /* #19171D */
+    --yk-dark-pane: hsl(214deg 12% 12%); /* #1A1D21 */
+    --yk-dark-hover: hsl(216deg 8% 15%); /* #222529 */
+    --yk-dark-text: hsl(210deg 2% 82%); /* #D1D2D3 */
+    --yk-dark-muted: hsl(240deg 1% 67%); /* #ABABAD */
+    --yk-dark-line: hsl(220deg 5% 22%); /* #35373B */
+
+    /* Radii and the gap between the shell and the content panes.
+       Shared layout lengths are written as px or as multiples of
+       --base-font-size-px rather than in em: a custom property's em
+       resolves in the font context of each consumer, and these are
+       read by columns, the compose box and fixed panels alike. */
     --yk-radius-sm: 6px;
     --yk-radius-md: 8px;
     --yk-radius-lg: 12px;
     --yk-frame-gap: 6px;
-    /* 63px at 14px/1em; the icon rail at the left edge. */
-    --yk-rail-width: 4.5em;
+    /* 63px at 14px; the icon rail at the left edge. */
+    --yk-rail-width: calc(4.5 * var(--base-font-size-px));
     /* Space between the sidebar card's edge and its rows. */
-    --yk-card-inset: 6px;
-    /* 392px at 14px/1em; the thread side panel takes this much of the
+    --yk-card-inset: 8px;
+    /* 392px at 14px; the thread side panel takes this much of the
        right column while a thread is open. */
-    --yk-thread-panel-width: min(28em, 40vw);
-    --yk-shadow-floating: light-dark(
-        0 1px 3px hsl(220deg 20% 10% / 10%),
-        0 1px 3px hsl(0deg 0% 0% / 45%)
+    --yk-thread-panel-width: min(calc(28 * var(--base-font-size-px)), 40vw);
+    /* Slack's popover shadow: a hairline ring plus a soft drop. Only
+       the colours switch with the theme; light-dark() takes colours,
+       not shadow lists. */
+    --yk-shadow-ring-color: light-dark(
+        hsl(300deg 2% 11% / 13%),
+        hsl(0deg 0% 100% / 13%)
     );
-    --yk-shadow-popover: light-dark(
-        0 8px 24px hsl(220deg 20% 10% / 14%),
-        0 8px 24px hsl(0deg 0% 0% / 55%)
+    --yk-shadow-drop-color: light-dark(
+        hsl(0deg 0% 0% / 10%),
+        hsl(0deg 0% 0% / 50%)
     );
+    --yk-shadow-popover:
+        0 0 0 1px var(--yk-shadow-ring-color),
+        0 4px 12px var(--yk-shadow-drop-color);
 
     /* Region surfaces. */
-    --yk-frame-bg: light-dark(var(--yk-purple-950), var(--yk-graphite-950));
-    /* The sidebar card: one tone lighter than the frame. */
-    --yk-card-bg: light-dark(var(--yk-purple-900), var(--yk-graphite-900));
-    --yk-pane-bg: light-dark(hsl(0deg 0% 100%), var(--yk-graphite-800));
-    --yk-composer-bg: light-dark(var(--yk-grey-100), var(--yk-graphite-700));
-    --yk-hairline: light-dark(var(--yk-grey-150), hsl(0deg 0% 100% / 8%));
-    --yk-row-hover: light-dark(var(--yk-grey-50), hsl(0deg 0% 100% / 4%));
-    --yk-shell-text: light-dark(
-        hsl(0deg 0% 100% / 80%),
-        var(--yk-graphite-text)
+    --yk-frame-bg: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
+    --yk-navbar-bg: light-dark(
+        var(--yk-aubergine-navbar),
+        var(--yk-dark-navbar)
     );
+    --yk-card-bg: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
+    --yk-pane-bg: light-dark(hsl(0deg 0% 100%), var(--yk-dark-pane));
+    --yk-composer-bg: light-dark(var(--yk-white-warm), var(--yk-dark-hover));
+    --yk-hairline: light-dark(var(--yk-line), var(--yk-dark-line));
+    --yk-border: light-dark(var(--yk-line-strong), var(--yk-dark-line));
+    --yk-row-hover: light-dark(var(--yk-white-warm), var(--yk-dark-hover));
+    --yk-text: light-dark(var(--yk-ink), var(--yk-dark-text));
+    --yk-text-muted: light-dark(var(--yk-ink-muted), var(--yk-dark-muted));
+    --yk-link: light-dark(var(--yk-blue-link), hsl(204deg 90% 66%));
+    --yk-shell-text: light-dark(var(--yk-aubergine-text), var(--yk-dark-text));
     --yk-shell-text-strong: hsl(0deg 0% 100%);
     --yk-shell-text-muted: light-dark(
-        hsl(0deg 0% 100% / 52%),
-        var(--yk-graphite-muted)
+        hsl(300deg 11% 79% / 70%),
+        var(--yk-dark-muted)
     );
-    --yk-shell-row-hover: hsl(0deg 0% 100% / 8%);
-    --yk-shell-row-active: light-dark(
-        hsl(258deg 50% 56% / 62%),
-        hsl(258deg 45% 50% / 55%)
-    );
+    --yk-shell-row-hover: hsl(0deg 0% 100% / 10%);
+    --yk-shell-row-active: var(--yk-blue-selected);
     --yk-shell-divider: hsl(0deg 0% 100% / 10%);
+    /* Height of the header row at the top of the message pane; the
+       description line adds to it (see .column-middle below).
+       46px at 14px. */
+    --yk-pane-header-height: calc(3.2857 * var(--base-font-size-px));
 
     /* The left sidebar's content starts after the rail, the frame gap
        and the card's own inset; the middle column's margin follows,
@@ -101,36 +128,27 @@
         var(--yk-rail-width) + var(--yk-frame-gap) + var(--yk-card-inset)
     );
 
-    /* Shift everything that hangs off the navbar down by the frame gap,
-       so sticky headers and column padding line up with the top edge of
-       the content pane rather than the bottom edge of the navbar. */
-    --navbar-fixed-height: calc(
-        var(--header-height) + var(--navbar-alerts-wrapper-height) +
-            var(--yk-frame-gap)
+    /* The bottom edge of the fixed navbar (with any alert banners);
+       the frame gap under it is painted by the pane header, so the
+       sidebars, which have no header, are offset by the gap here. */
+    --yk-navbar-bottom: calc(
+        var(--header-height) + var(--navbar-alerts-wrapper-height)
     );
+    --navbar-fixed-height: calc(var(--yk-navbar-bottom) + var(--yk-frame-gap));
 
     /* ---- Global token overrides ---- */
 
     --color-background: var(--yk-pane-bg);
-    --color-text-default: light-dark(
-        var(--yk-grey-700),
-        var(--yk-graphite-text)
-    );
-    --color-text-message-default: light-dark(
-        hsl(222deg 14% 12%),
-        var(--yk-graphite-text)
-    );
-    --color-text-link: light-dark(hsl(206deg 80% 36%), hsl(204deg 90% 66%));
+    --color-text-default: var(--yk-text);
+    --color-text-message-default: var(--yk-text);
+    --color-text-link: var(--yk-link);
     --color-text-link-hover: light-dark(
         hsl(206deg 80% 28%),
         hsl(204deg 90% 74%)
     );
-    --color-text-url: light-dark(hsl(206deg 80% 36%), hsl(204deg 90% 66%));
-    --color-outline-focus: var(--yk-purple-500);
-    --color-text-placeholder: light-dark(
-        var(--yk-grey-500),
-        var(--yk-graphite-muted)
-    );
+    --color-text-url: var(--yk-link);
+    --color-outline-focus: var(--yk-link);
+    --color-text-placeholder: var(--yk-text-muted);
 
     /* Message rows: no card borders, no tinted DM background. */
     --color-message-list-border: transparent;
@@ -143,8 +161,8 @@
     --color-private-message-header-border-bottom: var(--yk-hairline);
     --color-border-message-group-spacer-line: var(--yk-hairline);
     --color-selected-message-outline: light-dark(
-        hsl(258deg 46% 43% / 40%),
-        hsl(256deg 55% 66% / 50%)
+        hsl(206deg 80% 35% / 45%),
+        hsl(204deg 90% 66% / 50%)
     );
     --color-background-direct-mention: light-dark(
         hsl(46deg 100% 95%),
@@ -155,104 +173,84 @@
         hsl(46deg 20% 13%)
     );
     --last-message-row-border-radius: 0;
-    --color-date: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
-    --color-unread-marker: var(--yk-purple-500);
-    --color-text-sender-name-hover: var(--yk-purple-600);
-    --color-text-message-header: light-dark(
-        var(--yk-grey-700),
-        var(--yk-graphite-text)
-    );
+    --color-date: var(--yk-text-muted);
+    --color-unread-marker: var(--yk-red);
+    --color-text-sender-name: var(--yk-text);
+    --color-text-sender-name-hover: var(--yk-link);
+    --color-text-message-header: var(--yk-text);
+    --message-box-avatar-width: 2.5714em; /* 36px at 14px/em */
 
-    /* Compose box: filled card, no border, brand send button. */
-    --color-compose-box-background: var(--yk-composer-bg);
-    --color-compose-message-content-background: var(--yk-composer-bg);
+    /* Reactions as outlined pills; the current user's are blue. */
+    --color-message-reaction-border: var(--yk-hairline);
+    --color-message-reaction-border-reacted: var(--yk-link);
+    --color-message-reaction-background: var(--color-background);
+    --color-message-reaction-background-reacted: light-dark(
+        var(--yk-blue-light),
+        hsl(206deg 60% 20%)
+    );
+    --color-message-reaction-background-hover: var(--yk-row-hover);
+    --color-message-reaction-shadow-inner: transparent;
+    --color-message-reaction-text: var(--yk-text);
+    --color-message-reaction-text-reacted: var(--yk-link);
+
+    /* Compose box: bordered card on the pane, green send button. */
+    --color-compose-box-background: var(--yk-pane-bg);
+    --color-compose-message-content-background: var(--yk-pane-bg);
     --color-border-compose-content: transparent;
     --color-message-content-container-border: transparent;
     --color-message-content-container-border-focus: transparent;
     --color-message-formatting-controls-container: transparent;
-    --color-compose-send-button-background: var(--yk-purple-600);
-    --color-compose-send-button-background-interactive: var(--yk-purple-700);
-    --color-compose-send-button-focus-border: var(--yk-purple-700);
-    --color-compose-focus-ring: var(--yk-purple-500);
-    --color-compose-recipient-box-background-color: light-dark(
-        hsl(0deg 0% 100%),
-        var(--yk-graphite-600)
-    );
+    --color-compose-send-button-background: var(--yk-green);
+    --color-compose-send-button-background-interactive: var(--yk-green-hover);
+    --color-compose-send-button-focus-border: var(--yk-green-hover);
+    --color-compose-focus-ring: var(--yk-link);
+    --color-compose-recipient-box-background-color: var(--yk-composer-bg);
     --color-compose-recipient-box-border-color: transparent;
-    --color-compose-formatting-button-divider: light-dark(
-        var(--yk-grey-300),
-        hsl(0deg 0% 100% / 18%)
-    );
-    --color-background-compose-new-message-button: light-dark(
-        hsl(0deg 0% 100%),
-        var(--yk-graphite-600)
-    );
+    --color-compose-formatting-button-divider: var(--yk-hairline);
+    --color-background-compose-new-message-button: var(--yk-composer-bg);
     --color-border-compose-new-message-button: transparent;
 
-    /* Brand buttons follow the logo purple rather than Zulip's
-       electric violet. */
-    --color-background-brand-solid-action-button: light-dark(
-        var(--yk-purple-600),
-        var(--yk-purple-500)
-    );
-    --color-background-brand-solid-action-button-hover: light-dark(
-        var(--yk-purple-700),
-        var(--yk-purple-600)
-    );
+    /* Primary buttons are Slack green; brand (violet) accents become
+       the link blue. */
+    --color-background-brand-solid-action-button: var(--yk-green);
+    --color-background-brand-solid-action-button-hover: var(--yk-green-hover);
     --color-background-brand-solid-action-button-active: light-dark(
-        var(--yk-purple-850),
-        var(--yk-purple-700)
+        hsl(164deg 100% 20%),
+        hsl(163deg 74% 26%)
     );
-    --color-text-brand-subtle-action-button: light-dark(
-        var(--yk-purple-700),
-        var(--yk-purple-300)
-    );
-    --color-text-brand-text-action-button: light-dark(
-        var(--yk-purple-600),
-        var(--yk-purple-300)
-    );
+    --color-text-brand-subtle-action-button: var(--yk-link);
+    --color-text-brand-text-action-button: var(--yk-link);
 
-    /* Popovers and modals. */
-    --color-background-popover: light-dark(
-        hsl(0deg 0% 100%),
-        var(--yk-graphite-700)
-    );
-    --color-background-popover-menu: light-dark(
-        hsl(0deg 0% 100%),
-        var(--yk-graphite-700)
-    );
-    --color-border-popover-menu: light-dark(
-        var(--yk-grey-150),
-        hsl(0deg 0% 100% / 10%)
-    );
+    /* Popovers, tooltips and modals. */
+    --color-background-popover: var(--yk-pane-bg);
+    --color-background-popover-menu: var(--yk-pane-bg);
+    --color-border-popover-menu: transparent;
     --box-shadow-popover-menu: var(--yk-shadow-popover);
     --color-background-modal: var(--yk-pane-bg);
+    --color-background-tippy-box: light-dark(var(--yk-ink), hsl(0deg 0% 100%));
 
     /* Inbox, recent and right-sidebar surfaces. */
     --color-background-inbox-row: var(--color-background);
     --color-background-inbox-row-hover: var(--yk-row-hover);
     --color-border-inbox-folder-component: var(--yk-hairline);
     --recent-view-body-border-width: 1px;
-    --color-background-hover-narrow-filter: light-dark(
-        var(--yk-grey-100),
-        hsl(0deg 0% 100% / 6%)
-    );
+    --color-background-hover-narrow-filter: var(--yk-row-hover);
     --color-background-active-narrow-filter: light-dark(
-        var(--yk-purple-50),
-        hsl(256deg 30% 22%)
+        var(--yk-blue-light),
+        hsl(206deg 60% 20%)
     );
     --color-shadow-sidebar-row-hover: transparent;
-    --color-text-sidebar-heading: light-dark(
-        var(--yk-grey-500),
-        var(--yk-graphite-muted)
-    );
+    --color-text-sidebar-heading: var(--yk-text-muted);
 }
 
 /* ---- Typography ---- */
 
+/* Lato for Latin, Pretendard for Hangul (Lato has none, so the
+   browser falls through per glyph). */
 body,
 .tippy-box {
     font-family:
+        Lato,
         "Pretendard Variable",
         Pretendard,
         "Source Sans 3 VF",
@@ -271,33 +269,28 @@ body {
     background-color: var(--yk-frame-bg);
 }
 
-/* The frame gap under the navbar is drawn by the fixed navbar itself,
-   so feed content scrolling up behind it stays hidden. */
-#navbar-fixed-container {
-    box-shadow: 0 var(--yk-frame-gap) 0 0 var(--yk-frame-bg);
-}
-
 .header,
 #navbar-middle .column-middle-inner,
 #message_view_header {
-    --color-background: var(--yk-frame-bg);
-    --color-background-navbar: var(--yk-frame-bg);
+    --color-background: var(--yk-navbar-bg);
+    --color-background-navbar: var(--yk-navbar-bg);
     --color-navbar-bottom-border: transparent;
     --color-text-message-view-header: var(--yk-shell-text-strong);
     --color-text-default: var(--yk-shell-text);
-    --color-header-button-hover: hsl(0deg 0% 100% / 10%);
+    --color-header-button-hover: var(--yk-shell-row-hover);
     --color-header-button-focus: hsl(0deg 0% 100% / 16%);
     --color-icon-purple: var(--yk-shell-text);
-    --color-background-search: hsl(0deg 0% 100% / 12%);
-    --color-background-search-collapsed: hsl(0deg 0% 100% / 12%);
+    --color-background-search: hsl(0deg 0% 100% / 14%);
+    --color-background-search-collapsed: hsl(0deg 0% 100% / 14%);
     --color-search-box-hover-shadow: transparent;
     --color-text-search: var(--yk-shell-text-strong);
     --color-text-search-hover: var(--yk-shell-text-strong);
-    --color-text-search-placeholder: hsl(0deg 0% 100% / 60%);
+    --color-text-search-placeholder: hsl(0deg 0% 100% / 70%);
     --color-search-icons: var(--yk-shell-text-strong);
     --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
-    --color-unread-counter-normal: var(--yk-purple-900);
+    --color-unread-counter-normal: var(--yk-aubergine);
     --color-background-unread-counter-prominent: var(--yk-red);
+    --color-outline-focus: hsl(204deg 90% 70%);
 }
 
 .header {
@@ -317,30 +310,109 @@ body {
     &:focus-visible {
         color: var(--yk-shell-text-strong);
     }
+}
 
-    .header-button-avatar {
-        border-radius: 50%;
+/* History controls (ykphone_navbar_history) in the navbar's left
+   column, where the logo used to be before it moved into the rail. */
+#top_navbar .column-left {
+    align-items: center;
+}
+
+.ykphone-navbar-history {
+    display: flex;
+    align-items: center;
+    gap: 0.125em;
+    margin-left: 0.25em;
+
+    .header-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover {
+            background-color: var(--color-header-button-hover);
+            text-decoration: none;
+        }
+
+        /* No in-app history in that direction (ykphone_history). */
+        &:disabled {
+            opacity: 0.35;
+            background: none;
+            cursor: default;
+        }
+
+        .zulip-icon {
+            font-size: 1.1429em; /* 16px at 14px/em */
+        }
     }
 }
 
+/* The icon set has no arrow-right. */
+.ykphone-navbar-forward-icon {
+    transform: scaleX(-1);
+}
+
+/* The channel or view title lives in the pane header
+   (ykphone_pane_header) instead of the navbar; the element stays for
+   the code that renders and toggles it. */
 #message_view_header {
-    .narrow_description,
-    .narrow_description a {
-        color: var(--yk-shell-text);
+    display: none;
+}
+
+.top-navbar-container {
+    margin-right: 0;
+}
+
+/* Settings live in the rail's Admin item and in the personal menu,
+   which the rail's avatar opens; the navbar keeps help and the member
+   list toggle. The gear keeps a zero-width, hidden anchor so that the
+   G hotkey can still open its menu at the navbar's right edge. */
+#personal-menu {
+    display: none;
+}
+
+#gear-menu {
+    visibility: hidden;
+    width: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* The search box is centered in the window, as wide as Slack's, in
+   both its collapsed and expanded states; below the md breakpoint
+   upstream's icon-only presentation stays. Fixed positioning is
+   resolved against the viewport since no ancestor is transformed. */
+@media (width >= $md_min) {
+    #searchbox .navbar-search,
+    #searchbox .navbar-search.expanded {
+        position: fixed;
+        top: calc(
+            var(--navbar-alerts-wrapper-height) +
+                (var(--header-height) - var(--search-box-height)) / 2
+        );
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(560px, 50vw);
+        margin: 0;
+        box-shadow: none;
     }
 
-    .message-header-navbar-title {
-        font-weight: 700;
-    }
-
-    .zulip-icon {
-        color: var(--yk-shell-text);
+    #searchbox .navbar-search:not(.expanded) #searchbox-input-container {
+        width: 100%;
     }
 }
 
 #searchbox {
     .navbar-search {
-        border-radius: var(--yk-radius-md);
+        border-radius: var(--yk-radius-sm);
         box-shadow: none;
     }
 
@@ -366,10 +438,12 @@ body {
     --color-background-active-narrow-filter: var(--yk-shell-row-active);
     --color-background-hover-narrow-filter: var(--yk-shell-row-hover);
     --color-shadow-sidebar-row-hover: transparent;
-    --color-text-sidebar-heading: var(--yk-shell-text-strong);
-    --opacity-sidebar-heading: 0.55;
+    --color-text-sidebar-heading: var(--yk-shell-text);
+    --opacity-sidebar-heading: 1;
     --opacity-sidebar-heading-hover: 1;
-    --opacity-sidebar-heading-icon: 0.5;
+    --opacity-sidebar-heading-icon: 0.7;
+    --font-weight-sidebar-heading: 700;
+    --letter-spacing-sidebar-heading: 0;
     --color-left-sidebar-navigation-icon: var(--yk-shell-text-muted);
     --color-sidebar-action: var(--yk-shell-text-muted);
     --color-sidebar-action-hover: var(--yk-shell-text-strong);
@@ -389,13 +463,16 @@ body {
     --color-left-sidebar-outer-box-shadow-hover: transparent;
     --color-topic-indent-border: var(--yk-shell-divider);
     --color-unmuted-or-followed-topic-list-item: var(--yk-shell-text-strong);
-    --color-outline-focus: hsl(0deg 0% 100% / 60%);
+    --color-outline-focus: hsl(204deg 90% 70%);
     --opacity-left-sidebar-muted: 0.45;
     --opacity-left-sidebar-muted-hover: 0.7;
+    /* Slack's 28px rows. */
+    --line-height-sidebar-row-prominent: 2em;
+    --line-height-sidebar-row: 2em;
 
     /* Unread pills: white for normal counts, red for mentions. */
     --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
-    --color-unread-counter-normal: var(--yk-purple-900);
+    --color-unread-counter-normal: var(--yk-aubergine);
     --box-shadow-unread-counter-normal: none;
     --color-background-unread-counter-prominent: var(--yk-red);
     --color-unread-counter-prominent: hsl(0deg 0% 100%);
@@ -434,15 +511,21 @@ body {
 }
 
 #left-sidebar {
+    /* Section titles in Slack's normal case at row size. */
     .left-sidebar-title {
-        font-size: 0.8571em; /* 12px at 14px/em */
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
+        font-size: 1.0714em; /* 15px at 14px/em */
+        text-transform: none;
     }
 
     .top_left_row,
     .bottom_left_row {
         border-radius: var(--yk-radius-sm);
+    }
+
+    .stream-name,
+    .conversation-partners,
+    .left-sidebar-navigation-label {
+        font-size: 1.0714em; /* 15px at 14px/em */
     }
 
     .active-direct-messages-section {
@@ -466,8 +549,44 @@ body {
         }
     }
 
-    .direct-message-section-bottom-divider {
-        border-color: var(--yk-shell-divider);
+    /* Section header controls ("+", the DM feed link, "⋮") show on
+       hover and keyboard focus only, as in Slack; pointers that
+       cannot hover keep them visible. */
+    .left-sidebar-section-header {
+        .left-sidebar-controls,
+        .sidebar-menu-icon {
+            visibility: hidden;
+        }
+
+        &:is(:hover, :focus-within) {
+            .left-sidebar-controls,
+            .sidebar-menu-icon {
+                visibility: visible;
+            }
+        }
+    }
+
+    @media (hover: none) {
+        .left-sidebar-section-header {
+            .left-sidebar-controls,
+            .sidebar-menu-icon {
+                visibility: visible;
+            }
+        }
+    }
+
+    /* Channel section headers stick at the top of the scroll
+       container: upstream offsets them by the DM header, which sat
+       above them before the reorder; the DM header (sticky at 0 with
+       a higher z-index) now replaces them once scrolled to. */
+    .stream-list-subsection-header {
+        top: 0;
+    }
+
+    /* Channels sit above direct messages (ykphone_layout), so the
+       divider that used to separate the two is redundant. */
+    .direct-message-section-bottom-divider-container {
+        display: none;
     }
 
     .input-element {
@@ -484,10 +603,43 @@ body {
         border-radius: var(--yk-radius-md);
     }
 
+    /* Thin, shell-colored scrollbar. */
+    .simplebar-track.simplebar-vertical {
+        width: 8px;
+    }
+
     .simplebar-track .simplebar-scrollbar::before {
-        background-color: hsl(0deg 0% 100% / 40%);
+        background-color: hsl(300deg 11% 79% / 50%);
         box-shadow: none;
     }
+}
+
+/* Unread channels read as bold white text rather than a count; a
+   mention shows Slack's red pill instead. Direct message rows keep
+   the count as a white pill. */
+#stream_filters .subscription_block {
+    .unread_count {
+        display: none;
+    }
+
+    &.stream-with-count .stream-name {
+        color: var(--yk-shell-text-strong);
+        font-weight: 700;
+    }
+
+    .unread_mention_info {
+        padding: 0 0.45em;
+        border-radius: 999px;
+        background-color: var(--yk-red);
+        color: hsl(0deg 0% 100%);
+        font-size: 0.8571em; /* 12px at 14px/em */
+        font-weight: 700;
+        line-height: 1.5;
+    }
+}
+
+#direct-messages-list .dm-markers-and-unreads .unread_mention_info {
+    display: none;
 }
 
 /* ---- Icon rail ---- */
@@ -497,6 +649,19 @@ body:has(#ykphone-rail) {
        the sidebar toggle, so the hidden-sidebar layout no longer needs
        to clear a logo. */
     --middle-column-left-margin-fluid-layout: calc(var(--header-height) + 10px);
+
+    /* Slack's frame always fills the window. Upstream centres the
+       app at a maximum width whenever a sidebar is hidden and the
+       "fluid layout" preference is off; with the member list hidden
+       by default that would inset the columns while the fixed thread
+       panel is placed from the viewport, and the two would no longer
+       meet. (Specificity: the :has() argument outranks upstream's
+       body.hide-*-sidebar:not(.fluid_layout_width) rules.) */
+    .header-main,
+    .app .app-main,
+    #compose-container {
+        max-width: none;
+    }
 }
 
 /* Fixed like the sidebar next to it, and inside the same column, so
@@ -704,7 +869,7 @@ body:has(#ykphone-rail) {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 1.0714em; /* 15px at 14px/em */
-    font-weight: 700;
+    font-weight: 900;
     line-height: 1.4;
     color: var(--yk-shell-text-strong);
 }
@@ -720,15 +885,12 @@ body:has(#ykphone-rail) {
     border: none;
     border-radius: 50%;
     background-color: var(--yk-shell-text-strong);
-    color: light-dark(var(--yk-purple-900), var(--yk-graphite-900));
+    color: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
     cursor: pointer;
 
     &:hover,
     &:focus-visible {
-        background-color: light-dark(
-            var(--yk-purple-100),
-            hsl(0deg 0% 100% / 85%)
-        );
+        background-color: hsl(0deg 0% 100% / 85%);
     }
 
     &:focus-visible {
@@ -793,23 +955,46 @@ body:has(#ykphone-rail) {
     }
 }
 
+/* With channels above direct messages, the bottom scrolling buffer
+   that upstream puts under "browse more channels" would open a gap
+   between the two sections; it moves to the end of the DM list. */
+#left-sidebar #subscribe-to-more-streams,
+#left-sidebar #login-to-more-streams {
+    margin-bottom: 0.5em;
+}
+
+#left-sidebar #direct-messages-list {
+    padding-bottom: var(--left-sidebar-bottom-scrolling-buffer);
+}
+
 /* ---- Content panes ---- */
 
-/* The middle column starts below the navbar plus the frame gap, so its
-   rounded top corners show against the shell. Upstream pads the feed by
-   the navbar height instead, which is folded into the margin here. The
-   parent becomes a block formatting context so that margin cannot
-   collapse through it and shift the absolutely positioned sidebars. */
+/* The middle column starts right under the navbar; the pane header
+   at its top paints the frame gap and the rounded corners, and
+   everything sticky inside the column (recipient bars, the recent
+   and inbox headers) is offset by the header as well as the navbar.
+   The parent becomes a block formatting context so that margin
+   cannot collapse through it and shift the absolutely positioned
+   sidebars. */
 .app-main {
     display: flow-root;
 }
 
 .app-main .column-middle {
-    margin-top: var(--navbar-fixed-height);
-    min-height: calc(
-        var(--full-height-dynamic-viewport) - var(--navbar-fixed-height)
+    --navbar-fixed-height: calc(
+        var(--yk-navbar-bottom) + var(--yk-frame-gap) +
+            var(--yk-pane-header-height)
     );
-    border-radius: var(--yk-radius-lg) var(--yk-radius-lg) 0 0;
+    margin-top: var(--yk-navbar-bottom);
+    min-height: calc(
+        var(--full-height-dynamic-viewport) - var(--yk-navbar-bottom)
+    );
+}
+
+/* With a channel description the header has a second line (58px at
+   14px). */
+.app-main .column-middle:has(.ykphone-pane-header-description) {
+    --yk-pane-header-height: calc(4.1429 * var(--base-font-size-px));
 }
 
 #message_feed_container {
@@ -836,13 +1021,188 @@ body:has(#ykphone-rail) {
 }
 
 .right-sidebar-title {
-    font-size: 0.8571em; /* 12px at 14px/em */
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 1em;
+    font-weight: 700;
+    text-transform: none;
 }
 
 .user_sidebar_entry {
     border-radius: var(--yk-radius-sm);
+}
+
+/* ---- Pane header ---- */
+
+/* Sticks under the navbar. Its own box paints the frame gap and the
+   pane's rounded top corners (the ::before, below the content in the
+   isolated stacking context); the height is the token so that the
+   sticky offsets above and the JS that reads the computed height
+   (ykphone_layout.pane_header_height) agree. Same layer as the sticky
+   recipient bars and the compose box, which is later in the DOM and
+   so covers the header when maximized. */
+#ykphone-pane-header {
+    position: sticky;
+    top: var(--yk-navbar-bottom);
+    z-index: 4;
+    isolation: isolate;
+    box-sizing: border-box;
+    height: calc(var(--yk-frame-gap) + var(--yk-pane-header-height));
+    padding-top: var(--yk-frame-gap);
+    overflow: hidden;
+    background-color: var(--yk-frame-bg);
+
+    &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset: var(--yk-frame-gap) 0 0;
+        border-bottom: 1px solid var(--yk-hairline);
+        border-radius: var(--yk-radius-lg) var(--yk-radius-lg) 0 0;
+        background-color: var(--color-background);
+    }
+}
+
+.ykphone-pane-header-main {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    height: 3.2857em; /* 46px at 14px/em */
+    padding: 0 1em 0 0.7em;
+}
+
+.ykphone-pane-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    min-width: 0;
+    padding: 0.1em 0.4em;
+    border-radius: var(--yk-radius-sm);
+    font-size: 1.2857em; /* 18px at 14px/em */
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--color-text-default);
+    text-decoration: none;
+}
+
+a.ykphone-pane-header-channel {
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
+.ykphone-pane-header-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* "# channel › thread" in a thread's full view. */
+.ykphone-pane-header-topic {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--yk-text-muted);
+
+    &::before {
+        content: "›";
+        margin-right: 0.3em;
+        font-weight: 400;
+    }
+}
+
+.ykphone-pane-header-icon {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.ykphone-pane-header-chevron {
+    font-size: 0.75em;
+    opacity: 0.7;
+}
+
+.ykphone-pane-header-presence {
+    font-size: 0.6em;
+}
+
+.ykphone-pane-header-archived {
+    font-size: 0.7em;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--yk-text-muted);
+}
+
+.ykphone-pane-header-members {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    height: 2em;
+    margin-left: auto;
+    padding: 0 0.6em;
+    border: 1px solid var(--yk-border);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--color-background);
+    color: var(--yk-text-muted);
+    font: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+
+    .zulip-icon {
+        font-size: 1.1em;
+    }
+}
+
+.ykphone-pane-header-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.ykphone-pane-header-avatar {
+    width: 1.5385em; /* 20px at 13px/em */
+    height: 1.5385em;
+    margin-left: -0.5em;
+    border: 2px solid var(--color-background);
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+
+    &:first-child {
+        margin-left: 0;
+    }
+}
+
+.ykphone-pane-header-description {
+    height: 1.2143em; /* 17px at 14px/em */
+    margin-top: -0.3571em; /* 5px at 14px/em */
+    padding: 0 1.1em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.3;
+    color: var(--yk-text-muted);
+
+    p {
+        display: inline;
+        margin: 0;
+    }
 }
 
 /* ---- Message feed ---- */
@@ -871,6 +1231,14 @@ body:has(#ykphone-rail) {
     margin-top: 12px;
 }
 
+/* Upstream stacks the sticky recipient bars at the pane header's level
+   (4), so a bar being pushed out by the next one painted over the
+   header. One level down keeps them above the messages and the unread
+   marker label (1) and below the header and the compose box. */
+.message-feed .message_header {
+    z-index: 3;
+}
+
 .message-feed .recipient_row .message_row:last-of-type {
     border-bottom: none;
 
@@ -880,7 +1248,7 @@ body:has(#ykphone-rail) {
 }
 
 .message_row {
-    transition: background-color 60ms ease-out;
+    transition: background-color 100ms ease;
 
     &:not(.selected_message):hover {
         background-color: var(--yk-row-hover);
@@ -903,17 +1271,23 @@ body:has(#ykphone-rail) {
 
     .message_sender .sender_name {
         font-size: 1.0714em; /* 15px at 14px/em */
-        font-weight: 700;
+        font-weight: 900;
     }
 
     .message-time {
-        color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+        color: var(--yk-text-muted);
         font-size: 0.8571em; /* 12px at 14px/em */
+    }
+
+    /* Slack's 15px/22px body text. */
+    .message_content {
+        font-size: 1.0714em; /* 15px at 14px/em */
+        line-height: 1.4667;
     }
 }
 
-/* Put the timestamp beside the sender name, the way Slack and Discord
-   do, instead of at the far right. The sender column is sized to the
+/* Put the timestamp beside the sender name, the way Slack does,
+   instead of at the far right. The sender column is sized to the
    name so the time follows it; the message body spans that column and
    the flexible one after it, so wrapping is unchanged. Me-messages and
    edit mode keep their upstream layouts. */
@@ -944,9 +1318,17 @@ body:has(#ykphone-rail) {
     }
 }
 
+/* Slack's avatars are rounded squares everywhere: the feed, the
+   member list, the thread panel, the user card and profile. */
 .inline_profile_picture,
-.user_sidebar_entry.with_avatar .user-profile-picture {
-    border-radius: 50%;
+.user_sidebar_entry.with_avatar .user-profile-picture,
+.ykphone-thread-panel-avatar,
+.popover-avatar,
+.popover-menu-user-avatar,
+.user-card-popover .avatar-image,
+.information-settings .user-profile-picture,
+#user-profile-modal #avatar {
+    border-radius: var(--yk-radius-md);
 }
 
 .selected_message .messagebox-content {
@@ -963,9 +1345,9 @@ body:has(#ykphone-rail) {
     padding: 0 2px;
     gap: 1px;
     background-color: var(--color-background-popover);
-    border: 1px solid var(--color-border-popover-menu);
+    border: 1px solid var(--yk-hairline);
     border-radius: var(--yk-radius-md);
-    box-shadow: var(--yk-shadow-floating);
+    box-shadow: 0 2px 6px hsl(0deg 0% 0% / 10%);
     opacity: 0;
     visibility: hidden;
     transition:
@@ -977,10 +1359,7 @@ body:has(#ykphone-rail) {
         min-width: 1.75em;
 
         &:hover {
-            background-color: light-dark(
-                var(--yk-grey-100),
-                hsl(0deg 0% 100% / 8%)
-            );
+            background-color: var(--yk-row-hover);
         }
     }
 }
@@ -993,6 +1372,65 @@ body:has(#ykphone-rail) {
     .message_controls {
     opacity: 1;
     visibility: visible;
+}
+
+/* Reactions as pills; upstream thickens the border of the current
+   user's reactions, Slack keeps one hairline and fills them. */
+.message_reactions .message_reaction {
+    transition: background-color 100ms ease;
+
+    &.reacted {
+        border-width: 1px;
+        padding: 1.5px 4px 1.5px 3px;
+    }
+}
+
+/* The "new messages" line: Slack draws a red hairline across the top
+   of the first unread message with a small label at the right, in
+   place of upstream's bar beside every unread row. The label text is
+   set on the root by ykphone_threads_ui so that it can be translated.
+   The first unread row is the one after the recipient bar or after a
+   read row; as rows are read the line moves down. */
+.message_row .unread-marker-fill {
+    background: none;
+}
+
+.message_header + .message_row.unread > .messagebox,
+.message_row:not(.unread) + .message_row.unread > .messagebox {
+    /* On the message box rather than the row, so the line sits
+       under a date divider the row may carry, and inside it rather
+       than straddling the row's top edge, where the sticky recipient
+       bar (z-index 4) would cover the label's upper half. */
+    position: relative;
+
+    &::before {
+        content: "";
+        position: absolute;
+        z-index: 1;
+        inset: 0 0 auto;
+        height: 1px;
+        background-color: var(--yk-red);
+        pointer-events: none;
+    }
+
+    &::after {
+        content: var(--yk-new-label, "New");
+        position: absolute;
+        z-index: 1;
+        top: 2px;
+        right: 12px;
+        color: var(--yk-red);
+        font-size: 0.7857em; /* 11px at 14px/em */
+        font-weight: 700;
+        line-height: 1.1;
+        pointer-events: none;
+        transition: opacity 100ms ease;
+    }
+
+    /* The hover toolbar takes the same corner. */
+    &:hover::after {
+        opacity: 0;
+    }
 }
 
 /* ---- Threads ---- */
@@ -1020,10 +1458,11 @@ body:has(#ykphone-rail) {
     background: none;
     font: inherit;
     font-size: 0.9286em; /* 13px at 14px/em */
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.4;
     color: var(--color-text-link);
     cursor: pointer;
+    transition: background-color 100ms ease;
 
     &:hover,
     &:focus-visible {
@@ -1092,25 +1531,49 @@ body.ykphone-thread-open {
     }
 }
 
+/* Slides in from the right (a keyframe animation, which runs when
+   the panel gets its box and ends at the panel's normal style) and
+   out again (a transition to the closed values; with allow-discrete
+   the display change waits for it, browsers without it simply hide
+   the panel). A @starting-style slide-in was tried first and left the
+   panel at its starting values for good in Chrome, so it is not used. */
 body:not(.ykphone-thread-open) #ykphone-thread-panel {
     display: none;
+    transform: translateX(1em);
+    opacity: 0;
+}
+
+body.ykphone-thread-open #ykphone-thread-panel {
+    animation: ykphone-thread-panel-in 150ms ease;
+}
+
+@keyframes ykphone-thread-panel-in {
+    from {
+        transform: translateX(1em);
+        opacity: 0;
+    }
 }
 
 #ykphone-thread-panel {
     /* Fixed like the buddy list, so it keeps its place while the
-       feed scrolls; without a horizontal offset it stays inside the
-       right column. */
+       feed scrolls, and anchored to the viewport's right edge: the
+       middle column ends --yk-thread-panel-width from that edge, so
+       the frame gap between the two is the token minus this width. */
     position: fixed;
+    right: 0;
     z-index: 100;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     margin-top: var(--navbar-fixed-height);
-    margin-left: var(--yk-frame-gap);
     width: calc(var(--yk-thread-panel-width) - var(--yk-frame-gap));
     height: calc(100% - var(--navbar-fixed-height));
     background-color: var(--color-background);
     border-radius: var(--yk-radius-lg) 0 0 0;
+    transition:
+        transform 150ms ease,
+        opacity 150ms ease,
+        display 150ms allow-discrete; /* stylelint-disable-line plugin/no-low-performance-animation-properties */
 }
 
 /* Below the md breakpoint the panel covers the viewport under the
@@ -1131,8 +1594,8 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     }
 
     #ykphone-thread-panel {
+        left: 0;
         width: 100%;
-        margin-left: 0;
         border-radius: 0;
         /* Below the sidebar overlays (10/15) so the left sidebar can
            still open over the panel, above the compose box (4/5). */
@@ -1157,7 +1620,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
 
 .ykphone-thread-panel-title {
     font-size: 1.0714em; /* 15px at 14px/em */
-    font-weight: 700;
+    font-weight: 900;
 }
 
 .ykphone-thread-panel-channel {
@@ -1165,7 +1628,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     align-items: center;
     gap: 0.3em;
     font-size: 0.8571em; /* 12px at 14px/em */
-    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    color: var(--yk-text-muted);
 
     .ykphone-thread-panel-channel-name {
         overflow: hidden;
@@ -1189,6 +1652,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     background: none;
     color: var(--color-text-default);
     cursor: pointer;
+    transition: background-color 100ms ease;
 
     &:hover {
         background-color: var(--yk-row-hover);
@@ -1210,7 +1674,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
 .ykphone-thread-panel-empty {
     padding: 1em;
     font-size: 0.9286em; /* 13px at 14px/em */
-    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    color: var(--yk-text-muted);
 }
 
 .ykphone-thread-panel-error {
@@ -1222,6 +1686,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
 .ykphone-thread-panel-message {
     position: relative;
     padding: 0.15em 1em 0.15em 3.4em;
+    transition: background-color 100ms ease;
 
     &.ykphone-thread-panel-message-with-sender {
         margin-top: 0.6em;
@@ -1242,7 +1707,6 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     left: 1em;
     width: 1.9em;
     height: 1.9em;
-    border-radius: 50%;
     object-fit: cover;
 }
 
@@ -1258,13 +1722,13 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     white-space: nowrap;
     text-overflow: ellipsis;
     font-size: 1.0714em; /* 15px at 14px/em */
-    font-weight: 700;
+    font-weight: 900;
 }
 
 .ykphone-thread-panel-time {
     flex-shrink: 0;
     font-size: 0.8571em; /* 12px at 14px/em */
-    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    color: var(--yk-text-muted);
 }
 
 .ykphone-thread-panel-divider {
@@ -1273,7 +1737,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     gap: 0.6em;
     margin: 0.9em 1em 0.2em;
     font-size: 0.8571em; /* 12px at 14px/em */
-    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    color: var(--yk-text-muted);
 
     &::after {
         content: "";
@@ -1294,14 +1758,15 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     max-height: 14em;
     resize: vertical;
     padding: 0.5em 0.7em;
-    border: none;
+    border: 1px solid var(--yk-border);
     border-radius: var(--yk-radius-md);
-    background-color: var(--yk-composer-bg);
+    background-color: var(--color-background);
     color: var(--color-text-default);
     font: inherit;
 
     &:focus {
-        outline: 2px solid var(--color-outline-focus);
+        outline: none;
+        border-color: var(--yk-text-muted);
     }
 }
 
@@ -1334,10 +1799,8 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     .ykphone-thread-root-label {
         padding: 0 1em;
         font-size: 0.8571em; /* 12px at 14px/em */
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+        font-weight: 700;
+        color: var(--yk-text-muted);
     }
 }
 
@@ -1383,7 +1846,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
             border-radius: 999px;
             background-color: var(--color-background);
             color: var(--color-text-default);
-            font-weight: 600;
+            font-weight: 700;
         }
     }
 }
@@ -1419,12 +1882,230 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     box-shadow: none;
 }
 
-#compose-send-button {
+/* The message box is Slack's bordered card: a formatting row
+   (ykphone_compose moves upstream's two formatting groups into it),
+   the textarea, and the insert tools with the send button. The border
+   darkens on focus. */
+#send_message_form .messagebox {
+    /* The send controls take only the bottom row's right cell, so
+       the textarea spans the card like Slack's. */
+    grid-template:
+        auto minmax(0, 1fr) var(--compose-formatting-buttons-row-height) /
+        minmax(0, 1fr) auto;
+    grid-template-areas:
+        "ykphone-formatting ykphone-formatting"
+        "message-content-container message-content-container"
+        "message-formatting-controls-container message-send-controls-container";
+    gap: 0;
+    border: 1px solid var(--yk-border);
     border-radius: var(--yk-radius-md);
+    background-color: var(--color-background);
+    transition: border-color 100ms ease;
+
+    &:has(.new_message_textarea:focus) {
+        border-color: var(--yk-text-muted);
+    }
+}
+
+#ykphone-compose-formatting-row {
+    grid-area: ykphone-formatting;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-height: var(--compose-formatting-buttons-row-height);
+    padding: 2px 6px;
+    border-radius: var(--yk-radius-md) var(--yk-radius-md) 0 0;
+    background-color: var(--yk-composer-bg);
+
+    .compose-control-buttons-container {
+        gap: 2px;
+        height: auto;
+    }
+
+    /* The two groups are separated by a hairline, like Slack's. */
+    .compose-control-buttons-container + .compose-control-buttons-container {
+        margin-left: 4px;
+        padding-left: 6px;
+        border-left: 1px solid var(--yk-hairline);
+    }
+
+    /* Slack's order: bold, italic, strike, then link; the buttons
+       Slack lacks (spoiler, math) go last. */
+    .formatting_button[data-format-type="link"] {
+        order: 1;
+    }
+
+    .formatting_button[data-format-type="spoiler"],
+    .formatting_button[data-format-type="latex"] {
+        order: 2;
+        opacity: 0.5;
+    }
+}
+
+#compose.ykphone-compose-formatting-hidden #ykphone-compose-formatting-row {
+    display: none;
+}
+
+#compose .ykphone-compose-formatting-toggle.active {
+    opacity: 1;
+    background-color: var(--yk-composer-bg);
+}
+
+/* The border now surrounds the whole card, so the textarea's own
+   box has none, and its padding hack that stretched it under the
+   formatting row is undone. */
+#message-content-container {
+    border: none;
+    border-radius: 0;
+
+    &.surround-formatting-buttons-row {
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+}
+
+#message-formatting-controls-container {
+    margin: 0;
+    padding: 0 0 2px 4px;
+    background: none;
+    border-radius: 0 0 0 var(--yk-radius-md);
+}
+
+/* Bottom row: attach, formatting toggle, emoji, mention, calls, then
+   the rest of upstream's tools smaller, with preview at the end. */
+#compose .compose-scrollable-buttons {
+    gap: 2px;
+
+    > .divider {
+        display: none;
+    }
+
+    > .compose_control_button_container,
+    > .compose_help_button {
+        order: 10;
+    }
+
+    > .compose_control_button_container:has(.compose_upload_file) {
+        order: 0;
+    }
+
+    > .ykphone-compose-formatting-toggle-container {
+        order: 1;
+    }
+
+    > .compose_control_button_container:has(.emoji_map) {
+        order: 2;
+    }
+
+    > .ykphone-compose-mention-container {
+        order: 3;
+    }
+
+    > .compose_control_button_container:has(.video_link) {
+        order: 4;
+    }
+
+    > .compose_control_button_container:has(.audio_link) {
+        order: 5;
+    }
+
+    > .compose_control_button_container:has(
+            .markdown_preview,
+            .undo_markdown_preview
+        ) {
+        order: 20;
+    }
+
+    > .compose_help_button {
+        order: 21;
+    }
+
+    > .compose_control_button_container:not(
+            :has(
+                .compose_upload_file,
+                .emoji_map,
+                .video_link,
+                .audio_link,
+                .ykphone-compose-formatting-toggle,
+                .ykphone-compose-mention
+            )
+        )
+        .compose_control_button,
+    > .compose_help_button {
+        font-size: 1.2143em; /* 17px at 14px/em */
+        width: 1.6471em; /* 28px at 17px/em */
+        height: 1.6471em;
+        opacity: 0.5;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
+
+#compose .compose_control_button {
+    border-radius: 4px;
+    transition:
+        background-color 100ms ease,
+        opacity 100ms ease;
+}
+
+/* Send controls: the send button and the send-options chevron form
+   one green pill at the bottom right; the drafts link is covered by
+   the "Drafts & sent" view. */
+#message-send-controls-container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5em;
+    margin-left: 0;
+    padding: 0 6px 2px 4px;
+}
+
+#compose-drafts-button {
+    display: none;
+}
+
+.message-send-controls {
+    flex-direction: row;
+}
+
+#compose-send-button {
+    width: 2em;
+    flex: 0 0 auto;
+    border-radius: var(--yk-radius-sm) 0 0 var(--yk-radius-sm);
+    transition: background-color 100ms ease;
+
+    .zulip-icon-send {
+        font-size: 1.1429em; /* 16px at 14px/em */
+    }
 }
 
 .message-send-controls #send_later {
-    border-radius: 0 var(--yk-radius-md) var(--yk-radius-md) 0;
+    width: 1.5em;
+    flex: 0 0 auto;
+    margin-left: 0;
+    border-left: 1px solid hsl(0deg 0% 100% / 30%);
+    border-radius: 0 var(--yk-radius-sm) var(--yk-radius-sm) 0;
+    background-color: var(--yk-green);
+    color: hsl(0deg 0% 100%);
+    transition: background-color 100ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-green-hover);
+        color: hsl(0deg 0% 100%);
+    }
+
+    .zulip-icon {
+        font-size: 0.8571em; /* 12px at 14px/em */
+    }
+}
+
+@media (width < $sm_min), ((width >= $sm_min) and (width < $mc_min)) {
+    #compose-send-button {
+        width: 2em;
+    }
 }
 
 #compose_select_recipient_widget,
@@ -1433,7 +2114,7 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     border-radius: var(--yk-radius-sm);
 }
 
-/* ---- Popovers, modals, buttons ---- */
+/* ---- Popovers, tooltips, modals, buttons ---- */
 
 .tippy-box[data-theme="popover-menu"],
 .tippy-box[data-theme="dropdown-widget"],
@@ -1446,6 +2127,20 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
     border-radius: var(--yk-radius-sm);
 }
 
+/* Slack's tooltips: near-black, 12px, with the arrow kept. */
+[data-tippy-root] .tippy-box:not([data-theme]) {
+    border-radius: var(--yk-radius-md);
+    font-size: 0.8571em; /* 12px at 14px/em */
+
+    .tippy-content {
+        padding: 6px 10px;
+        font-size: inherit;
+        font-weight: 700;
+        line-height: 1.35;
+        color: light-dark(hsl(0deg 0% 100%), var(--yk-ink));
+    }
+}
+
 .modal__container {
     border-radius: var(--yk-radius-lg);
     box-shadow: var(--yk-shadow-popover);
@@ -1454,10 +2149,30 @@ body:not(.ykphone-thread-open) #ykphone-thread-panel {
 .action-button,
 .icon-button {
     border-radius: var(--yk-radius-sm);
+    transition:
+        background-color 100ms ease,
+        color 100ms ease;
+}
+
+/* Secondary buttons: white with Slack's grey border. */
+.action-button.action-button-quiet,
+.action-button.action-button-neutral-quiet {
+    border: 1px solid var(--yk-border);
+}
+
+.top_left_row,
+.bottom_left_row,
+.user_sidebar_entry,
+#top_navbar .header-button,
+.ykphone-rail-item,
+.ykphone-sidebar-compose {
+    transition:
+        background-color 100ms ease,
+        color 100ms ease;
 }
 
 .unread_count {
     border-radius: 999px;
     padding: 0 6px;
-    font-weight: 600;
+    font-weight: 700;
 }

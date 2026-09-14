@@ -7,6 +7,7 @@ import * as message_scroll_state from "./message_scroll_state.ts";
 import type {Message} from "./message_store.ts";
 import * as rows from "./rows.ts";
 import * as util from "./util.ts";
+import * as ykphone_layout from "./ykphone_layout.ts";
 
 export type MessageViewportInfo = {
     visible_top: number;
@@ -52,7 +53,8 @@ export function message_viewport_info(): MessageViewportInfo {
     const $element_just_above_us = $("#navbar-fixed-container");
     const $element_just_below_us = $("#compose");
 
-    let visible_top = $element_just_above_us.outerHeight() ?? 0;
+    let visible_top =
+        ($element_just_above_us.outerHeight() ?? 0) + ykphone_layout.pane_header_height();
 
     const $sticky_header = $(".sticky_header");
     if ($sticky_header.length > 0) {
@@ -259,7 +261,7 @@ function add_to_visible<T>(
 const top_of_feed = new util.CachedValue({
     compute_value() {
         const $header = $("#navbar-fixed-container");
-        let visible_top = $header.outerHeight() ?? 0;
+        let visible_top = ($header.outerHeight() ?? 0) + ykphone_layout.pane_header_height();
 
         const $sticky_header = $(".sticky_header");
         if ($sticky_header.length > 0) {

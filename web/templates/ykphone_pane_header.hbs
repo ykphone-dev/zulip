@@ -1,0 +1,41 @@
+{{! Header at the top of the message pane: the current channel, conversation or view. }}
+<div class="ykphone-pane-header-main">
+    {{#if channel}}
+    <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-tippy-content="{{t 'Channel settings' }}" data-tippy-placement="bottom">
+        <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
+        <span class="ykphone-pane-header-name">{{title}}</span>
+        {{#if topic}}
+        <span class="ykphone-pane-header-topic">{{topic}}</span>
+        {{/if}}
+        {{#if channel.is_archived}}
+        <span class="ykphone-pane-header-archived">({{t 'archived' }})</span>
+        {{/if}}
+        <i class="zulip-icon zulip-icon-chevron-down ykphone-pane-header-chevron" aria-hidden="true"></i>
+    </a>
+    {{! no-auto-hide-right-sidebar-overlay: sidebar_ui's document-level handler would otherwise close the list before the toggle runs. }}
+    <button type="button" class="ykphone-pane-header-members hidden-for-spectators tippy-zulip-tooltip no-auto-hide-right-sidebar-overlay" data-tippy-content="{{members_label}}" data-tippy-placement="bottom" aria-label="{{members_label}}">
+        <span class="ykphone-pane-header-avatars">
+            {{#each channel.avatar_urls}}
+            <img class="ykphone-pane-header-avatar" src="{{this}}" alt="" loading="lazy" />
+            {{else}}
+            <i class="zulip-icon zulip-icon-user-list" aria-hidden="true"></i>
+            {{/each}}
+        </span>
+        <span class="ykphone-pane-header-member-count">{{channel.member_count}}</span>
+    </button>
+    {{else}}
+    <span class="ykphone-pane-header-title">
+        {{#if user_circle_class}}
+        <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-pane-header-presence"></span>
+        {{else if zulip_icon}}
+        <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
+        {{else if icon}}
+        <i class="fa fa-{{icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
+        {{/if}}
+        <span class="ykphone-pane-header-name">{{title}}</span>
+    </span>
+    {{/if}}
+</div>
+{{#if description_html}}
+<div class="ykphone-pane-header-description rendered_markdown single-line-rendered-markdown">{{rendered_markdown description_html}}</div>
+{{/if}}

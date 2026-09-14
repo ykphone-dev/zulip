@@ -199,7 +199,7 @@ test("no_subscribed_streams", () => {
                 folder_id: null,
                 inactive_streams: [],
                 muted_streams: [],
-                section_title: "translated: CHANNELS",
+                section_title: "translated: Channels",
                 default_visible_streams: [],
             },
         ],

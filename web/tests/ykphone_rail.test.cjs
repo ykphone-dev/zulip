@@ -182,6 +182,21 @@ run_test("mount", ({override, mock_template}) => {
         header_html = html;
         return html;
     });
+    let history_html;
+    mock_template("ykphone_navbar_history.hbs", true, (_data, html) => {
+        history_html = html;
+        return html;
+    });
+    let navbar_left_child;
+    $.create("#top_navbar .column-left", {
+        elements: [
+            {
+                append(node) {
+                    navbar_left_child = node;
+                },
+            },
+        ],
+    });
 
     const prepended = new Map();
     for (const container of ["#left-sidebar-container", "#left-sidebar-search"]) {
@@ -231,6 +246,13 @@ run_test("mount", ({override, mock_template}) => {
     // The VIEWS header is hidden, so the section is kept expanded.
     assert.equal(views_expanded, 1);
     assert.equal($search_input.attr("placeholder"), "translated: Find a conversation…");
+    // Slack's history controls take the navbar's left column, and the
+    // search box names the organization.
+    assert.equal(navbar_left_child, $(history_html)[0]);
+    assert.ok(history_html.includes("ykphone-navbar-back"));
+    assert.ok(history_html.includes("ykphone-navbar-forward"));
+    assert.ok(history_html.includes('href="#recent"'));
+    assert.equal($("#search_query").attr("data-placeholder-text"), "translated: Search 옆커폰");
     assert.ok($dm.hasClass("active"));
 
     // Later hash changes and narrows update the active item.

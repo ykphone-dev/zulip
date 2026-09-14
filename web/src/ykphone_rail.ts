@@ -10,10 +10,14 @@
 // and the new-message button) is rendered here as well, since it is
 // part of the same layout.
 //
+// The navbar's history controls (back, forward, Threads) and the
+// search placeholder are set up here too.
+//
 // The DOM event wiring lives in ykphone_threads_ui.ts.
 
 import $ from "jquery";
 
+import render_ykphone_navbar_history from "../templates/ykphone_navbar_history.hbs";
 import render_ykphone_rail from "../templates/ykphone_rail.hbs";
 import render_ykphone_sidebar_header from "../templates/ykphone_sidebar_header.hbs";
 
@@ -188,6 +192,14 @@ export function mount(): void {
     $(".left-sidebar-search-input").attr(
         "placeholder",
         $t({defaultMessage: "Find a conversation…"}),
+    );
+    // Slack keeps its history controls at the left of the top bar,
+    // where the logo used to be, and names the workspace in the
+    // search box.
+    $("#top_navbar .column-left").append($(render_ykphone_navbar_history()));
+    $("#search_query").attr(
+        "data-placeholder-text",
+        $t({defaultMessage: "Search {realm_name}"}, {realm_name: realm.realm_name}),
     );
     $(window).on("hashchange", refresh_active_item);
     refresh_active_item();

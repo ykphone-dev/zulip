@@ -50,6 +50,7 @@ import * as ui_util from "./ui_util.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 
 export type MessageContainer = {
@@ -2075,7 +2076,8 @@ export class MessageListView {
             });
         }
 
-        const navbar_bottom = $("#navbar-fixed-container").outerHeight()!;
+        const navbar_bottom =
+            $("#navbar-fixed-container").outerHeight()! + ykphone_layout.pane_header_height();
         /* We need date to be properly visible on the header, so partially visible headers
            who are about to be scrolled out of view are not acceptable. */
         const partially_hidden_header_position = navbar_bottom - 1;
