@@ -20,7 +20,7 @@ from zerver.models.users import is_cross_realm_bot_email
 
 STATIC_AVATARS_DIR = "images/static_avatars/"
 
-DEFAULT_AVATAR_FILE = "images/default-avatar.png"
+DEFAULT_AVATAR_FILE = "images/default-user-avatar.png"
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +145,7 @@ def _get_unversioned_gravatar_url(email: str, medium: bool, realm_id: int) -> st
     elif settings.DEFAULT_AVATAR_URI is not None:
         return settings.DEFAULT_AVATAR_URI
     else:
-        return staticfiles_storage.url("images/default-avatar.png")
+        return staticfiles_storage.url(DEFAULT_AVATAR_FILE)
 
 
 def absolute_avatar_url(

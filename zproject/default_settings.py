@@ -244,7 +244,10 @@ POLICIES_DIRECTORY: str = "zerver/policies_absent"
 
 # Security
 ENABLE_FILE_LINKS = False
-ENABLE_GRAVATAR = True
+# Gravatar's fallback for users without an avatar is a generated
+# geometric pattern per email; this fork shows a plain silhouette
+# instead (see DEFAULT_AVATAR_FILE), like Slack or Instagram.
+ENABLE_GRAVATAR = False
 ## Overrides the above setting for individual realms, by integer ID.
 GRAVATAR_REALM_OVERRIDE: dict[int, bool] = {}
 INLINE_IMAGE_PREVIEW = True

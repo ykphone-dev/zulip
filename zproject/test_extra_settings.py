@@ -319,3 +319,8 @@ VERIFY_WEBHOOK_SIGNATURES = False
 AUTH_LDAP_USER_ATTR_MAP = {
     "full_name": "cn",
 }
+
+# The fork's production default is a local silhouette avatar, but the
+# upstream test suite is written against Gravatar fallbacks; keep the
+# tests on upstream behavior instead of rewriting their expectations.
+ENABLE_GRAVATAR = True
