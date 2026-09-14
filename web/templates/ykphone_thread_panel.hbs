@@ -1,0 +1,26 @@
+{{! Shell of the thread side panel; the body is rendered separately by ykphone_thread_panel_body. }}
+<div class="ykphone-thread-panel-header">
+    <div class="ykphone-thread-panel-titles">
+        <span class="ykphone-thread-panel-title">{{t 'Thread' }}</span>
+        {{#if channel}}
+        <span class="ykphone-thread-panel-channel">
+            <span class="stream-privacy filter-icon" style="color: {{channel.color}}">{{> stream_privacy channel}}</span>
+            <span class="ykphone-thread-panel-channel-name">{{channel.name}}</span>
+        </span>
+        {{/if}}
+    </div>
+    <a class="ykphone-thread-panel-full-view" href="{{full_view_url}}">{{t 'Open in full view' }}</a>
+    <button type="button" class="ykphone-thread-panel-close" aria-label="{{t 'Close thread' }}">
+        <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
+    </button>
+</div>
+<div class="ykphone-thread-panel-body"></div>
+<div class="ykphone-thread-panel-composer">
+    <textarea class="ykphone-thread-panel-textarea" placeholder="{{t 'Reply…' }}" aria-label="{{t 'Reply in thread' }}"></textarea>
+    <div class="ykphone-thread-panel-send-error" role="alert"></div>
+    <div class="ykphone-thread-panel-composer-actions">
+        <button type="button" class="ykphone-thread-panel-send action-button action-button-primary">
+            <span class="action-button-label">{{t 'Send' }}</span>
+        </button>
+    </div>
+</div>

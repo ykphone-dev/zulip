@@ -1,0 +1,11 @@
+{{! One message row in the thread panel; content is server-rendered HTML. }}
+<div class="ykphone-thread-panel-message{{#if include_sender}} ykphone-thread-panel-message-with-sender{{/if}}{{#if is_root}} ykphone-thread-panel-root{{/if}}" data-message-id="{{message_id}}">
+    {{#if include_sender}}
+    <img class="ykphone-thread-panel-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+    <div class="ykphone-thread-panel-sender">
+        <span class="ykphone-thread-panel-sender-name">{{sender_name}}</span>
+        <span class="ykphone-thread-panel-time">{{time_label}}</span>
+    </div>
+    {{/if}}
+    <div class="ykphone-thread-panel-content rendered_markdown">{{rendered_markdown content}}</div>
+</div>

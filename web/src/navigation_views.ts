@@ -39,7 +39,7 @@ export const built_in_views_meta_data: Record<string, BuiltInViewBasicMetadata> 
     },
     recent_view: {
         fragment: "recent",
-        name: $t({defaultMessage: "Recent conversations"}),
+        name: $t({defaultMessage: "Threads"}),
         is_pinned: true,
         icon: "zulip-icon-recent",
         css_class_suffix: "recent_view",
@@ -49,7 +49,7 @@ export const built_in_views_meta_data: Record<string, BuiltInViewBasicMetadata> 
         supports_masked_unread: true,
         hidden_for_spectators: false,
         menu_icon_class: "recent-view-sidebar-menu-icon",
-        menu_aria_label: $t({defaultMessage: "Recent conversations options"}),
+        menu_aria_label: $t({defaultMessage: "Threads options"}),
         home_view_code: "recent",
         prioritize_in_condensed_view: true,
     },

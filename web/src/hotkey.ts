@@ -73,6 +73,7 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status_ui from "./user_status_ui.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as util from "./util.ts";
+import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 
 function do_narrow_action(
     action: (
@@ -539,6 +540,10 @@ function process_escape_key(e: JQuery.KeyDownEvent): boolean {
 
     if (stream_list.is_zoomed_in()) {
         stream_list.zoom_out();
+        return true;
+    }
+
+    if (ykphone_thread_panel.close()) {
         return true;
     }
 

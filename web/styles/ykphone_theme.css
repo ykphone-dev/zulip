@@ -54,6 +54,9 @@
     --yk-radius-md: 8px;
     --yk-radius-lg: 12px;
     --yk-frame-gap: 6px;
+    /* 392px at 14px/1em; the thread side panel takes this much of the
+       right column while a thread is open. */
+    --yk-thread-panel-width: min(28em, 40vw);
     --yk-shadow-floating: light-dark(
         0 1px 3px hsl(220deg 20% 10% / 10%),
         0 1px 3px hsl(0deg 0% 0% / 45%)
@@ -712,6 +715,300 @@ body {
 
 .content_edit_mode .ykphone-thread-pill {
     display: none;
+}
+
+/* Threads are reached through the pill and the Threads view, so the
+   per-channel topic list (with its search, "more topics" and new
+   topic rows) and the new-topic control stay out of the left sidebar. */
+#stream_filters .topic-list,
+#stream_filters .narrow-filter.stream-expanded .channel-new-topic-button,
+#stream_filters .narrow-filter:hover .channel-new-topic-button {
+    display: none;
+}
+
+/* Thread side panel. While a thread is open the right column widens
+   to the panel and shows it instead of the buddy list. This is all
+   keyed off body.ykphone-thread-open, so the user's own choice to
+   hide the right sidebar is untouched and simply applies again once
+   the panel closes. */
+body.ykphone-thread-open {
+    .app-main {
+        --right-sidebar-width: var(--yk-thread-panel-width);
+
+        .column-right {
+            display: block;
+            max-width: none;
+
+            .right-sidebar {
+                display: none;
+            }
+        }
+
+        .column-middle {
+            margin-right: var(--yk-thread-panel-width);
+        }
+    }
+
+    #compose-content,
+    #typing_notifications,
+    #scheduled_message_indicator {
+        margin-right: var(--yk-thread-panel-width);
+    }
+
+    /* The buddy-list toggle would flip (and persist) the hide-sidebar
+       setting with nothing visible changing while the panel is open. */
+    #userlist-toggle-button {
+        display: none;
+    }
+}
+
+body:not(.ykphone-thread-open) #ykphone-thread-panel {
+    display: none;
+}
+
+#ykphone-thread-panel {
+    /* Fixed like the buddy list, so it keeps its place while the
+       feed scrolls; without a horizontal offset it stays inside the
+       right column. */
+    position: fixed;
+    z-index: 100;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--navbar-fixed-height);
+    margin-left: var(--yk-frame-gap);
+    width: calc(var(--yk-thread-panel-width) - var(--yk-frame-gap));
+    height: calc(100% - var(--navbar-fixed-height));
+    background-color: var(--color-background);
+    border-radius: var(--yk-radius-lg) 0 0 0;
+}
+
+/* Below the md breakpoint the panel covers the viewport under the
+   navbar; the middle column keeps its narrow-screen margins. */
+@media (width < $md_min) {
+    body.ykphone-thread-open {
+        .app-main .column-right {
+            left: 0;
+            right: auto;
+        }
+
+        .app-main .column-middle,
+        #compose-content,
+        #typing_notifications,
+        #scheduled_message_indicator {
+            margin-right: 7px;
+        }
+    }
+
+    #ykphone-thread-panel {
+        width: 100%;
+        margin-left: 0;
+        border-radius: 0;
+        /* Below the sidebar overlays (10/15) so the left sidebar can
+           still open over the panel, above the compose box (4/5). */
+        z-index: 9;
+    }
+}
+
+.ykphone-thread-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.7em 0.6em 0.6em 1em;
+    border-bottom: 1px solid var(--yk-hairline);
+}
+
+.ykphone-thread-panel-titles {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.ykphone-thread-panel-title {
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 700;
+}
+
+.ykphone-thread-panel-channel {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+
+    .ykphone-thread-panel-channel-name {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+}
+
+.ykphone-thread-panel-full-view {
+    flex-shrink: 0;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 600;
+}
+
+.ykphone-thread-panel-close {
+    flex-shrink: 0;
+    display: flex;
+    padding: 0.3em;
+    border: none;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--color-text-default);
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
+.ykphone-thread-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5em 0;
+}
+
+.ykphone-thread-panel-status,
+.ykphone-thread-panel-empty {
+    padding: 1em;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+}
+
+.ykphone-thread-panel-error {
+    color: var(--yk-red);
+}
+
+/* Message rows are shared with the root block above a thread's full
+   view, so they are not scoped to the panel. */
+.ykphone-thread-panel-message {
+    position: relative;
+    padding: 0.15em 1em 0.15em 3.4em;
+
+    &.ykphone-thread-panel-message-with-sender {
+        margin-top: 0.6em;
+    }
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    .ykphone-thread-panel-content {
+        overflow-wrap: anywhere;
+    }
+}
+
+.ykphone-thread-panel-avatar {
+    position: absolute;
+    top: 0.2em;
+    left: 1em;
+    width: 1.9em;
+    height: 1.9em;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ykphone-thread-panel-sender {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6em;
+    min-width: 0;
+}
+
+.ykphone-thread-panel-sender-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 700;
+}
+
+.ykphone-thread-panel-time {
+    flex-shrink: 0;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+}
+
+.ykphone-thread-panel-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0.9em 1em 0.2em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+
+    &::after {
+        content: "";
+        flex: 1;
+        border-bottom: 1px solid var(--yk-hairline);
+    }
+}
+
+.ykphone-thread-panel-composer {
+    padding: 0.6em 0.75em 0.75em;
+    border-top: 1px solid var(--yk-hairline);
+}
+
+.ykphone-thread-panel-textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 4.5em;
+    max-height: 14em;
+    resize: vertical;
+    padding: 0.5em 0.7em;
+    border: none;
+    border-radius: var(--yk-radius-md);
+    background-color: var(--yk-composer-bg);
+    color: var(--color-text-default);
+    font: inherit;
+
+    &:focus {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
+.ykphone-thread-panel-send-error {
+    margin-top: 0.4em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: var(--yk-red);
+
+    &:empty {
+        display: none;
+    }
+}
+
+.ykphone-thread-panel-composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.4em;
+}
+
+/* Root message above the feed in a thread's full view. */
+#ykphone-thread-root:empty {
+    display: none;
+}
+
+.ykphone-thread-root {
+    margin-top: 0.8571em; /* 12px at 14px/em */
+    padding-bottom: 0.6em;
+    border-bottom: 1px solid var(--yk-hairline);
+
+    .ykphone-thread-root-label {
+        padding: 0 1em;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: light-dark(var(--yk-grey-500), var(--yk-graphite-muted));
+    }
 }
 
 /* Channels are rooms; the "general chat" label is noise in the

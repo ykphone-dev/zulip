@@ -550,7 +550,8 @@ function all_rows(): JQuery {
         .not($collapsed_views)
         .not($collapsed_channels)
         .not($hidden_topic_rows)
-        .not($toggle_inactive_or_muted_channels_row);
+        .not($toggle_inactive_or_muted_channels_row)
+        .not(".topic-list-item");
 }
 
 class LeftSidebarListCursor extends ListCursor<JQuery> {

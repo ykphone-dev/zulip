@@ -1,0 +1,15 @@
+{{#if loading}}
+<div class="ykphone-thread-panel-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-thread-panel-status ykphone-thread-panel-error">{{error}}</div>
+{{else}}
+{{> ykphone_thread_panel_message root}}
+{{#if has_replies}}
+<div class="ykphone-thread-panel-divider"><span>{{reply_label}}</span></div>
+{{#each replies}}
+{{> ykphone_thread_panel_message .}}
+{{/each}}
+{{else}}
+<div class="ykphone-thread-panel-empty">{{t 'No replies yet. Start the conversation.' }}</div>
+{{/if}}
+{{/if}}

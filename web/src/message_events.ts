@@ -51,6 +51,7 @@ import * as sub_store from "./sub_store.ts";
 import * as unread from "./unread.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as util from "./util.ts";
+import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 
 function filter_has_term_type(filter: Filter, term_type: string): boolean {
@@ -404,6 +405,7 @@ export function insert_new_messages(opts: InsertNewMessagesOpts): Message[] {
     stream_list.update_streams_sidebar_for_messages(messages);
     pm_list.update_private_messages();
     ykphone_threads.on_new_messages(messages);
+    ykphone_thread_panel.on_new_messages(messages);
 
     return messages;
 }
@@ -1004,6 +1006,7 @@ export function update_messages(events: UpdateMessageEvent[]): void {
     unread_ui.update_unread_counts();
     stream_list.update_streams_sidebar();
     pm_list.update_private_messages();
+    ykphone_thread_panel.on_messages_updated(events.flatMap((event) => event.message_ids));
 }
 
 export function remove_messages(message_ids: number[]): void {
@@ -1020,5 +1023,7 @@ export function remove_messages(message_ids: number[]): void {
     recent_view_ui.update_topics_of_deleted_message_ids(message_ids);
     starred_messages.remove(message_ids);
     starred_messages_ui.rerender_ui();
+    ykphone_threads.on_messages_removed(message_ids);
+    ykphone_thread_panel.on_messages_removed(message_ids);
     message_store.remove(message_ids);
 }

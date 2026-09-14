@@ -69,6 +69,7 @@ import * as unread_ops from "./unread_ops.ts";
 import * as unread_ui from "./unread_ui.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 
 const LARGER_THAN_MAX_MESSAGE_ID = 10000000000000000;
 
@@ -1631,6 +1632,7 @@ function handle_post_view_change(
     left_sidebar_navigation_area.handle_narrow_activated(filter);
     stream_list.handle_narrow_activated(filter, opts.change_hash, opts.show_more_topics);
     pm_list.handle_narrow_activated(filter);
+    ykphone_thread_panel.handle_narrow_activated();
     // This also builds the user sidebar.
     activity_ui.clear_search();
 }

@@ -41,7 +41,7 @@ type MessageViewHeaderContext = {
 function get_message_view_header_context(filter: Filter | undefined): MessageViewHeaderContext {
     if (recent_view_util.is_visible()) {
         return {
-            title: $t({defaultMessage: "Recent conversations"}),
+            title: $t({defaultMessage: "Threads"}),
             description: $t({defaultMessage: "Overview of ongoing conversations."}),
             zulip_icon: "recent",
             link: "/help/recent-conversations",

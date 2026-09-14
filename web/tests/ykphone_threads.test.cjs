@@ -3,9 +3,13 @@
 const assert = require("node:assert/strict");
 
 const {mock_esm, zrequire} = require("./lib/namespace.cjs");
-const {run_test} = require("./lib/test.cjs");
+const {noop, run_test} = require("./lib/test.cjs");
+const {page_params} = require("./lib/zpage_params.cjs");
 
-const channel = mock_esm("../src/channel");
+const channel = mock_esm("../src/channel", {
+    xhr_error_message: (message, xhr) => `${message} ${xhr.responseJSON.msg}`,
+});
+const feedback_widget = mock_esm("../src/feedback_widget");
 const message_lists = mock_esm("../src/message_lists");
 const stream_data = mock_esm("../src/stream_data", {
     is_empty_topic_only_channel: () => false,
@@ -62,6 +66,11 @@ run_test("can_thread", ({override}) => {
     assert.equal(ykphone_threads.can_thread({...root, locally_echoed: true}), false);
     override(stream_data, "is_empty_topic_only_channel", () => true);
     assert.equal(ykphone_threads.can_thread(root), false);
+
+    // Spectators cannot use the thread endpoints at all.
+    page_params.is_spectator = true;
+    assert.equal(ykphone_threads.can_thread(root), false);
+    page_params.is_spectator = false;
 });
 
 run_test("pill_context", () => {
@@ -93,8 +102,12 @@ run_test("load and pill on first look", ({override}) => {
         requests.push(opts);
     });
 
-    // Direct messages never carry a pill and never trigger a fetch.
+    // Direct messages never carry a pill and never trigger a fetch,
+    // and neither does anything for a spectator.
     assert.equal(ykphone_threads.get_pill_context_for_message(dm), undefined);
+    page_params.is_spectator = true;
+    assert.equal(ykphone_threads.get_pill_context_for_message(root), undefined);
+    page_params.is_spectator = false;
     assert.equal(requests.length, 0);
 
     // The first look at a channel fetches its threads once.
@@ -104,9 +117,13 @@ run_test("load and pill on first look", ({override}) => {
     assert.equal(requests[0].url, "/json/ykphone/threads");
     assert.deepEqual(requests[0].data, {stream_id: verona_id});
 
-    // A failed fetch allows a retry.
+    // A failed fetch (an archived channel, say) is not retried by
+    // rendering; only a forced load asks again.
     requests[0].error();
     ykphone_threads.get_pill_context_for_message(root);
+    ykphone_threads.load_stream_threads(verona_id);
+    assert.equal(requests.length, 1);
+    ykphone_threads.load_stream_threads(verona_id, true);
     assert.equal(requests.length, 2);
 
     requests[1].success({threads: [thread_dict(2, root.timestamp)]});
@@ -158,6 +175,25 @@ run_test("create_thread", ({override}) => {
     });
     assert.equal(posts.length, 1);
     assert.equal(results.length, 2);
+
+    // A failure is reported rather than swallowed.
+    const shown = [];
+    override(feedback_widget, "show", (opts) => {
+        const $container = {
+            text(message) {
+                shown.push({title: opts.title_text, message});
+            },
+        };
+        opts.populate($container);
+    });
+    ykphone_threads.create_thread(reply.id, noop);
+    posts[1].error({responseJSON: {msg: "Invalid message(s)"}});
+    assert.deepEqual(shown, [
+        {
+            title: "translated: Thread",
+            message: "translated: Could not open this thread. Invalid message(s)",
+        },
+    ]);
 });
 
 run_test("on_new_messages", ({override}) => {
@@ -201,4 +237,62 @@ run_test("on_new_messages", ({override}) => {
     // Unknown topics in channels we never loaded are ignored.
     ykphone_threads.on_new_messages([{...reply, stream_id: 99}]);
     assert.equal(requests.length, 2);
+});
+
+run_test("on_messages_removed", ({override}) => {
+    reset();
+    const rerendered = [];
+    override(message_lists, "all_rendered_message_lists", () => [
+        {
+            view: {
+                rerender_messages(messages) {
+                    rerendered.push(messages.map((message) => message.id));
+                },
+            },
+        },
+    ]);
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+    const loaded_streams = [];
+    ykphone_threads.on_stream_threads_loaded((stream_id) => {
+        loaded_streams.push(stream_id);
+    });
+
+    ykphone_threads.load_stream_threads(verona_id);
+    requests[0].success({threads: [thread_dict(2, reply.timestamp)]});
+    assert.deepEqual(loaded_streams, [verona_id]);
+    rerendered.length = 0;
+
+    // Deleting a reply lowers the count while its topic is still known.
+    message_store.update_message_cache({message: reply});
+    ykphone_threads.on_messages_removed([reply.id]);
+    assert.equal(ykphone_threads.get_thread(root.id).reply_count, 1);
+    assert.equal(ykphone_threads.get_thread(root.id).last_reply_timestamp, reply.timestamp);
+    assert.deepEqual(rerendered, [[root.id]]);
+
+    // Messages we never had, direct messages, general chat messages
+    // and replies in topics that are not threads change nothing.
+    message_store.update_message_cache({message: dm});
+    message_store.update_message_cache({message: stream_message(14, "not a thread")});
+    ykphone_threads.on_messages_removed([99, dm.id, root.id + 100, 14]);
+    assert.equal(ykphone_threads.get_thread(root.id).reply_count, 1);
+    assert.deepEqual(rerendered, [[root.id]]);
+
+    // The count never goes below zero, and an empty thread loses its
+    // last-reply time.
+    ykphone_threads.on_messages_removed([reply.id, reply.id]);
+    assert.equal(ykphone_threads.get_thread(root.id).reply_count, 0);
+    assert.equal(ykphone_threads.get_thread(root.id).last_reply_timestamp, null);
+
+    // Deleting the root forgets the thread, even in the same batch as
+    // one of its replies.
+    ykphone_threads.on_messages_removed([reply.id, root.id]);
+    assert.equal(ykphone_threads.get_thread(root.id), undefined);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, "Shall we ship on Friday?"),
+        undefined,
+    );
+    assert.deepEqual(rerendered, [[root.id], [root.id]]);
 });
