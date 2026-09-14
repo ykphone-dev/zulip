@@ -46,6 +46,7 @@ import * as ui_util from "./ui_util.ts";
 import * as unread from "./unread.ts";
 import type {FullUnreadCountsData, StreamCountInfo} from "./unread.ts";
 import {user_settings} from "./user_settings.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 let pending_stream_list_rerender = false;
 let zoomed_in = false;
@@ -1430,9 +1431,14 @@ export function on_sidebar_channel_click(
     const current_narrow_stream_id = narrow_state.stream_id();
     const current_topic = narrow_state.topic();
 
-    if (stream_data.is_empty_topic_only_channel(stream_id)) {
-        // If the channel doesn't support topics, take you
-        // directly to general chat regardless of settings.
+    if (
+        stream_data.is_empty_topic_only_channel(stream_id) ||
+        ykphone_flags.channels_open_in_general_chat()
+    ) {
+        // If the channel doesn't support topics, or this deployment
+        // treats channels as Slack-style rooms with topics reserved
+        // for threads, take you directly to general chat regardless
+        // of settings.
         const empty_topic_url = stream_topic_history.channel_topic_permalink_hash(stream_id, "");
         browser_history.go_to_location(empty_topic_url);
         return;

@@ -50,6 +50,7 @@ import * as ui_util from "./ui_util.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_threads from "./ykphone_threads.ts";
 
 export type MessageContainer = {
     background_color?: string;
@@ -81,6 +82,8 @@ export type MessageContainer = {
     topic_url?: string;
     want_date_divider: boolean;
     want_subscription_status_divider: boolean;
+    ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
+    ykphone_can_thread?: boolean;
 };
 
 export type MessageGroup = {
@@ -606,6 +609,8 @@ export class MessageListView {
         moved: boolean;
         modified: boolean;
         widget_edited: boolean;
+        ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
+        ykphone_can_thread?: boolean;
     } {
         const is_typing = typing_data.is_message_editing(message.id);
         if (is_typing) {
@@ -703,6 +708,8 @@ export class MessageListView {
             include_sender,
             ...this._maybe_get_me_message(is_hidden, message),
             ...this._get_message_edited_and_moved_vars(message),
+            ykphone_thread: ykphone_threads.get_pill_context_for_message(message),
+            ykphone_can_thread: ykphone_threads.can_thread(message),
         };
     }
 

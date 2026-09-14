@@ -27,6 +27,7 @@ import * as user_groups from "./user_groups.ts";
 import type {UserGroup} from "./user_groups.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 export function get_reload_hash(): string {
     let hash = window.location.hash;
@@ -116,6 +117,9 @@ export function by_stream_url(stream_id: number): string {
 }
 
 export function channel_url_by_user_setting(channel_id: number): string {
+    if (ykphone_flags.channels_open_in_general_chat()) {
+        return by_stream_topic_url(channel_id, "");
+    }
     if (
         user_settings.web_channel_default_view ===
             web_channel_default_view_values.list_of_topics.code &&

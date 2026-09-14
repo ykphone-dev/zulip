@@ -557,6 +557,16 @@ body {
 .messagebox-content {
     padding-left: 12px;
     padding-right: 8px;
+    /* Every message grid variant gets a row for the thread pill
+       under the reactions and reminders; see the sender-row and
+       me-message overrides below for the other variants. */
+    grid-template-areas:
+        "edited message   controls . time"
+        ".      message   .        . .   "
+        ".      more      .        . .   "
+        ".      reactions .        . .   "
+        ".      reminders .        . .   "
+        ".      thread    .        . .   ";
 
     .message_sender .sender_name {
         font-size: 1.0714em; /* 15px at 14px/em */
@@ -584,7 +594,8 @@ body {
         "avatar message   message   .        ."
         ".      more      more      .        ."
         ".      reactions reactions .        ."
-        ".      reminders reminders .        .";
+        ".      reminders reminders .        ."
+        ".      thread    thread    .        .";
 
     .message_sender {
         max-width: 60vw;
@@ -649,6 +660,68 @@ body {
     .message_controls {
     opacity: 1;
     visibility: visible;
+}
+
+/* ---- Threads ---- */
+
+.messagebox-includes-sender .messagebox-content.is-me-message {
+    grid-template-areas:
+        ".      .         .        . .   "
+        "avatar sender    controls . time"
+        ".      more      .        . .   "
+        ".      reactions .        . .   "
+        ".      reminders .        . .   "
+        ".      thread    .        . .   ";
+}
+
+.ykphone-thread-pill {
+    grid-area: thread;
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    margin: 2px 0 4px;
+    padding: 0.2em 0.6em 0.2em 0.45em;
+    border: 1px solid transparent;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    font: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--color-text-link);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        border-color: var(--yk-hairline);
+        background-color: var(--color-background-popover);
+        outline: none;
+    }
+
+    .zulip-icon {
+        font-size: 1.1em;
+    }
+}
+
+.ykphone-thread-pill-time {
+    font-weight: 400;
+    color: var(--color-text-default);
+    opacity: 0.7;
+}
+
+.content_edit_mode .ykphone-thread-pill {
+    display: none;
+}
+
+/* Channels are rooms; the "general chat" label is noise in the
+   recipient bar and in the navbar title. */
+.message_header_stream:has(.empty-topic-display) {
+    .stream_topic_separator,
+    .copy-paste-text,
+    .stream_topic {
+        display: none;
+    }
 }
 
 /* Date dividers as centered pills. */

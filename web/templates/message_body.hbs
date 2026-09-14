@@ -82,3 +82,7 @@
 {{#unless (eq msg.reminders.length 0)}}
     {{> message_reminders . }}
 {{/unless}}
+
+{{#if ykphone_thread}}
+    {{> ykphone_thread_pill ykphone_thread}}
+{{/if}}

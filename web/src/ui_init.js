@@ -178,6 +178,7 @@ import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as watchdog from "./watchdog.ts";
 import * as widgets from "./widgets.ts";
+import * as ykphone_threads_ui from "./ykphone_threads_ui.ts";
 
 function update_page_loading_indicator_notice() {
     const $unsupported_desktop_app_notice = $("#app-loading-unsupported-desktop-app");
@@ -774,6 +775,7 @@ export async function initialize_everything(state_data) {
     });
     typing.initialize();
     starred_messages_ui.initialize();
+    ykphone_threads_ui.initialize();
     user_status_ui.initialize();
     fenced_code.initialize(pygments_data);
     message_edit_history.initialize();
