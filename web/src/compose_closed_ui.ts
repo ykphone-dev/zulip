@@ -15,6 +15,7 @@ import * as people from "./people.ts";
 import * as recent_view_util from "./recent_view_util.ts";
 import * as stream_data from "./stream_data.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 type RecipientLabel = {
     label_text: string;
@@ -27,9 +28,11 @@ function get_stream_recipient_label(stream_id: number, topic: string): Recipient
     const stream = stream_data.get_sub_by_id(stream_id);
     const topic_display_name = util.get_final_topic_display_name(topic);
     if (stream) {
+        // With channels opening in general chat, that topic is the channel itself.
+        const is_channel_room = topic === "" && ykphone_flags.channels_open_in_general_chat();
         const recipient_label: RecipientLabel = {
-            label_text: "#" + stream.name + " > " + topic_display_name,
-            has_empty_string_topic: topic === "",
+            label_text: "#" + stream.name + (is_channel_room ? "" : " > " + topic_display_name),
+            has_empty_string_topic: topic === "" && !is_channel_room,
             stream_name: stream.name,
         };
         return recipient_label;
