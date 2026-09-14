@@ -77,7 +77,7 @@ NOTIFICATION_BOT = "notification-bot@zulip.com"
 EMAIL_GATEWAY_BOT = "emailgateway@zulip.com"
 PHYSICAL_ADDRESS = "Zulip Headquarters, 123 Octo Stream, South Pacific Ocean"
 STAFF_SUBDOMAIN = "zulip"
-EXTRA_INSTALLED_APPS = ["zilencer", "analytics", "corporate"]
+EXTRA_INSTALLED_APPS = ["zilencer", "analytics", "corporate", "ykphone"]
 # Disable Camo in development
 CAMO_URI = ""
 KATEX_SERVER = False
