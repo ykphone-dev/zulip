@@ -7645,6 +7645,22 @@ msgstr "OTP가 유효하지 않습니다."
 msgid "Can't use both mobile_flow_otp and desktop_flow_otp together."
 msgstr ""
 
+#: ykphone/lib/threads.py:75
+msgid "Could not find a free name for this thread."
+msgstr "이 스레드에 사용할 수 있는 이름을 찾지 못했습니다."
+
+#: ykphone/lib/threads.py:87
+msgid "Threads can only be started on channel messages."
+msgstr "스레드는 채널 메시지에서만 시작할 수 있습니다."
+
+#: ykphone/lib/threads.py:89
+msgid "This message is already part of a thread."
+msgstr "이 메시지는 이미 스레드에 속해 있습니다."
+
+#: ykphone/lib/threads.py:96
+msgid "This channel does not allow threads."
+msgstr "이 채널에서는 스레드를 사용할 수 없습니다."
+
 #, fuzzy
 #~| msgid "Already has an account."
 #~ msgid "Don't have an account?"
