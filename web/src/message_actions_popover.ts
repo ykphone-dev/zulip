@@ -24,6 +24,7 @@ import * as stream_popover from "./stream_popover.ts";
 import {parse_html} from "./ui_util.ts";
 import * as unread_ops from "./unread_ops.ts";
 import {the} from "./util.ts";
+import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
 
 let message_actions_popover_keyboard_toggle = false;
 
@@ -135,12 +136,7 @@ export function initialize({
             });
 
             $popper.one("click", ".forward_button", (e) => {
-                compose_reply.quote_messages({
-                    trigger: "popover respond",
-                    message_id,
-                    quote_content,
-                    forward_message: true,
-                });
+                ykphone_forward_ui.start(message_id);
                 e.preventDefault();
                 e.stopPropagation();
                 popover_menus.hide_current_popover_if_visible(instance);

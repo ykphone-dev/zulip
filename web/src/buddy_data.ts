@@ -218,6 +218,7 @@ export type BuddyUserInfo = {
         WITH_AVATAR: boolean;
     };
     should_add_guest_user_indicator: boolean;
+    is_bot: boolean;
     faded?: boolean;
 };
 
@@ -247,6 +248,7 @@ export function info_for(user_id: number, direct_message_recipients: Set<number>
         user_circle_class,
         status_text,
         has_status_text: Boolean(status_text),
+        is_bot: people.is_valid_bot_user(user_id),
         user_list_style,
         should_add_guest_user_indicator: people.should_add_guest_user_indicator(user_id),
     };

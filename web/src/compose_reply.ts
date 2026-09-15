@@ -39,7 +39,7 @@ type QuoteMessageOpts = {
     highlighted_message_ids?: number[];
 };
 
-type ReplaceContentOpts = {
+export type ReplaceContentOpts = {
     quoted_message: Message;
     raw_markdown: string;
     forward_message: boolean | undefined;
@@ -484,7 +484,7 @@ export function get_quote_context_for_message(info: {
     return "INCLUDE_SENDER_AND_RECIPIENT";
 }
 
-function generate_replace_content(info: ReplaceContentOpts): string {
+export function generate_replace_content(info: ReplaceContentOpts): string {
     const {
         quoted_message,
         raw_markdown,

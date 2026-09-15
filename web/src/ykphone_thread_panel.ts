@@ -35,6 +35,7 @@ import * as timerender from "./timerender.ts";
 import * as unread_ops from "./unread_ops.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
+import * as ykphone_time from "./ykphone_time.ts";
 
 const fetch_message_response_schema = z.object({message: raw_message_schema});
 const fetch_messages_response_schema = z.object({messages: z.array(raw_message_schema)});
@@ -123,10 +124,7 @@ function message_row_context(
         sender_name: message.sender_full_name,
         avatar_url: people.small_avatar_url(message),
         time_label: time_label(message),
-        gutter_time: timerender.get_localized_date_or_time_for_format(
-            new Date(message.timestamp * 1000),
-            "time",
-        ),
+        gutter_time: ykphone_time.hour_and_minute(message.timestamp * 1000),
         content: message.content,
     };
 }

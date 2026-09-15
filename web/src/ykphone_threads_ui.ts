@@ -27,7 +27,9 @@ import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_forward from "./ykphone_forward.ts";
 import * as ykphone_history from "./ykphone_history.ts";
+import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
@@ -89,6 +91,10 @@ function add_mount_points(): void {
             .attr("aria-label", $t({defaultMessage: "Thread"})),
     );
     $("#message-lists-container").before($("<div>").attr("id", "ykphone-thread-root"));
+    // The forward card sits above the compose form, inside the
+    // composer's own area; its container is mounted once so that the
+    // card can be rendered and dropped without touching the form.
+    $("#send_message_form").before($("<div>").attr("id", "ykphone-forward-card-container"));
     // The conversation intro takes the place of upstream's logo.
     $(".top-messages-logo").before(
         $("<div>")
@@ -115,6 +121,32 @@ export function initialize(): void {
         "--yk-new-label",
         JSON.stringify($t({defaultMessage: "New"})),
     );
+
+    // Slack shows no selection until the user asks for one: the box
+    // around the selected message (and the time it reveals in the
+    // gutter) appears with the first navigation hotkey and is gone
+    // again as soon as the pointer moves over the feed.
+    let last_pointer_position: string | undefined;
+    $("#main_div").on("mousemove", (e) => {
+        const position = `${e.clientX},${e.clientY}`;
+        if (position === last_pointer_position) {
+            return;
+        }
+        last_pointer_position = position;
+        ykphone_keyboard_nav.clear();
+    });
+    $("#main_div").on("click", () => {
+        ykphone_keyboard_nav.clear();
+    });
+
+    // Forwarding: the card above the compose box is dropped by its own
+    // close button; every other way of replacing the compose contents
+    // goes through compose_actions.clear_box, and a draft saved on the
+    // way out keeps the forward (drafts.update_draft).
+    $("#compose").on("click", ".ykphone-forward-card-close", (e) => {
+        e.preventDefault();
+        ykphone_forward.clear();
+    });
 
     ykphone_history.initialize();
     $("body").on("click", ".ykphone-navbar-back", () => {

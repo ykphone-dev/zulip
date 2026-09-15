@@ -34,6 +34,7 @@ import * as saved_snippets_ui from "./saved_snippets_ui.ts";
 import * as spectators from "./spectators.ts";
 import * as stream_data from "./stream_data.ts";
 import * as util from "./util.ts";
+import * as ykphone_forward from "./ykphone_forward.ts";
 
 // Opts sent to `compose_actions.start`.
 type ComposeActionsStartOpts = {
@@ -155,6 +156,7 @@ function clear_box(): void {
 
     compose_state.set_recipient_edited_manually(false);
     compose_state.set_is_content_unedited_restored_draft(false);
+    ykphone_forward.clear();
     clear_textarea();
     compose_validate.check_overflow_text($("#send_message_form"));
     drafts.set_compose_draft_id(undefined);
@@ -477,6 +479,7 @@ export let start = (raw_opts: ComposeActionsStartOpts): void => {
 
     if (opts.draft_id) {
         drafts.set_compose_draft_id(opts.draft_id);
+        ykphone_forward.restore_for_draft(opts.draft_id);
     }
 
     // Show a warning if topic is resolved

@@ -30,7 +30,7 @@
         {{#if dm_avatar_url}}
         <span class="ykphone-pane-header-dm">
             <img class="ykphone-pane-header-dm-avatar" src="{{dm_avatar_url}}" alt="" />
-            <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-pane-header-presence"></span>
+            <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-pane-header-presence" data-presence-indicator-user-id="{{dm_user_id}}"></span>
         </span>
         {{else if zulip_icon}}
         <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>

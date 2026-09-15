@@ -74,6 +74,8 @@ import * as user_status_ui from "./user_status_ui.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as util from "./util.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
+import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 
@@ -224,7 +226,6 @@ const KEYDOWN_MAPPINGS: Record<string, Hotkey | Hotkey[]> = {
     "/": {name: "search", message_view_only: false},
     ":": {name: "toggle_reactions_popover", message_view_only: true},
     "<": {name: "compose_forward_message", message_view_only: true},
-    ">": {name: "compose_quote_message", message_view_only: true},
     "?": {name: "show_shortcuts", message_view_only: false},
     "@": {name: "compose_reply_with_mention", message_view_only: true},
     // these can be triggered by key or Shift + key
@@ -1153,6 +1154,8 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
         return false;
     }
 
+    ykphone_keyboard_nav.note_hotkey(event_name);
+
     // Shortcuts that don't require a message
     let list_of_channel_topics_channel_id;
     switch (event_name) {
@@ -1484,7 +1487,7 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
             compose_reply.quote_messages({trigger: "hotkey"});
             return true;
         case "compose_forward_message": // < : forward selected message
-            compose_reply.quote_messages({trigger: "hotkey", forward_message: true});
+            ykphone_forward_ui.start(msg.id);
             return true;
         case "edit_message": {
             const $row = message_lists.current.get_row(msg.id);

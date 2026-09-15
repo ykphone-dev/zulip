@@ -34,6 +34,12 @@
               src="{{avatar_url}}"
               alt=""
               />
+            {{#if user_circle_class}}
+            <span
+              class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-rail-presence"
+              data-presence-indicator-user-id="{{my_user_id}}"
+              ></span>
+            {{/if}}
         </button>
     </div>
 </nav>

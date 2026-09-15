@@ -55,7 +55,7 @@ const STARRED_MESSAGES_VIEW_EMPTY_BANNER = {
                 "Starring messages is a good way to keep track of important messages, such as tasks you need to go back to, or useful references. To star a message, hover over a message and click the <star-icon></star-icon>. <z-link>Learn more</z-link>",
         },
         {
-            "star-icon": () => `<i class="zulip-icon zulip-icon-star" aria-hidden="true"></i>`,
+            "star-icon": () => `<i class="zulip-icon zulip-icon-bookmark" aria-hidden="true"></i>`,
             "z-link": (content_html) =>
                 `<a target="_blank" rel="noopener noreferrer" href="/help/star-a-message">${content_html.join(
                     "",

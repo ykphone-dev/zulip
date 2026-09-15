@@ -13,7 +13,7 @@
             <div class="user-profile-picture-container">
                 <div class="user-profile-picture avatar-preload-background">
                     <img loading="lazy" src="{{profile_picture}}"/>
-                    <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle"></span>
+                    <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle{{#if is_bot}} user-circle-bot{{/if}}"></span>
                 </div>
             </div>
             <a class="user-presence-link" href="{{href}}" draggable="false">

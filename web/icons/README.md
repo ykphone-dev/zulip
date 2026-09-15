@@ -15,6 +15,7 @@ for the Zulip project:
 arrow-down.svg
 bell.svg
 bold.svg
+bookmark-filled.svg
 bookmark.svg
 bot.svg
 browse-channels.svg

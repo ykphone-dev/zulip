@@ -20,6 +20,9 @@ mock_esm("../src/timerender", {
     },
 });
 
+mock_esm("../src/ykphone_time", {
+    hour_and_minute: (timestamp) => `gutter ${timestamp}`,
+});
 mock_esm("../src/people", {
     sender_is_bot: () => false,
     sender_is_guest: () => false,
@@ -351,7 +354,7 @@ test("muted_message_vars", () => {
         // Make a representative message group of three messages.
         const messages = [
             build_message_context(
-                {sender_id: 10, content: "<message-stub-1>"},
+                {sender_id: 10, content: "<message-stub-1>", timestamp: 1_500_000_000},
                 {include_sender: true},
             ),
             build_message_context(
@@ -369,6 +372,11 @@ test("muted_message_vars", () => {
 
         // Sender is not muted.
         let result = calculate_variables(list, messages);
+
+        // The sender line keeps upstream's timestamp; the gutter time
+        // that grouped rows show on hover is the fork's bare clock.
+        assert.equal(result[0].timestr, new Date(1_500_000_000_000).toString("h:mm TT"));
+        assert.equal(result[0].ykphone_gutter_timestr, "gutter 1500000000000");
 
         // sanity check on mocked values
         assert.equal(result[1].sender_is_bot, false);

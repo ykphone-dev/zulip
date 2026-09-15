@@ -55,6 +55,23 @@ const onboarding_steps = mock_esm("../src/onboarding_steps", {
 mock_esm("../src/settings_data", {
     user_has_permission_for_group_setting: () => true,
 });
+// The fork folds a pending forward's quote into the content inside
+// finish(), and puts it back when the message does not go out; the
+// calls are recorded so that their order is asserted below.
+let ykphone_forward_calls = [];
+mock_esm("../src/ykphone_forward", {
+    apply_to_compose() {
+        ykphone_forward_calls.push("apply_to_compose");
+    },
+    restore() {
+        ykphone_forward_calls.push("restore");
+    },
+    clear() {
+        ykphone_forward_calls.push("clear");
+    },
+    remember_for_draft() {},
+    forget_drafts() {},
+});
 
 const compose_ui = zrequire("compose_ui");
 zrequire("compose_banner");
@@ -499,8 +516,12 @@ test_ui("finish", ({override, override_rewire}) => {
         fake_compose_box.set_textarea_val("");
 
         override_rewire(compose_ui, "compose_spinner_visible", false);
+        ykphone_forward_calls = [];
         const res = compose.finish();
         assert.equal(res, false);
+        // A message that fails validation gives a pending forward's
+        // card and the user's own note back.
+        assert.deepEqual(ykphone_forward_calls, ["apply_to_compose", "restore"]);
 
         assert.ok(fake_compose_box.$content_textarea.hasClass("invalid"));
         assert.ok(!fake_compose_box.is_recipient_not_subscribed_banner_visible());
@@ -525,6 +546,7 @@ test_ui("finish", ({override, override_rewire}) => {
             send_message_called = true;
         });
 
+        ykphone_forward_calls = [];
         assert.ok(compose.finish());
 
         // Preview mode should remain on after finish() returns, because
@@ -532,11 +554,15 @@ test_ui("finish", ({override, override_rewire}) => {
         // which only runs when the server confirms the send.
         fake_compose_box.assert_preview_mode_is_on();
         assert.ok(send_message_called);
+        // The quote is folded in once, and the forward is not spent
+        // until the box is cleared.
+        assert.deepEqual(ykphone_forward_calls, ["apply_to_compose"]);
 
         // Verify that preview mode is cleared when the compose box is
         // cleared, as would happen asynchronously on send success.
         compose.clear_compose_box();
         fake_compose_box.assert_preview_mode_is_off();
+        assert.deepEqual(ykphone_forward_calls, ["apply_to_compose", "clear"]);
     })();
 });
 

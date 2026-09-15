@@ -11,6 +11,7 @@ import * as message_fetch from "./message_fetch.ts";
 import * as message_view from "./message_view.ts";
 import * as people from "./people.ts";
 import {reload_metadata_schema} from "./reload.ts";
+import * as ykphone_forward from "./ykphone_forward.ts";
 
 // Check if we're doing a compose-preserving reload.  This must be
 // done before the first call to get_events
@@ -81,6 +82,7 @@ export function initialize(): void {
                 blueslip.warn("Tried to restore a draft that didn't exist.");
             } else {
                 compose_actions.start({...draft, message_type: draft.type});
+                ykphone_forward.restore_for_draft(data.compose_active_draft_id);
                 if (data.compose_active_draft_send_immediately) {
                     compose.finish();
                 }

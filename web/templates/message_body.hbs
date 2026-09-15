@@ -34,7 +34,7 @@
     {{#unless include_sender}}
     <span class="copy-paste-text">&nbsp;</span>
     {{/unless}}
-    {{timestr}}
+    {{#if include_sender}}{{timestr}}{{else}}{{ykphone_gutter_timestr}}{{/if}}
 </a>
 
 {{#if (and (not msg/failed_request) msg/locally_echoed)}}

@@ -74,6 +74,15 @@
     --yk-rail-width: calc(4.5 * var(--base-font-size-px));
     /* Space between the sidebar card's edge and its rows. */
     --yk-card-inset: 8px;
+    /* The "pinned by …" line above a pinned message; a fixed height so
+       that the floated hover toolbar and the gutter time can clear it.
+       A multiple of the base font size rather than an em, because the
+       three consumers read it at three different font sizes (the line
+       itself at 12px, the toolbar at 14px, the gutter time at 11px)
+       while it still has to follow the user's font-size preference. */
+    --yk-pin-line-height: calc(
+        1.4286 * var(--base-font-size-px)
+    ); /* 20px at 14px */
     /* 392px at 14px; the thread side panel takes this much of the
        right column while a thread is open. */
     --yk-thread-panel-width: min(calc(28 * var(--base-font-size-px)), 40vw);
@@ -810,14 +819,16 @@ body:has(#ykphone-rail) {
 }
 
 .ykphone-rail-avatar {
+    /* The presence dot hangs off the bottom-right corner, so the
+       rounding moves to the image and the button keeps no overflow. */
+    position: relative;
     display: block;
     width: 2.2857em; /* 32px at 14px/em */
     height: 2.2857em;
     padding: 0;
     border: none;
-    background: none;
-    overflow: hidden;
     border-radius: var(--yk-radius-md);
+    background: none;
     cursor: pointer;
 
     &:focus-visible {
@@ -830,6 +841,7 @@ body:has(#ykphone-rail) {
     display: block;
     width: 100%;
     height: 100%;
+    border-radius: var(--yk-radius-md);
     object-fit: cover;
 }
 
@@ -1165,10 +1177,6 @@ a.ykphone-pane-header-channel {
     opacity: 0.7;
 }
 
-.ykphone-pane-header-presence {
-    font-size: 0.6em;
-}
-
 .ykphone-pane-header-archived {
     font-size: 0.7em;
     font-weight: 400;
@@ -1296,13 +1304,13 @@ a.ykphone-pane-header-channel {
     object-fit: cover;
 }
 
+/* The dot itself is drawn by the presence section further down. */
 .ykphone-pane-header-dm .ykphone-pane-header-presence {
+    --yk-presence-ring: var(--color-background);
+
     position: absolute;
-    right: -0.15em;
-    bottom: -0.15em;
-    font-size: 0.5em;
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--color-background);
+    right: -2px;
+    bottom: -2px;
 }
 
 /* ---- Message feed ---- */
@@ -1357,7 +1365,10 @@ a.ykphone-pane-header-channel {
 .message_row {
     transition: background-color 100ms ease;
 
-    &:not(.selected_message):hover {
+    /* The selected row has no box of its own unless the user is
+       navigating by keyboard (see below), so it takes the hover
+       background like any other row. */
+    &:hover {
         background-color: var(--yk-row-hover);
     }
 }
@@ -1422,6 +1433,18 @@ a.ykphone-pane-header-channel {
     grid-template-columns:
         var(--message-box-avatar-column-width) minmax(0, 1fr)
         0 8px 0;
+
+    /* A pinned message has the "pinned by …" line above its own; the
+       time in the gutter and the floated toolbar clear it. */
+    &:has(.ykphone-pin-line) {
+        .message-time {
+            top: calc(0.1429em + var(--yk-pin-line-height));
+        }
+
+        .message_controls {
+            top: var(--yk-pin-line-height);
+        }
+    }
 
     /* An edited message's EDITED/MOVED label shares the gutter with
        the hover time: the line row grows to two gutter lines and the
@@ -1492,11 +1515,11 @@ a.ykphone-pane-header-channel {
     }
 }
 
-.message_row:not(.messagebox-includes-sender):is(
-        :hover,
-        .selected_message,
-        :focus-within
-    )
+.message_row:not(.messagebox-includes-sender):is(:hover, :focus-within)
+    .messagebox-content:not(.content_edit_mode)
+    .message-time,
+body.ykphone-keyboard-nav
+    .message_row:not(.messagebox-includes-sender).selected_message
     .messagebox-content:not(.content_edit_mode)
     .message-time {
     opacity: 1;
@@ -1542,6 +1565,12 @@ a.ykphone-pane-header-channel {
         right: 0.5714em; /* 8px at 14px/em */
     }
 
+    /* A pinned message has the "pinned by …" line above the sender
+       line; the toolbar clears it rather than floating over it. */
+    &:has(.ykphone-pin-line) .message_controls {
+        top: calc(0.75em + var(--yk-pin-line-height));
+    }
+
     .slow-send-spinner {
         justify-self: start;
     }
@@ -1564,11 +1593,26 @@ a.ykphone-pane-header-channel {
     border-radius: var(--yk-radius-sm);
 }
 
+/* Zulip always keeps a selected message so that hotkeys have
+   something to act on, and outlines it; Slack shows nothing until the
+   pointer or the keyboard reaches a message, so a conversation opens
+   with a clean feed. The selection itself is untouched:
+   ykphone_keyboard_nav adds the body class with the first navigation
+   hotkey and drops it on the next pointer move or click in the feed,
+   and the outline (like the gutter time above) follows the class. */
+body:not(.ykphone-keyboard-nav) .selected_message .messagebox-content {
+    outline: none;
+}
+
 /* Action toolbar as a small floating card. It stays in the sender
    line, where upstream reserves its column; pulling it above the row
    would put it underneath the sticky recipient bar for the first
    message of every conversation. */
 .messagebox-content .message_controls {
+    /* The toolbar is absolutely positioned over the sender line (and
+       over the pin line on a pinned message), so it must paint and
+       take clicks above everything the row draws under it. */
+    z-index: 1;
     align-self: center;
     height: 1.75em;
     padding: 0 2px;
@@ -2102,7 +2146,8 @@ body.ykphone-pins-open #ykphone-pins-panel {
 /* Date dividers as centered pills. */
 .message_feed_divider:has(.date-divider-content) {
     grid-template-columns: minmax(20px, 1fr) auto minmax(20px, 1fr);
-    /* Slack's hairline rows are about 20px: the 17px pill plus 2px. */
+    /* Slack's hairline rows are about 24px: the 20px pill plus 2px
+       above and below. */
     padding: 0.1429em 0; /* 2px at 14px/em */
 
     &:has(.timerender-content)::after {
@@ -2126,8 +2171,20 @@ body.ykphone-pins-open #ykphone-pins-panel {
             display: none;
         }
 
+        .scroll-to-time {
+            /* The pill is an inline <span>: its padding and border do
+               not grow the line box around it, so it overflowed the
+               row and had its bottom border clipped by the divider's
+               overflow: hidden. As a flex item it sets the height of
+               the row itself. */
+            display: flex;
+        }
+
         .date_row_text {
-            padding: 0.2em 0.9em;
+            /* 15px of line plus 1.5px of padding and 1px of border on
+               each side is a 20px pill. */
+            padding: 0.125em 0.9em;
+            line-height: 1.25;
             border: 1px solid var(--color-border-message-group-spacer-line);
             border-radius: 999px;
             background-color: var(--color-background);
@@ -2248,6 +2305,15 @@ body.ykphone-pins-open #ykphone-pins-panel {
         padding-bottom: 0;
         margin-bottom: 0;
     }
+}
+
+/* Slack's caret and placeholder start level with the first button of
+   the formatting row above them; upstream's textarea has 5px. The
+   preview matches so switching between the two does not shift the
+   text. */
+#compose-textarea,
+#preview_message_area {
+    padding-left: 0.8571em; /* 12px at 14px/em */
 }
 
 #message-formatting-controls-container {
@@ -2417,6 +2483,146 @@ body.ykphone-pins-open #ykphone-pins-panel {
 #stream_message_recipient_topic,
 .compose-recipient-box {
     border-radius: var(--yk-radius-sm);
+}
+
+/* Upstream hides one hover-toolbar button below this width so that the
+   ⋮ menu offers "Add emoji reaction" instead (popover_menus_data reads
+   the button's computed display). It picks the button by counting from
+   the end (:nth-last-child(3)), which the fork's always-present
+   reaction button and its thread button throw off — it was hiding the
+   thread button and leaving reactions unreachable on a touch screen,
+   where there is no hover. Name the button instead. */
+@container message-lists (width < $cq_sm_min) {
+    .messagebox-content .message_controls {
+        .message_control_button:nth-last-child(3) {
+            display: block;
+        }
+
+        .reaction_button {
+            display: none;
+        }
+    }
+}
+
+@media (width < $sm_min), ((width >= $md_min) and (width < $mc_min)) {
+    .without-container-query-support .messagebox-content .message_controls {
+        .message_control_button:nth-last-child(3) {
+            display: block;
+        }
+
+        .reaction_button {
+            display: none;
+        }
+    }
+}
+
+/* ---- Forwarding ---- */
+
+/* Forwarding shows the message as a card above the compose box, as
+   Slack does, and leaves the box itself for the sender's own note;
+   the two are joined only when the message is sent. */
+.ykphone-forward-card {
+    margin: 0 0 0.5714em; /* 8px at 14px/em */
+    padding: 0.5em 0.7em;
+    border: 1px solid var(--yk-border);
+    border-radius: var(--yk-radius-md);
+    background-color: var(--yk-composer-bg);
+}
+
+.ykphone-forward-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+}
+
+.ykphone-forward-card-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ykphone-forward-card-close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5em;
+    height: 1.5em;
+    padding: 0;
+    border: none;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
+.ykphone-forward-card-message {
+    display: flex;
+    gap: 0.5em;
+    /* A hairline in the gutter marks the quote, as in the rendered
+       message the forward becomes. */
+    margin-top: 0.4em;
+    padding-left: 0.5em;
+    border-left: 3px solid var(--yk-border);
+}
+
+.ykphone-forward-card-avatar {
+    flex: 0 0 auto;
+    width: 1.4286em; /* 20px at 14px/em */
+    height: 1.4286em;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+.ykphone-forward-card-body {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.ykphone-forward-card-sender {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+}
+
+.ykphone-forward-card-sender-name {
+    font-weight: 900;
+}
+
+.ykphone-forward-card-time {
+    color: var(--yk-text-muted);
+    font-size: 0.7857em; /* 11px at 14px/em */
+}
+
+.ykphone-forward-card-content {
+    /* Long forwards stay a preview rather than pushing the compose
+       box off the screen. */
+    max-height: 8em;
+    overflow-y: auto;
+
+    > :first-child {
+        margin-top: 0;
+    }
+
+    > :last-child {
+        margin-bottom: 0;
+    }
 }
 
 /* ---- Popovers, tooltips, modals, buttons ---- */
@@ -2649,14 +2855,124 @@ body.ykphone-conversation .top-messages-logo {
         object-fit: cover;
     }
 
+    /* The dot itself is drawn by the presence section below; here it
+       is only placed over the avatar's bottom-right corner. */
     .conversation-partners-icon.user-circle {
+        --yk-presence-ring: var(--yk-card-bg);
+
         place-self: end;
         z-index: 1;
         margin: 0 -1px -1px 0;
-        font-size: 0.5714em; /* 8px at 14px/em */
-        border-radius: 50%;
-        box-shadow: 0 0 0 2px var(--yk-card-bg);
     }
+}
+
+/* ---- Presence dots ---- */
+
+/* Slack draws presence as a small dot at the bottom-right corner of
+   the avatar: a filled green dot when the person is active, a hollow
+   ring when they are away or offline, with a ring in the surface
+   colour around it so it reads as a dot rather than a smudge on the
+   picture.
+
+   Upstream draws the dot as a glyph of the icon font; its ring is a
+   fraction of a pixel wide at this size, so the glyph is dropped and
+   the dot is the element's own box. A deactivated user keeps
+   upstream's slashed glyph, which says more than a colour does. Each
+   context sets --yk-presence-ring to the surface the dot sits on;
+   places that show the dot inline beside a name (the typeahead, the
+   inbox, the recent view) keep upstream's glyph. */
+#direct-messages-list .dm-list-item .conversation-partners-icon.user-circle,
+#modal-direct-messages-list
+    .dm-list-item
+    .conversation-partners-icon.user-circle,
+.buddy-list-section
+    .user_sidebar_entry.with_avatar
+    .user-profile-picture
+    > .user-circle,
+#user_card_popover .popover-menu-user-presence.user-circle,
+.ykphone-pane-header-dm .ykphone-pane-header-presence,
+.ykphone-rail-avatar .ykphone-rail-presence {
+    box-sizing: border-box;
+    display: block;
+    width: 8px;
+    height: 8px;
+    border: none;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--yk-presence-ring, var(--color-background));
+
+    &:not(.user-circle-deactivated) {
+        font-size: 0;
+        line-height: 0;
+
+        &::before {
+            content: "";
+        }
+    }
+
+    &.user-circle-active {
+        background-color: var(--color-user-circle-active);
+    }
+
+    &.user-circle-idle {
+        /* Upstream's half-faded dot, as a background of the box
+           rather than clipped to the glyph. */
+        background: var(--gradient-user-circle-idle-avatar);
+        background-clip: border-box;
+    }
+
+    &.user-circle-offline {
+        background-color: transparent;
+        border: 1.5px solid var(--color-user-circle-offline);
+    }
+
+    &.user-circle-deactivated {
+        font-size: 8px;
+        line-height: 1;
+        color: var(--color-user-circle-deactivated);
+    }
+
+    /* A bot has no presence: buddy_data reports it as offline, which
+       upstream never showed in the member list. */
+    &.user-circle-bot {
+        display: none;
+    }
+}
+
+/* Upstream hides the member list's offline dot and squares off the
+   avatar corner behind the others; Slack shows every state, and the
+   ring around the dot already separates it from the picture. */
+.buddy-list-section
+    .user_sidebar_entry.with_avatar
+    .user-profile-picture
+    > .user-circle {
+    --yk-presence-ring: var(--color-background);
+
+    right: -1px;
+    bottom: -1px;
+
+    &.user-circle-offline {
+        display: block;
+    }
+}
+
+.app-main
+    .buddy-list-section
+    .user_sidebar_entry.with_avatar
+    .user-profile-picture-container
+    .user-profile-picture {
+    border-bottom-right-radius: var(--yk-radius-md);
+}
+
+#user_card_popover .popover-menu-user-presence.user-circle {
+    --yk-presence-ring: var(--color-background-popover);
+}
+
+.ykphone-rail-avatar .ykphone-rail-presence {
+    --yk-presence-ring: var(--yk-frame-bg);
+
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
 }
 
 /* ---- Pinned messages ---- */
@@ -2665,6 +2981,8 @@ body.ykphone-conversation .top-messages-logo {
    tint on the row. */
 .ykphone-pin-line {
     grid-area: pin;
+    box-sizing: border-box;
+    height: var(--yk-pin-line-height);
     display: flex;
     align-items: center;
     gap: 0.35em;
@@ -2678,8 +2996,21 @@ body.ykphone-conversation .top-messages-logo {
     }
 }
 
-.message_row:has(.ykphone-pin-line):not(.selected_message) {
+.message_row:has(.ykphone-pin-line) {
     background-color: var(--yk-pin-tint);
+
+    /* Declared after the general hover rule, so the tint would
+       otherwise win and a pinned row would lose its hover feedback. */
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+}
+
+/* While the selection is drawn, its outline reads better on the plain
+   background than on the tint. */
+body.ykphone-keyboard-nav
+    .message_row:has(.ykphone-pin-line).selected_message:not(:hover) {
+    background-color: transparent;
 }
 
 .ykphone-pins-panel-item {
@@ -2774,9 +3105,8 @@ body.ykphone-conversation .top-messages-logo {
     }
 
     .popover-menu-user-presence {
-        font-size: 1.1em;
-        right: -0.2em;
-        bottom: -0.2em;
+        right: -2px;
+        bottom: -2px;
     }
 
     .popover-menu-user-info {

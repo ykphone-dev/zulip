@@ -22,8 +22,10 @@ import render_ykphone_rail from "../templates/ykphone_rail.hbs";
 import render_ykphone_sidebar_header from "../templates/ykphone_sidebar_header.hbs";
 
 import * as browser_history from "./browser_history.ts";
+import * as buddy_data from "./buddy_data.ts";
 import {$t} from "./i18n.ts";
 import * as left_sidebar_navigation_area from "./left_sidebar_navigation_area.ts";
+import {page_params} from "./page_params.ts";
 import {current_user, realm} from "./state_data.ts";
 
 export type RailItem = {
@@ -115,6 +117,21 @@ export function mount(): void {
             render_ykphone_rail({
                 items: rail_items(),
                 avatar_url: current_user.avatar_url_medium,
+                // Slack marks its own avatar with the same presence dot
+                // as everyone else's. The dot carries the id upstream's
+                // buddy_list_presence.update_indicators looks for, so it
+                // follows the user's own "presence_enabled" setting with
+                // no new hook (presence.get_status short-circuits for
+                // one's own id, so it is that setting rather than live
+                // presence that moves it). Spectators have no presence
+                // and no avatar menu; neither does a realm that turned
+                // presence off.
+                ...(page_params.is_spectator || realm.realm_presence_disabled
+                    ? {}
+                    : {
+                          my_user_id: current_user.user_id,
+                          user_circle_class: buddy_data.get_user_circle_class(current_user.user_id),
+                      }),
             }),
         ),
     );

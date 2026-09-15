@@ -20,6 +20,7 @@ import * as sub_store from "./sub_store.ts";
 import * as timerender from "./timerender.ts";
 import * as ui_util from "./ui_util.ts";
 import * as util from "./util.ts";
+import * as ykphone_forward from "./ykphone_forward.ts";
 
 export function set_count(count: number): void {
     const $drafts_li = $(".top_left_drafts");
@@ -251,6 +252,7 @@ export const draft_model = (function () {
             delete drafts[id];
         }
         save(drafts);
+        ykphone_forward.forget_drafts(ids);
     }
 
     return {
@@ -486,6 +488,7 @@ export let update_draft = (opts: UpdateDraftOptions = {}): string | undefined =>
         if (changed) {
             maybe_notify(no_notify);
         }
+        ykphone_forward.remember_for_draft(draft_id);
         return draft_id;
     }
 
@@ -494,6 +497,7 @@ export let update_draft = (opts: UpdateDraftOptions = {}): string | undefined =>
     const new_draft_id = draft_model.addDraft(draft, update_count);
     compose_draft_id = new_draft_id;
     maybe_notify(no_notify);
+    ykphone_forward.remember_for_draft(new_draft_id);
 
     return new_draft_id;
 };

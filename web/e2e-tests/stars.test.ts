@@ -7,7 +7,7 @@ import * as common from "./lib/common.ts";
 const message = "test star";
 
 async function stars_count(page: Page): Promise<number> {
-    return (await page.$$(".message-list .zulip-icon-star-filled:not(.empty-star)")).length;
+    return (await page.$$(".message-list .zulip-icon-bookmark-filled:not(.empty-star)")).length;
 }
 
 async function toggle_test_star_message(page: Page): Promise<void> {
@@ -63,7 +63,7 @@ async function stars_test(page: Page): Promise<void> {
     await page.click("#left-sidebar-navigation-list .top_left_all_messages");
     message_list_id = await common.get_current_msg_list_id(page, true);
     await page.waitForSelector(
-        `.message-list[data-message-list-id='${message_list_id}'] .zulip-icon-star-filled`,
+        `.message-list[data-message-list-id='${message_list_id}'] .zulip-icon-bookmark-filled`,
         {visible: true},
     );
     assert.strictEqual(

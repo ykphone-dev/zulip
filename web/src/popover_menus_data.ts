@@ -30,6 +30,7 @@ import type {UserStatusEmojiInfo} from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 
 type ActionPopoverContext = {
@@ -43,6 +44,7 @@ type ActionPopoverContext = {
     should_display_collapse: boolean;
     should_display_uncollapse: boolean;
     should_display_quote_message: boolean;
+    ykphone_show_quote_message: boolean;
     conversation_time_url: string;
     should_display_delete_option: boolean;
     should_display_read_receipts_option: boolean;
@@ -257,6 +259,7 @@ export function get_actions_popover_content_context(message_id: number): ActionP
         should_display_delete_option,
         should_display_read_receipts_option,
         should_display_quote_message,
+        ykphone_show_quote_message: ykphone_flags.QUOTE_MESSAGE_ENABLED,
         should_display_message_report_option: should_display_message_report_option(),
         ykphone_pin: ykphone_pins.get_menu_context(message),
     };

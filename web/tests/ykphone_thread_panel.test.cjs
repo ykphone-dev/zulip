@@ -51,6 +51,9 @@ mock_esm("../src/timerender", {
 });
 const unread_ops = mock_esm("../src/unread_ops");
 const ykphone_threads = mock_esm("../src/ykphone_threads");
+mock_esm("../src/ykphone_time", {
+    hour_and_minute: (timestamp) => `gutter ${timestamp}`,
+});
 
 const message_store = zrequire("message_store");
 const ykphone_thread_panel = zrequire("ykphone_thread_panel");
@@ -280,6 +283,9 @@ run_test("open with cached root", (helpers) => {
     assert.ok(body.includes(`time ${(now + 10) * 1000}`));
     assert.ok(body.includes(`dayofyear_time ${(yesterday + 11) * 1000}`));
     assert.ok(body.includes(`dayofyear_year_time ${last_year * 1000}`));
+    // Message 12 is grouped under message 11, so it shows the bare
+    // clock in the gutter instead of a sender line.
+    assert.ok(body.includes(`ykphone-thread-panel-gutter-time">gutter ${(yesterday + 12) * 1000}`));
     // Message 12 collapses under message 11's sender line.
     assert.equal(body.match(/ykphone-thread-panel-message-with-sender/g).length, 4);
     assert.ok(!body.includes("translated: Loading…"));

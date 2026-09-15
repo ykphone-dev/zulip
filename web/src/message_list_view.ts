@@ -53,6 +53,7 @@ import * as util from "./util.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
+import * as ykphone_time from "./ykphone_time.ts";
 
 export type MessageContainer = {
     background_color?: string;
@@ -81,6 +82,7 @@ export type MessageContainer = {
     stream_url?: string;
     pm_with_url?: string;
     timestr: string;
+    ykphone_gutter_timestr: string;
     topic_url?: string;
     want_date_divider: boolean;
     want_subscription_status_divider: boolean;
@@ -596,6 +598,7 @@ export class MessageListView {
         is_revealed = false,
     ): {
         timestr: string;
+        ykphone_gutter_timestr: string;
         background_color?: string;
         small_avatar_url: string;
         sender_is_bot: boolean;
@@ -700,6 +703,7 @@ export class MessageListView {
 
         return {
             timestr: get_timestr(message),
+            ykphone_gutter_timestr: ykphone_time.hour_and_minute(message.timestamp * 1000),
             // this is only relevant for streams, don't use it if it wasn't set
             ...(background_color && {background_color}),
             small_avatar_url,

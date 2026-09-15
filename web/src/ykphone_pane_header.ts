@@ -21,6 +21,7 @@ import type {ReferenceElement} from "tippy.js";
 
 import render_ykphone_pane_header from "../templates/ykphone_pane_header.hbs";
 
+import * as buddy_data from "./buddy_data.ts";
 import type {Filter} from "./filter.ts";
 import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
@@ -29,8 +30,8 @@ import * as narrow_state from "./narrow_state.ts";
 import {page_params} from "./page_params.ts";
 import * as peer_data from "./peer_data.ts";
 import * as people from "./people.ts";
-import * as presence from "./presence.ts";
 import * as recent_view_util from "./recent_view_util.ts";
+import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
 import * as ui_util from "./ui_util.ts";
@@ -68,9 +69,12 @@ export type PaneHeaderContext = {
     channel?: PaneHeaderChannel;
     // Slack's Messages / Files / Pins row, in a channel's own views.
     tabs?: PaneHeaderTabs;
-    // Presence class and avatar of the other person in a one-to-one
-    // direct message narrow; group conversations show the DM icon.
+    // Presence class, user id and avatar of the other person in a
+    // one-to-one direct message narrow; group conversations show the
+    // DM icon. The user id lets buddy_list_presence keep the dot
+    // current as presence events arrive.
     user_circle_class?: string;
+    dm_user_id?: number;
     dm_avatar_url?: string;
 };
 
@@ -150,6 +154,12 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
     if (filter === undefined || filter.is_in_home()) {
         return {title: $t({defaultMessage: "Combined feed"}), zulip_icon: "all-messages"};
     }
+    if (filter.has_operand("is", "starred")) {
+        // Zulip's starred messages are the fork's saved messages; the
+        // sidebar row is named for the view ("Later"), the header for
+        // its contents, as in Slack's "Saved items".
+        return {title: $t({defaultMessage: "Starred messages"}), zulip_icon: "bookmark"};
+    }
     if (ykphone_conversation.is_files_narrow(filter)) {
         // The rail's Files view is a search upstream would title
         // "Search results".
@@ -209,9 +219,13 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
 
     if (filter.has_operator("dm")) {
         const user_ids = filter.terms_with_operator("dm")[0]!.operand;
-        if (user_ids.length === 1) {
+        if (user_ids.length === 1 && !realm.realm_presence_disabled) {
             const user_id = user_ids[0]!;
-            context.user_circle_class = `user-circle-${presence.get_status(user_id)}`;
+            context.user_circle_class = buddy_data.get_user_circle_class(
+                user_id,
+                !people.is_active_user_or_system_bot(user_id),
+            );
+            context.dm_user_id = user_id;
             context.dm_avatar_url = people.small_avatar_url_for_user_id(user_id);
         }
     }

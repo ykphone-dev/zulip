@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 
+const {make_realm} = require("./lib/example_realm.cjs");
 const {mock_esm, zrequire} = require("./lib/namespace.cjs");
 const {run_test} = require("./lib/test.cjs");
 const $ = require("./lib/zjquery.cjs");
@@ -37,10 +38,14 @@ const peer_data = mock_esm("../src/peer_data", {
 });
 mock_esm("../src/people", {
     is_valid_bot_user: (user_id) => user_id === 99,
+    is_active_user_or_system_bot: (user_id) => user_id !== 8,
     small_avatar_url_for_user_id: (user_id) => `/avatar/${user_id}`,
 });
-mock_esm("../src/presence", {
-    get_status: (user_id) => (user_id === 7 ? "active" : "offline"),
+mock_esm("../src/buddy_data", {
+    get_user_circle_class: (user_id, is_deactivated) =>
+        is_deactivated
+            ? "user-circle-deactivated"
+            : `user-circle-${user_id === 7 ? "active" : "offline"}`,
 });
 const recent_view_util = mock_esm("../src/recent_view_util", {
     is_visible: () => false,
@@ -61,6 +66,10 @@ const ykphone_pins = mock_esm("../src/ykphone_pins", {
     get_panel_stream_id: () => undefined,
 });
 
+const {set_realm} = zrequire("state_data");
+
+set_realm(make_realm());
+
 const ykphone_pane_header = zrequire("ykphone_pane_header");
 
 // A stand-in for Filter with the handful of methods the header reads.
@@ -71,6 +80,8 @@ function fake_filter({terms, title, common = true, in_home = false, icon}) {
         get_title: () => title,
         add_icon_data: (context) => ({...context, ...icon}),
         has_operator: (operator) => terms.some((term) => term.operator === operator),
+        has_operand: (operator, operand) =>
+            terms.some((term) => term.operator === operator && term.operand === operand),
         terms_with_operator: (operator) => terms.filter((term) => term.operator === operator),
         sorted_term_types: () =>
             terms
@@ -139,19 +150,21 @@ run_test("get_context views", ({override}) => {
         zulip_icon: "search",
     });
 
-    // Other common narrows take upstream's title and icon, without
-    // the tooltip-style description; the Later view's star becomes
-    // the bookmark its sidebar row shows.
+    // Zulip's starred messages are the fork's saved messages: the
+    // sidebar row is named for the view ("Later"), the header for its
+    // contents, with the bookmark the row shows.
     const starred = fake_filter({
         terms: [{operator: "is", operand: "starred"}],
         title: "translated: Later",
         icon: {zulip_icon: "star"},
     });
     assert.deepEqual(ykphone_pane_header.get_context(starred), {
-        title: "translated: Later",
+        title: "translated: Starred messages",
         zulip_icon: "bookmark",
-        icon: undefined,
     });
+
+    // Other common narrows take upstream's title and icon, without
+    // the tooltip-style description.
     const resolved = fake_filter({
         terms: [{operator: "is", operand: "resolved"}],
         title: "Resolved topics",
@@ -312,8 +325,26 @@ run_test("get_context direct messages", () => {
         zulip_icon: "user",
         icon: undefined,
         user_circle_class: "user-circle-active",
+        dm_user_id: 7,
         dm_avatar_url: "/avatar/7",
     });
+
+    // A realm with presence turned off shows no dot at all.
+    set_realm(make_realm({realm_presence_disabled: true}));
+    assert.equal(ykphone_pane_header.get_context(one_to_one).user_circle_class, undefined);
+    assert.equal(ykphone_pane_header.get_context(one_to_one).dm_avatar_url, undefined);
+    set_realm(make_realm());
+
+    // A deactivated partner keeps upstream's slashed circle.
+    const deactivated = fake_filter({
+        terms: [{operator: "dm", operand: [8]}],
+        title: "Hamlet",
+        icon: {zulip_icon: "user"},
+    });
+    assert.equal(
+        ykphone_pane_header.get_context(deactivated).user_circle_class,
+        "user-circle-deactivated",
+    );
 
     // Group conversations keep the icon.
     const group = fake_filter({

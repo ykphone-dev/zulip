@@ -30,6 +30,7 @@ import * as transmit from "./transmit.ts";
 import * as typing from "./typing.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_forward from "./ykphone_forward.ts";
 import * as zcommand from "./zcommand.ts";
 
 // Docs: https://zulip.readthedocs.io/en/latest/subsystems/sending-messages.html
@@ -99,6 +100,7 @@ export function render_preview_area(): void {
 }
 
 export function clear_compose_box(): void {
+    ykphone_forward.clear();
     /* Before clearing the compose box, we reset it to the
      * default/normal size. Note that for locally echoed messages, we
      * will have already done this action before echoing the message
@@ -283,6 +285,7 @@ export let send_message = (): void => {
             // (Restoring this state is handled by clear_compose_box
             // for locally echoed messages.)
             compose_ui.hide_compose_spinner();
+            ykphone_forward.restore();
             return;
         }
 
@@ -363,11 +366,18 @@ export let finish = (scheduling_message = false): boolean | undefined => {
         return undefined;
     }
 
+    // A pending forward's quote joins the note only here, after the
+    // zcommand branch (so a slash command is still a slash command) and
+    // before validation (so the length and wildcard-mention checks see
+    // what will actually be sent, as they do for upstream's quoting).
+    ykphone_forward.apply_to_compose();
+
     compose_ui.show_compose_spinner();
 
     if (!compose_validate.validate(scheduling_message)) {
         // If the message failed validation, hide compose spinner.
         compose_ui.hide_compose_spinner();
+        ykphone_forward.restore();
         return false;
     }
 

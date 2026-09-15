@@ -91,6 +91,7 @@ const sidebar_ui = mock_esm("../src/sidebar_ui");
 const stream_popover = mock_esm("../src/stream_popover");
 const stream_settings_ui = mock_esm("../src/stream_settings_ui");
 const user_status_ui = mock_esm("../src/user_status_ui");
+const ykphone_forward_ui = mock_esm("../src/ykphone_forward_ui");
 
 mock_esm("../src/recent_view_ui", {
     is_in_focus: () => false,
@@ -514,8 +515,10 @@ test_while_not_editing_text("misc", ({override}) => {
     assert_mapping("u", popovers, "toggle_sender_info");
     assert_mapping("i", message_actions_popover, "toggle_message_actions_menu");
     assert_mapping(":", emoji_picker, "start_picker_for_message_reaction", true);
-    assert_mapping(">", compose_reply, "quote_messages");
-    assert_mapping("<", compose_reply, "quote_messages");
+    assert_mapping("<", ykphone_forward_ui, "start");
+    // The fork has no message quoting: ">" is unbound, and a rebase
+    // that restores its KEYDOWN_MAPPINGS entry has to fail here.
+    assert_unmapped(">");
     assert_mapping("e", message_edit, "start");
 
     override(
