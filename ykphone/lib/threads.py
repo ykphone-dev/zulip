@@ -1,17 +1,19 @@
 import re
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import transaction
-from django.db.models import Count, Max, QuerySet
+from django.db.models import Count, Exists, Max, OuterRef, Q, QuerySet
+from django.db.models.functions import Upper
 from django.utils.translation import gettext as _
 
 from ykphone.models import MessageThread
 from zerver.lib.exceptions import JsonableError
-from zerver.lib.message import access_message
+from zerver.lib.message import access_message, messages_for_ids
+from zerver.lib.stream_subscription import get_subscribed_stream_ids_for_user
 from zerver.lib.streams import access_stream_by_id, get_stream_topics_policy
 from zerver.lib.timestamp import datetime_to_timestamp
 from zerver.lib.topic import messages_for_topic
-from zerver.models import Message, Stream, UserProfile
+from zerver.models import Message, Stream, UserMessage, UserProfile
 from zerver.models.constants import MAX_TOPIC_NAME_LENGTH
 from zerver.models.streams import StreamTopicsPolicyEnum
 
@@ -22,6 +24,12 @@ THREAD_TOPIC_SNIPPET_LENGTH = 50
 # Slack's thread pill shows the avatars of the last few people who
 # replied.
 MAX_THREAD_PARTICIPANTS = 3
+
+# The Activity view lists the newest thread replies; the other feeds
+# it merges (mentions, reactions, direct messages) fetch as many.
+MAX_ACTIVITY_MESSAGES = 50
+# How many of the realm's newest threads the Activity view looks at.
+MAX_ACTIVITY_THREADS = 200
 
 
 class ThreadDict(TypedDict):
@@ -147,28 +155,31 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
     if not threads:
         return []
 
-    replies = readable_messages(user_profile, stream).filter(
-        subject__in=[thread.topic_name for thread in threads]
+    replies = (
+        readable_messages(user_profile, stream)
+        .filter(topic_filter([thread.topic_name for thread in threads]))
+        .annotate(upper_subject=Upper("subject"))
     )
     stats = {
-        row["subject"]: row
-        for row in replies.values("subject").annotate(
+        row["upper_subject"]: row
+        for row in replies.values("upper_subject").annotate(
             reply_count=Count("id"), last_reply=Max("date_sent")
         )
     }
     # One row per (topic, sender) with that sender's newest reply, so
     # the newest senders can be picked without reading every reply.
     senders_by_topic: dict[str, list[tuple[int, int]]] = {}
-    for subject, sender_id, latest_id in (
-        replies.order_by("subject", "sender_id", "-id")
-        .distinct("subject", "sender_id")
-        .values_list("subject", "sender_id", "id")
+    for upper_subject, sender_id, latest_id in (
+        replies.order_by("upper_subject", "sender_id", "-id")
+        .distinct("upper_subject", "sender_id")
+        .values_list("upper_subject", "sender_id", "id")
     ):
-        senders_by_topic.setdefault(subject, []).append((sender_id, latest_id))
+        senders_by_topic.setdefault(upper_subject, []).append((sender_id, latest_id))
 
     result: list[ThreadDict] = []
     for thread in threads:
-        row = stats.get(thread.topic_name)
+        key = thread.topic_name.upper()
+        row = stats.get(key)
         result.append(
             ThreadDict(
                 root_message_id=thread.root_message_id,
@@ -176,7 +187,7 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
                 topic_name=thread.topic_name,
                 reply_count=row["reply_count"] if row else 0,
                 last_reply_timestamp=datetime_to_timestamp(row["last_reply"]) if row else None,
-                participant_user_ids=latest_senders(senders_by_topic.get(thread.topic_name, [])),
+                participant_user_ids=latest_senders(senders_by_topic.get(key, [])),
             )
         )
     return result
@@ -199,4 +210,110 @@ def thread_dict(user_profile: UserProfile, thread: MessageThread) -> ThreadDict:
             datetime_to_timestamp(stats["last_reply"]) if stats["last_reply"] else None
         ),
         participant_user_ids=latest_senders(sender_rows),
+    )
+
+
+def accessible_streams(user_profile: UserProfile) -> list[Stream]:
+    """Active channels the user may read messages of: subscribed ones
+    and, for members, the realm's public ones (access_stream_common's
+    rule, resolved in two queries for every channel at once)."""
+    channel_filter = Q(id__in=set(get_subscribed_stream_ids_for_user(user_profile)))
+    if not user_profile.is_guest:
+        channel_filter |= Q(invite_only=False)
+    return list(
+        Stream.objects.filter(realm_id=user_profile.realm_id, deactivated=False).filter(
+            channel_filter
+        )
+    )
+
+
+def topic_filter(topic_names: list[str]) -> Q:
+    """Topics are matched case-insensitively, like everywhere else in
+    Zulip (the UPPER(subject) index serves each term)."""
+    condition = Q()
+    for topic_name in topic_names:
+        condition |= Q(subject__iexact=topic_name)
+    return condition
+
+
+def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list[dict[str, Any]]:
+    """Other people's replies in the threads the user started or
+    replied in, newest first, as message dicts in the shape of GET
+    /messages so the Activity view can merge them with its other
+    feeds."""
+    streams = {stream.id: stream for stream in accessible_streams(user_profile)}
+    if not streams:
+        return []
+    # Only the newest threads are considered, so the cost is bounded
+    # however many threads the realm has accumulated.
+    newest_thread_ids = list(
+        MessageThread.objects.filter(realm_id=user_profile.realm_id, stream_id__in=streams)
+        .order_by("-root_message_id")
+        .values_list("id", flat=True)[:MAX_ACTIVITY_THREADS]
+    )
+    replied = Message.objects.filter(
+        realm_id=user_profile.realm_id,
+        sender_id=user_profile.id,
+        is_channel_message=True,
+        recipient_id=OuterRef("stream__recipient_id"),
+        subject__iexact=OuterRef("topic_name"),
+    )
+    threads = MessageThread.objects.filter(id__in=newest_thread_ids).filter(
+        Q(creator_id=user_profile.id) | Q(Exists(replied))
+    )
+    topic_names_by_stream_id: dict[int, list[str]] = {}
+    for thread in threads:
+        topic_names_by_stream_id.setdefault(thread.stream_id, []).append(thread.topic_name)
+
+    # In a channel whose history is not public to subscribers only the
+    # messages the user received count (readable_messages' rule, as a
+    # single query across channels).
+    open_history = Q()
+    protected_history = Q()
+    for stream_id, topic_names in topic_names_by_stream_id.items():
+        stream = streams[stream_id]
+        topics = Q(recipient_id=stream.recipient_id) & topic_filter(topic_names)
+        if stream.is_history_public_to_subscribers():
+            open_history |= topics
+        else:
+            protected_history |= topics
+
+    replies = Message.objects.filter(
+        realm_id=user_profile.realm_id, is_channel_message=True
+    ).exclude(sender_id=user_profile.id)
+    message_ids: set[int] = set()
+    if open_history:
+        message_ids.update(
+            replies.filter(open_history)
+            .order_by("-id")
+            .values_list("id", flat=True)[:MAX_ACTIVITY_MESSAGES]
+        )
+    if protected_history:
+        message_ids.update(
+            replies.filter(protected_history, usermessage__user_profile_id=user_profile.id)
+            .order_by("-id")
+            .values_list("id", flat=True)[:MAX_ACTIVITY_MESSAGES]
+        )
+    newest_ids = sorted(message_ids, reverse=True)[:MAX_ACTIVITY_MESSAGES]
+    if not newest_ids:
+        return []
+
+    user_message_flags = {
+        um.message_id: um.flags_list()
+        for um in UserMessage.objects.filter(user_profile=user_profile, message_id__in=newest_ids)
+    }
+    for message_id in newest_ids:
+        # Messages received before the user joined the channel, as in
+        # GET /messages with history included.
+        user_message_flags.setdefault(message_id, ["read", "historical"])
+    return messages_for_ids(
+        message_ids=newest_ids,
+        user_message_flags=user_message_flags,
+        search_fields={},
+        apply_markdown=True,
+        client_gravatar=client_gravatar,
+        allow_empty_topic_name=True,
+        message_edit_history_visibility_policy=user_profile.realm.message_edit_history_visibility_policy,
+        user_profile=user_profile,
+        realm=user_profile.realm,
     )
