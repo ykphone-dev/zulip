@@ -17,8 +17,9 @@ class Command(ZulipBaseCommand):
     help = """Apply the Slack-like defaults of the 옆커폰 fork to an organization.
 
 Sets the organization's defaults so that new users send with Enter
-(Shift+Enter inserts a newline), read at a compact font size, and get
-the neutral default profile picture instead of a generated pattern.
+(Shift+Enter inserts a newline), read at a compact font size, see a
+count rather than a list of names on an emoji reaction, and get the
+neutral default profile picture instead of a generated pattern.
 With --existing-users the settings are also applied to every active
 human user of the organization, and the generated pattern pictures
 those users still have are replaced by the default one."""
@@ -42,6 +43,11 @@ those users still have are replaced by the default one."""
         do_set_realm_user_default_setting(
             realm_user_default, "web_font_size_px", SLACK_FONT_SIZE_PX, acting_user=None
         )
+        # Slack's reaction chips always read as a count ("2"); Zulip
+        # names the reactors instead, which is too wide for the chip.
+        do_set_realm_user_default_setting(
+            realm_user_default, "display_emoji_reaction_users", False, acting_user=None
+        )
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_GRAVATAR, acting_user=None
         )
@@ -56,6 +62,9 @@ those users still have are replaced by the default one."""
             bulk_change_user_setting(realm, users, "enter_sends", True, acting_user=None)
             bulk_change_user_setting(
                 realm, users, "web_font_size_px", SLACK_FONT_SIZE_PX, acting_user=None
+            )
+            bulk_change_user_setting(
+                realm, users, "display_emoji_reaction_users", False, acting_user=None
             )
             patterned = [
                 user for user in users if user.avatar_source == UserProfile.AVATAR_FROM_JDENTICON

@@ -24,6 +24,14 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         )
         for user in UserProfile.objects.filter(enter_sends=True):
             do_change_user_setting(user, "enter_sends", False, acting_user=None)
+        do_set_realm_user_default_setting(
+            RealmUserDefault.objects.get(realm=realm),
+            "display_emoji_reaction_users",
+            True,
+            acting_user=None,
+        )
+        for user in UserProfile.objects.filter(display_emoji_reaction_users=False):
+            do_change_user_setting(user, "display_emoji_reaction_users", True, acting_user=None)
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_JDENTICON, acting_user=None
         )
@@ -43,6 +51,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
     def realm_default_font_size(self) -> int:
         return RealmUserDefault.objects.get(realm=get_realm("zulip")).web_font_size_px
 
+    def realm_default_reaction_users(self) -> bool:
+        return RealmUserDefault.objects.get(realm=get_realm("zulip")).display_emoji_reaction_users
+
     def realm_default_avatar_source(self) -> str:
         return Realm.objects.get(string_id="zulip").default_avatar_source
 
@@ -50,6 +61,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         hamlet = self.example_user("hamlet")
         self.assertFalse(self.realm_default())
         self.assertEqual(self.realm_default_font_size(), 16)
+        self.assertTrue(self.realm_default_reaction_users())
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_JDENTICON)
         self.assertFalse(hamlet.enter_sends)
 
@@ -57,11 +69,13 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         self.assertIn("for new users of zulip", output)
         self.assertTrue(self.realm_default())
         self.assertEqual(self.realm_default_font_size(), 14)
+        self.assertFalse(self.realm_default_reaction_users())
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_GRAVATAR)
         # Existing users are untouched without --existing-users.
         hamlet.refresh_from_db()
         self.assertFalse(hamlet.enter_sends)
         self.assertEqual(hamlet.web_font_size_px, 16)
+        self.assertTrue(hamlet.display_emoji_reaction_users)
         self.assertEqual(hamlet.avatar_source, UserProfile.AVATAR_FROM_JDENTICON)
 
         # Running it again is harmless.
@@ -98,6 +112,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             user.refresh_from_db()
             self.assertTrue(user.enter_sends)
             self.assertEqual(user.web_font_size_px, 14)
+            self.assertFalse(user.display_emoji_reaction_users)
         self.assertEqual(hamlet.avatar_source, UserProfile.AVATAR_FROM_GRAVATAR)
         self.assertEqual(hamlet.avatar_version, hamlet_avatar_version + 1)
         self.assertEqual(cordelia.avatar_source, UserProfile.AVATAR_FROM_USER)
@@ -106,6 +121,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             user.refresh_from_db()
             self.assertFalse(user.enter_sends)
             self.assertEqual(user.web_font_size_px, 16)
+            self.assertTrue(user.display_emoji_reaction_users)
         self.assertEqual(othello.avatar_source, UserProfile.AVATAR_FROM_JDENTICON)
 
     def test_unknown_realm(self) -> None:
