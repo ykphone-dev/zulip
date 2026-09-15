@@ -27,6 +27,7 @@ import * as stream_data from "./stream_data.ts";
 import * as sub_store from "./sub_store.ts";
 import * as topic_link_util from "./topic_link_util.ts";
 import * as unread_ops from "./unread_ops.ts";
+import * as ykphone_activity from "./ykphone_activity.ts";
 
 type QuoteMessageOpts = {
     message_id?: number;
@@ -82,6 +83,14 @@ export let respond_to_message = (opts: {
             return;
         }
         message = message_opts.message;
+    } else if (ykphone_activity.is_visible()) {
+        // The Activity view (옆커폰) has no message list either.
+        compose_actions.start({
+            message_type: "stream",
+            trigger: "activity_nofocus",
+            keep_composebox_empty: opts.keep_composebox_empty,
+        });
+        return;
     } else {
         assert(message_lists.current !== undefined);
 

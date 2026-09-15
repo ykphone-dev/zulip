@@ -34,6 +34,7 @@ import * as ui_report from "./ui_report.ts";
 import * as user_group_edit from "./user_group_edit.ts";
 import * as user_profile from "./user_profile.ts";
 import {user_settings} from "./user_settings.ts";
+import * as ykphone_activity_ui from "./ykphone_activity_ui.ts";
 
 // Read https://zulip.readthedocs.io/en/latest/subsystems/hashchange-system.html
 // or locally: docs/subsystems/hashchange-system.md
@@ -228,6 +229,11 @@ function do_hashchange_normal(from_reload: boolean, restore_selected_id: boolean
             break;
         case "#inbox":
             inbox_ui.show();
+            break;
+        case "#ykphone":
+            if (!ykphone_activity_ui.show_for_hash(hash[1])) {
+                show_home_view(narrow_opts);
+            }
             break;
         case "#all_messages":
             // "#all_messages" was renamed to "#feed" in 2024. Unlike

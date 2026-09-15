@@ -1,8 +1,8 @@
 // Slack-style icon rail for the 옆커폰 fork.
 //
 // A narrow column at the left edge of the app holds the organization
-// logo, the primary views (home, direct messages, activity and, for
-// administrators, the admin panel) and the personal menu; the theme
+// logo, the primary views (home, direct messages, activity, files and,
+// for administrators, the admin panel) and the personal menu; the theme
 // is switched in Settings > Preferences. It is mounted inside .column-left next to the left
 // sidebar, so upstream's rules for hiding that column (the navbar
 // toggle on wide screens, the overlay on narrow ones) cover the rail
@@ -54,10 +54,17 @@ export function rail_items(): RailItem[] {
         },
         {
             id: "activity",
-            href: "#narrow/is/mentioned",
-            icon: "at-sign",
+            href: "#ykphone/activity",
+            icon: "bell",
             label: $t({defaultMessage: "Activity"}),
-            hash_prefixes: ["#narrow/is/mentioned"],
+            hash_prefixes: ["#ykphone/activity"],
+        },
+        {
+            id: "files",
+            href: "#narrow/has/attachment",
+            icon: "file-text",
+            label: $t({defaultMessage: "Files"}),
+            hash_prefixes: ["#narrow/has/attachment"],
         },
     ];
     if (current_user.is_admin) {
@@ -127,6 +134,12 @@ export function mount(): void {
     // of the views), so the section can no longer be re-expanded by
     // hand; make sure a state saved before never leaves it condensed.
     left_sidebar_navigation_area.force_expand_views();
+    // The Threads row (upstream's recent conversations) gets the same
+    // icon as the thread pill and the thread button. The row is
+    // rendered once with the sidebar, so the class is swapped here.
+    $(".top_left_recent_view .zulip-icon-recent")
+        .removeClass("zulip-icon-recent")
+        .addClass("zulip-icon-threads");
     // The header is placed inside the search block so that resize.ts,
     // which subtracts that block's height when sizing the channel
     // list, accounts for it without changes.

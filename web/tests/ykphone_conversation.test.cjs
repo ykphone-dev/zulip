@@ -67,6 +67,14 @@ run_test("narrow classification", () => {
         ykphone_conversation.empty_narrow_banner(fake_filter({term_types: ["channel"]})),
         undefined,
     );
+
+    // The rail's Files view: attachments across every channel.
+    const all_files = fake_filter({term_types: ["has-attachment"], conversation: false});
+    assert.equal(ykphone_conversation.is_files_narrow(all_files), true);
+    assert.equal(ykphone_conversation.is_files_narrow(files), false);
+    assert.deepEqual(ykphone_conversation.empty_narrow_banner(all_files), {
+        title: "translated: No files have been shared yet.",
+    });
 });
 
 run_test("body class", ({override}) => {

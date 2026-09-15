@@ -46,6 +46,7 @@ import {parse_html} from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
 
 export function initialize(): void {
     // MESSAGE CLICKING
@@ -1021,6 +1022,9 @@ export function initialize(): void {
 
     // disable the draggability for left-sidebar components
     $("#stream_filters, #left-sidebar-navigation-list").on("dragstart", (e) => {
+        if (ykphone_favorites_ui.is_channel_row_drag(e.target)) {
+            return true;
+        }
         e.target.blur();
         return false;
     });

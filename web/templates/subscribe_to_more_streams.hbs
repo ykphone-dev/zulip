@@ -1,16 +1,12 @@
-{{#if exactly_one_unsubscribed_stream}}
-    <a class="subscribe-more-link" href="#channels/available">
-        <i class="subscribe-more-icon zulip-icon zulip-icon-browse-channels" aria-hidden="true" ></i>
-        <span class="subscribe-more-label">{{~t "BROWSE 1 MORE CHANNEL" ~}}</span>
-    </a>
-{{else unless (eq can_subscribe_stream_count 0)}}
-    <a class="subscribe-more-link" href="#channels/available">
-        <i class="subscribe-more-icon zulip-icon zulip-icon-browse-channels" aria-hidden="true" ></i>
-        <span class="subscribe-more-label">{{~t "BROWSE {can_subscribe_stream_count} MORE CHANNELS" ~}}</span>
+{{! Slack's "Add channels" row at the end of the channel list (the 옆커폰 fork): the channel browser, or the creation form when there is nothing left to join. }}
+{{#unless (eq can_subscribe_stream_count 0)}}
+    <a class="subscribe-more-link ykphone-add-channels" href="#channels/available">
+        <span class="ykphone-add-channels-icon"><i class="zulip-icon zulip-icon-plus" aria-hidden="true"></i></span>
+        <span class="subscribe-more-label">{{~t "Add channels" ~}}</span>
     </a>
 {{else if can_create_streams}}
-    <a class="subscribe-more-link" href="#channels/new">
-        <i class="subscribe-more-icon zulip-icon zulip-icon-browse-channels" aria-hidden="true" ></i>
-        <span class="subscribe-more-label">{{~t "CREATE A CHANNEL" ~}}</span>
+    <a class="subscribe-more-link ykphone-add-channels" href="#channels/new">
+        <span class="ykphone-add-channels-icon"><i class="zulip-icon zulip-icon-plus" aria-hidden="true"></i></span>
+        <span class="subscribe-more-label">{{~t "Add channels" ~}}</span>
     </a>
-{{/if}}
+{{/unless}}

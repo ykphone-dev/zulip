@@ -10,6 +10,8 @@ const message_store = zrequire("message_store");
 const message_fetch_raw_content = mock_esm("../src/message_fetch_raw_content");
 const compose_paste = mock_esm("../src/compose_paste");
 const message_lists = mock_esm("../src/message_lists");
+const compose_actions = mock_esm("../src/compose_actions");
+const ykphone_activity = mock_esm("../src/ykphone_activity");
 
 const pm_user_ids_1 = "1,2";
 const pm_user_ids_2 = "3,4";
@@ -389,4 +391,19 @@ run_test("build_and_process_quote_assets_for_messages", ({override}) => {
         {message: msg_unhydrated, quote_content: "converted_by_turndown: <p>unhydrated</p>"},
         "Fallback to using paste_handler_converter",
     );
+});
+
+run_test("respond_to_message on the activity view", ({override}) => {
+    // The 옆커폰 Activity view has no message list (like the recent and
+    // inbox views): `r` and the compose bar open an empty box.
+    message_lists.current = undefined;
+    override(ykphone_activity, "is_visible", () => true);
+    const calls = [];
+    override(compose_actions, "start", (opts) => {
+        calls.push(opts);
+    });
+    compose_reply.respond_to_message({trigger: "hotkey", keep_composebox_empty: true});
+    assert.deepEqual(calls, [
+        {message_type: "stream", trigger: "activity_nofocus", keep_composebox_empty: true},
+    ]);
 });

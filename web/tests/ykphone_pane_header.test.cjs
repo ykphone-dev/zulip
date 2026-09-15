@@ -53,6 +53,9 @@ mock_esm("../src/stream_data", {
 const ui_util = mock_esm("../src/ui_util", {
     matches_viewport_state: () => true,
 });
+const ykphone_activity = mock_esm("../src/ykphone_activity", {
+    is_visible: () => false,
+});
 const ykphone_pins = mock_esm("../src/ykphone_pins", {
     pin_count: (stream_id) => (stream_id === verona.stream_id ? 2 : 0),
     get_panel_stream_id: () => undefined,
@@ -107,7 +110,7 @@ run_test("get_context views", ({override}) => {
     override(recent_view_util, "is_visible", () => true);
     assert.deepEqual(ykphone_pane_header.get_context(undefined), {
         title: "translated: Threads",
-        zulip_icon: "recent",
+        zulip_icon: "threads",
     });
     override(recent_view_util, "is_visible", () => false);
 
@@ -120,6 +123,13 @@ run_test("get_context views", ({override}) => {
     override(inbox_util, "is_channel_view", () => true);
     assert.equal(ykphone_pane_header.get_context(undefined).title, "translated: Combined feed");
     override(inbox_util, "is_visible", () => false);
+
+    override(ykphone_activity, "is_visible", () => true);
+    assert.deepEqual(ykphone_pane_header.get_context(undefined), {
+        title: "translated: Activity",
+        zulip_icon: "bell",
+    });
+    override(ykphone_activity, "is_visible", () => false);
 
     // A search narrow has no navbar title upstream (the search bar
     // opens instead); the pane says what it is.
@@ -265,6 +275,16 @@ run_test("get_context files tab", () => {
     assert.deepEqual(context.tabs, {...verona_tabs, active: "files"});
     assert.equal(ykphone_pane_header.files_url(3), "#narrow/channel/3/has/attachment");
 
+    // The rail's Files view is a search over every channel.
+    const all_files = fake_filter({
+        terms: [{operator: "has", operand: "attachment"}],
+        common: false,
+    });
+    assert.deepEqual(ykphone_pane_header.get_context(all_files), {
+        title: "translated: Files",
+        zulip_icon: "file-text",
+    });
+
     // An unknown channel's files are a plain search.
     const unknown_files = fake_filter({
         terms: [
@@ -360,7 +380,7 @@ run_test("render before mount", ({override, mock_template}) => {
     // our mount); rendering is harmless and fetches nothing.
     ykphone_pane_header.render();
     assert.equal(rendered.data.title, "translated: Threads");
-    assert.ok(rendered.html.includes("zulip-icon-recent"));
+    assert.ok(rendered.html.includes("zulip-icon-threads"));
     assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
 });
 
@@ -516,7 +536,7 @@ run_test("render and mount", ({override, mock_template}) => {
         override(recent_view_util, "is_visible", () => true);
         ykphone_pane_header.render();
         assert.equal(rendered.data.title, "translated: Threads");
-        assert.ok(rendered.html.includes("zulip-icon-recent"));
+        assert.ok(rendered.html.includes("zulip-icon-threads"));
         assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
         assert.ok(!rendered.html.includes("ykphone-pane-header-members"));
         override(recent_view_util, "is_visible", () => false);

@@ -35,6 +35,7 @@ import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
 import * as ui_util from "./ui_util.ts";
 import * as util from "./util.ts";
+import * as ykphone_activity from "./ykphone_activity.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 
@@ -138,13 +139,21 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
     // fallback to the combined feed while the initial narrow is not
     // known yet.
     if (recent_view_util.is_visible()) {
-        return {title: $t({defaultMessage: "Threads"}), zulip_icon: "recent"};
+        return {title: $t({defaultMessage: "Threads"}), zulip_icon: "threads"};
     }
     if (inbox_util.is_visible() && !inbox_util.is_channel_view()) {
         return {title: $t({defaultMessage: "Inbox"}), zulip_icon: "inbox"};
     }
+    if (ykphone_activity.is_visible()) {
+        return {title: $t({defaultMessage: "Activity"}), zulip_icon: "bell"};
+    }
     if (filter === undefined || filter.is_in_home()) {
         return {title: $t({defaultMessage: "Combined feed"}), zulip_icon: "all-messages"};
+    }
+    if (ykphone_conversation.is_files_narrow(filter)) {
+        // The rail's Files view is a search upstream would title
+        // "Search results".
+        return {title: $t({defaultMessage: "Files"}), zulip_icon: "file-text"};
     }
 
     if (ykphone_conversation.is_channel_files_narrow(filter)) {

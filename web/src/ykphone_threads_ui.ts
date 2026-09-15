@@ -1,8 +1,11 @@
 // DOM event wiring for the 옆커폰 web UI: Slack-style threads (the
 // feed controls and the side panel), the icon rail, the sidebar card
 // header, the pane header, the navbar history controls, the always-open
-// two-row compose box and the conversation intro. Pinned messages have
-// their own wiring in ykphone_pins_ui. The state and rendering live in the other
+// two-row compose box and the conversation intro. Pinned messages,
+// favourites and the Activity view have their own wiring in
+// ykphone_pins_ui, ykphone_favorites_ui and ykphone_activity_ui (the
+// last one initialized from ui_init beside the inbox and recent
+// views, whose show/hide it shares). The state and rendering live in the other
 // ykphone_* modules; this one only mounts them and binds handlers, so
 // it is exempt from node coverage.
 
@@ -22,6 +25,7 @@ import * as stream_popover from "./stream_popover.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
+import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_history from "./ykphone_history.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
@@ -104,6 +108,7 @@ export function initialize(): void {
     ykphone_compose.mount();
     ykphone_compose_narrow.initialize();
     ykphone_pins_ui.initialize();
+    ykphone_favorites_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
     document.documentElement.style.setProperty(

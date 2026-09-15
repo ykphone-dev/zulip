@@ -11,6 +11,7 @@ import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as unread from "./unread.ts";
 import type {FullUnreadCountsData} from "./unread.ts";
+import * as ykphone_activity from "./ykphone_activity.ts";
 
 export let unread_count = 0;
 let pm_count = 0;
@@ -23,6 +24,9 @@ export function compute_narrow_title(filter?: Filter): string {
             return $t({defaultMessage: "Recent conversations"});
         }
 
+        if (ykphone_activity.is_visible()) {
+            return $t({defaultMessage: "Activity"});
+        }
         assert(inbox_util.is_visible());
         return $t({defaultMessage: "Inbox"});
     }

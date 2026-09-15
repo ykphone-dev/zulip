@@ -178,6 +178,7 @@ import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as watchdog from "./watchdog.ts";
 import * as widgets from "./widgets.ts";
+import * as ykphone_activity_ui from "./ykphone_activity_ui.ts";
 import * as ykphone_threads_ui from "./ykphone_threads_ui.ts";
 
 function update_page_loading_indicator_notice() {
@@ -565,10 +566,22 @@ export async function initialize_everything(state_data) {
                 first_unread_message_id,
             });
         },
-        hide_other_views: inbox_ui.hide,
+        hide_other_views() {
+            inbox_ui.hide();
+            ykphone_activity_ui.hide();
+        },
     });
     inbox_ui.initialize({
-        hide_other_views: recent_view_ui.hide,
+        hide_other_views() {
+            recent_view_ui.hide();
+            ykphone_activity_ui.hide();
+        },
+    });
+    ykphone_activity_ui.initialize({
+        hide_other_views() {
+            inbox_ui.hide();
+            recent_view_ui.hide();
+        },
     });
     alert_words.initialize(state_data.alert_words);
     saved_snippets.initialize(state_data.saved_snippets);

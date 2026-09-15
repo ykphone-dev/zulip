@@ -342,13 +342,13 @@ test("basics", ({override}) => {
     assert.deepEqual(sorted_sections[0].id, "pinned-streams");
     assert.deepEqual(sorted_sections[0].section_title, "translated: Favorites");
     assert.deepEqual(sorted_sections[1].id, backend_folder.id.toString());
-    assert.deepEqual(sorted_sections[1].section_title, "BACKEND");
+    assert.deepEqual(sorted_sections[1].section_title, "Backend");
     assert.deepEqual(sorted_sections[2].id, frontend_folder.id.toString());
-    assert.deepEqual(sorted_sections[2].section_title, "FRONTEND");
+    assert.deepEqual(sorted_sections[2].section_title, "Frontend");
     assert.deepEqual(sorted_sections[3].id, "normal-streams");
     assert.deepEqual(sorted_sections[3].section_title, "translated: OTHER");
     assert.deepEqual(sorted_sections[4].id, expect_demoted_folder.id.toString());
-    assert.deepEqual(sorted_sections[4].section_title, "EMPTY");
+    assert.deepEqual(sorted_sections[4].section_title, "Empty");
 
     // If both `pin_to_top` is true and folder_id is set, as in
     // the channel `scalene`, then the channel ends up in the pinned
@@ -451,7 +451,7 @@ test("current_section_id_for_stream", ({override}) => {
             inactive_streams: [],
             muted_streams: [],
             order: 2,
-            section_title: "BACKEND",
+            section_title: "Backend",
             default_visible_streams: [6],
         },
         {
@@ -460,7 +460,7 @@ test("current_section_id_for_stream", ({override}) => {
             inactive_streams: [3],
             muted_streams: [7],
             order: 3,
-            section_title: "FRONTEND",
+            section_title: "Frontend",
             default_visible_streams: [2],
         },
         {
@@ -477,7 +477,7 @@ test("current_section_id_for_stream", ({override}) => {
             inactive_streams: [11],
             muted_streams: [10],
             order: 1,
-            section_title: "EMPTY",
+            section_title: "Empty",
             default_visible_streams: [],
         },
     ]);

@@ -6,6 +6,8 @@
         <span class="ykphone-thread-panel-sender-name">{{sender_name}}</span>
         <span class="ykphone-thread-panel-time">{{time_label}}</span>
     </div>
+    {{else}}
+    <span class="ykphone-thread-panel-gutter-time">{{gutter_time}}</span>
     {{/if}}
     <div class="ykphone-thread-panel-content rendered_markdown">{{rendered_markdown content}}</div>
 </div>

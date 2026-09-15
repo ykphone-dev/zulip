@@ -1,8 +1,8 @@
 // Conversation-level UI for the 옆커폰 fork: the body class that turns
 // the recipient bars into Slack's date pills while one conversation is
 // on screen, the intro block at the top of a conversation's history
-// (in place of upstream's logo) and the empty state of a channel's
-// Files tab. Rendering is driven by upstream's narrow and
+// (in place of upstream's logo) and the empty states of the Files
+// views. Rendering is driven by upstream's narrow and
 // top-of-narrow hooks; the mount point is added by ykphone_threads_ui.
 
 import $ from "jquery";
@@ -14,8 +14,8 @@ import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import type {MessageList} from "./message_list.ts";
 import * as message_store from "./message_store.ts";
-import * as narrow_state from "./narrow_state.ts";
 import type {NarrowBannerData} from "./narrow_error.ts";
+import * as narrow_state from "./narrow_state.ts";
 import * as people from "./people.ts";
 import * as rendered_markdown from "./rendered_markdown.ts";
 import * as stream_data from "./stream_data.ts";
@@ -46,7 +46,7 @@ export type IntroContext =
 // One channel or direct message conversation: the narrows Slack
 // shows as a single room, with date pills instead of recipient bars.
 export function is_conversation(filter: Filter | undefined): boolean {
-    return filter !== undefined && filter.is_conversation_view();
+    return filter?.is_conversation_view() ?? false;
 }
 
 // The Files tab of a channel is a search for its messages with
@@ -55,11 +55,19 @@ export function is_channel_files_narrow(filter: Filter): boolean {
     return filter.sorted_term_types().join(" ") === "channel has-attachment";
 }
 
+// The rail's Files view: every message with an attachment.
+export function is_files_narrow(filter: Filter): boolean {
+    return filter.sorted_term_types().join(" ") === "has-attachment";
+}
+
 export function empty_narrow_banner(filter: Filter): NarrowBannerData | undefined {
-    if (!is_channel_files_narrow(filter)) {
-        return undefined;
+    if (is_channel_files_narrow(filter)) {
+        return {title: $t({defaultMessage: "No files have been shared in this channel yet."})};
     }
-    return {title: $t({defaultMessage: "No files have been shared in this channel yet."})};
+    if (is_files_narrow(filter)) {
+        return {title: $t({defaultMessage: "No files have been shared yet."})};
+    }
+    return undefined;
 }
 
 export function update_body_class(): void {

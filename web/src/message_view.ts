@@ -69,6 +69,7 @@ import * as unread_ops from "./unread_ops.ts";
 import * as unread_ui from "./unread_ui.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_activity_ui from "./ykphone_activity_ui.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_ui_hooks from "./ykphone_ui_hooks.ts";
 
@@ -695,6 +696,7 @@ export let show = (raw_terms: NarrowTerm[], show_opts: ShowMessageViewOpts): voi
         } else if (coming_from_inbox) {
             inbox_ui.hide();
         }
+        ykphone_activity_ui.hide();
 
         blueslip.debug("Narrowed", {
             operators: terms.map((e) => e.operator),

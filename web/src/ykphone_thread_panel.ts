@@ -54,6 +54,8 @@ type MessageRowContext = {
     sender_name: string;
     avatar_url: string;
     time_label: string;
+    // The time alone, for the gutter of a grouped row.
+    gutter_time: string;
     content: string;
 };
 
@@ -112,8 +114,7 @@ function message_row_context(
     is_root: boolean,
 ): MessageRowContext {
     const include_sender =
-        previous === undefined ||
-        previous.sender_id !== message.sender_id ||
+        previous?.sender_id !== message.sender_id ||
         message.timestamp - previous.timestamp > SENDER_COLLAPSE_SECONDS;
     return {
         message_id: message.id,
@@ -122,6 +123,10 @@ function message_row_context(
         sender_name: message.sender_full_name,
         avatar_url: people.small_avatar_url(message),
         time_label: time_label(message),
+        gutter_time: timerender.get_localized_date_or_time_for_format(
+            new Date(message.timestamp * 1000),
+            "time",
+        ),
         content: message.content,
     };
 }
@@ -158,7 +163,7 @@ function render_body(opts: {keep_scroll_position: boolean}): void {
     }
     rendered_markdown.update_elements($body.find(".rendered_markdown"));
     if (follow_end) {
-        $body.prop("scrollTop", $body.prop("scrollHeight"));
+        $body.prop("scrollTop", Number($body.prop("scrollHeight")));
     }
 }
 
@@ -166,7 +171,7 @@ function add_replies(messages: Message[]): Message[] {
     const known_ids = new Set(replies.map((message) => message.id));
     const added = messages.filter((message) => !known_ids.has(message.id));
     if (added.length > 0) {
-        replies = [...replies, ...added].sort((a, b) => a.id - b.id);
+        replies = [...replies, ...added].toSorted((a, b) => a.id - b.id);
     }
     return added;
 }
@@ -343,8 +348,7 @@ export function close_if_narrowed_to_open_thread(): void {
     const topic = narrow_state.topic();
     if (
         narrow_state.stream_id() === current_thread.stream_id &&
-        topic !== undefined &&
-        topic.toLowerCase() === current_thread.topic_name.toLowerCase()
+        topic?.toLowerCase() === current_thread.topic_name.toLowerCase()
     ) {
         close();
     }

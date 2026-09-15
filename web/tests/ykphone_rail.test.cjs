@@ -27,17 +27,20 @@ function item_ids() {
 
 run_test("items", () => {
     set_current_user(member);
-    assert.deepEqual(item_ids(), ["home", "dm", "activity"]);
-    const [home, dm, activity] = ykphone_rail.rail_items();
+    assert.deepEqual(item_ids(), ["home", "dm", "activity", "files"]);
+    const [home, dm, activity, files] = ykphone_rail.rail_items();
     assert.equal(home.label, "translated: Home");
     assert.equal(home.href, "#inbox");
     assert.equal(dm.href, "#narrow/is/dm");
-    assert.equal(activity.href, "#narrow/is/mentioned");
+    assert.equal(activity.href, "#ykphone/activity");
+    assert.equal(activity.icon, "bell");
+    assert.equal(files.href, "#narrow/has/attachment");
+    assert.equal(files.label, "translated: Files");
 
     // The admin panel is only offered to administrators.
     set_current_user(admin);
-    assert.deepEqual(item_ids(), ["home", "dm", "activity", "admin"]);
-    assert.equal(ykphone_rail.rail_items()[3].href, "#organization");
+    assert.deepEqual(item_ids(), ["home", "dm", "activity", "files", "admin"]);
+    assert.equal(ykphone_rail.rail_items()[4].href, "#organization");
 });
 
 run_test("active_item_id", ({override}) => {
@@ -46,7 +49,10 @@ run_test("active_item_id", ({override}) => {
     assert.equal(ykphone_rail.active_item_id("#narrow/is/dm"), "dm");
     // A direct message conversation belongs to the DM tab too.
     assert.equal(ykphone_rail.active_item_id("#narrow/dm/7-user"), "dm");
-    assert.equal(ykphone_rail.active_item_id("#narrow/is/mentioned"), "activity");
+    assert.equal(ykphone_rail.active_item_id("#ykphone/activity"), "activity");
+    assert.equal(ykphone_rail.active_item_id("#narrow/has/attachment"), "files");
+    // The mention narrow is no longer a rail view.
+    assert.equal(ykphone_rail.active_item_id("#narrow/is/mentioned"), undefined);
     // Overlays are matched by prefix, so any settings section counts.
     assert.equal(ykphone_rail.active_item_id("#organization/users"), "admin");
     assert.equal(ykphone_rail.active_item_id("#recent"), undefined);
@@ -109,7 +115,7 @@ run_test("mount", ({override, mock_template}) => {
     mock_template("ykphone_rail.hbs", true, (data, html) => {
         assert.deepEqual(
             data.items.map((item) => item.id),
-            ["home", "dm", "activity"],
+            ["home", "dm", "activity", "files"],
         );
         assert.equal(data.avatar_url, "/avatar/7/medium");
         rail_html = html;
@@ -167,11 +173,17 @@ run_test("mount", ({override, mock_template}) => {
     });
     const $dm = $('#ykphone-rail .ykphone-rail-item[data-rail-item="dm"]');
     const $home = $('#ykphone-rail .ykphone-rail-item[data-rail-item="home"]');
+    const $threads_icon = $(".top_left_recent_view .zulip-icon-recent");
+    $threads_icon.addClass("zulip-icon-recent");
 
     ykphone_rail.mount();
 
     assert.ok(rail_html.includes('data-rail-item="dm"'));
-    assert.ok(rail_html.includes("zulip-icon-at-sign"));
+    assert.ok(rail_html.includes("zulip-icon-bell"));
+    assert.ok(rail_html.includes("zulip-icon-file-text"));
+    // The sidebar's Threads row shares the thread pill's icon.
+    assert.ok(!$threads_icon.hasClass("zulip-icon-recent"));
+    assert.ok($threads_icon.hasClass("zulip-icon-threads"));
     assert.ok(!rail_html.includes('data-rail-item="admin"'));
     assert.equal(prepended.get("#left-sidebar-container"), $(rail_html)[0]);
     assert.ok(header_html.includes("옆커폰"));

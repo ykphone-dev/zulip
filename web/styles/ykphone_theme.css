@@ -958,6 +958,49 @@ body:has(#ykphone-rail) {
     margin-bottom: 0.5em;
 }
 
+/* Slack's "Add channels" row: a plus in a small rounded square and a
+   label in the row's normal case, in place of upstream's small-caps
+   "browse N more channels". The link keeps upstream's row grid. */
+#left-sidebar .ykphone-add-channels {
+    .ykphone-add-channels-icon {
+        grid-area: plus-icon;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        width: 1.4286em; /* 20px at 14px/em */
+        height: 1.4286em;
+        border-radius: 4px;
+        background-color: var(--yk-shell-row-hover);
+        color: var(--yk-shell-text-strong);
+
+        .zulip-icon {
+            font-size: 0.8571em; /* 12px at 14px/em */
+        }
+    }
+
+    .subscribe-more-label {
+        margin-top: 0;
+        font-size: 1.0714em; /* 15px at 14px/em */
+        font-weight: 400;
+        font-variant: normal;
+        font-feature-settings: normal;
+        text-transform: none;
+    }
+}
+
+/* Dragging a channel row into or out of the favourites section
+   (ykphone_favorites_ui). */
+#stream_filters .narrow-filter.ykphone-dragging {
+    opacity: 0.6;
+}
+
+#stream_filters .stream-list-section-container.ykphone-drop-target {
+    outline: 2px solid var(--yk-shell-row-active);
+    outline-offset: -2px;
+    border-radius: var(--yk-radius-sm);
+}
+
 #left-sidebar #direct-messages-list {
     padding-bottom: var(--left-sidebar-bottom-scrolling-buffer);
 }
@@ -1302,6 +1345,13 @@ a.ykphone-pane-header-channel {
     .messagebox {
         border-radius: 0;
     }
+
+    /* Upstream pads the block's last message box; a grouped line
+       stays as tall as the others (the next recipient bar has its own
+       top margin). */
+    &:not(.messagebox-includes-sender) .messagebox {
+        padding-bottom: 0;
+    }
 }
 
 .message_row {
@@ -1317,7 +1367,12 @@ a.ykphone-pane-header-channel {
     padding-right: 8px;
     /* Every message grid variant gets a row for the thread pill
        under the reactions and reminders; see the sender-row and
-       me-message overrides below for the other variants. */
+       me-message overrides below for the other variants. Upstream
+       reserves the sender line's height for its first row; here that
+       row is the pin line, which must collapse when there is none. */
+    grid-template-rows:
+        auto minmax(var(--message-box-sender-line-height), auto)
+        repeat(5, auto);
     grid-template-areas:
         ".      pin       .        . .   "
         "edited message   controls . time"
@@ -1340,8 +1395,111 @@ a.ykphone-pane-header-channel {
     /* Slack's 15px/22px body text. */
     .message_content {
         font-size: 1.0714em; /* 15px at 14px/em */
-        line-height: 1.4667;
+        line-height: 1.46;
     }
+}
+
+/* Slack's density: a sender's first message carries the avatar, name
+   and time; the messages that follow are single lines a few pixels
+   apart, with the time only on hover (or while selected), small and
+   muted in the avatar gutter, instead of upstream's time at the right
+   of every line. Edit mode keeps its layout. */
+.messagebox-includes-sender .messagebox-content {
+    position: relative;
+    padding-top: 0.5714em; /* 8px at 14px/em */
+}
+
+.message_row:not(.messagebox-includes-sender)
+    .messagebox-content:not(.content_edit_mode) {
+    position: relative;
+    padding-top: 0.1429em; /* 2px at 14px/em */
+    padding-bottom: 0.1429em;
+    /* A single line is as tall as its text, not as the sender line. */
+    grid-template-rows: auto repeat(6, auto);
+    /* The time and the toolbar are floated (below), so their columns
+       are empty; the message wraps at the same width as in the sender
+       row above (avatar column and the 8px right gap). */
+    grid-template-columns:
+        var(--message-box-avatar-column-width) minmax(0, 1fr)
+        0 8px 0;
+
+    /* An edited message's EDITED/MOVED label shares the gutter with
+       the hover time: the line row grows to two gutter lines and the
+       label sits under the time. */
+    &:has(.message_edit_notice) {
+        grid-template-rows: auto minmax(3.1429em, auto) repeat(5, auto); /* 44px at 14px/em */
+
+        .edit-notifications,
+        .message_edit_notice {
+            align-self: end;
+        }
+    }
+
+    .message_content {
+        padding-top: 0;
+        min-height: 0;
+
+        /* The last block's bottom margin is upstream's gap to the
+           next row; the row's own padding provides it here. */
+        > :last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .message-time {
+        /* Absolutely positioned against the padding box; with the
+           "time" grid area it would be placed within that area. Its
+           right edge sits at the gutter's edge and the text runs
+           leftwards from there, so a wide time ("오후 3:21") can use
+           the row's left padding rather than being cut. */
+        grid-area: auto;
+        position: absolute;
+        top: 0.1429em; /* 2px at 14px/em */
+        left: auto;
+        /* The column width is in the row's em; this element is at
+           11px. */
+        right: calc(100% - var(--message-box-avatar-column-width) / 0.7857);
+        width: max-content;
+        padding: 0 0.15em 0 0;
+        /* 11px, without upstream's letter spacing: the widest Korean
+           time ("오전 11:47") then fits between the row's left edge
+           and the gutter's right edge. */
+        font-size: 0.7857em; /* 11px at 14px/em */
+        letter-spacing: 0;
+        /* The content's line box (15px × 1.46) at 11px, so the two
+           share a baseline. */
+        line-height: 1.99;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 100ms ease;
+    }
+
+    /* The hover toolbar is taller than a text line; floated over the
+       row's right end, on the first line, it no longer sets the row's
+       height. */
+    .message_controls {
+        grid-area: auto;
+        position: absolute;
+        top: 0;
+        right: 0.5714em; /* 8px at 14px/em */
+    }
+
+    .slow-send-spinner {
+        grid-area: auto;
+        position: absolute;
+        top: 0.3em;
+        left: 0.5em;
+    }
+}
+
+.message_row:not(.messagebox-includes-sender):is(
+        :hover,
+        .selected_message,
+        :focus-within
+    )
+    .messagebox-content:not(.content_edit_mode)
+    .message-time {
+    opacity: 1;
 }
 
 /* Put the timestamp beside the sender name, the way Slack does,
@@ -1351,9 +1509,12 @@ a.ykphone-pane-header-channel {
    edit mode keep their upstream layouts. */
 .messagebox-includes-sender
     .messagebox-content:not(.is-me-message, .content_edit_mode) {
+    /* The toolbar is floated over the sender line (below), so its
+       column is empty: the message then wraps at the same width as
+       the grouped lines under it. */
     grid-template-columns:
         var(--message-box-avatar-column-width) minmax(0, max-content)
-        minmax(0, 1fr) max-content 8px;
+        minmax(0, 1fr) 0 8px;
     grid-template-areas:
         ".      pin       pin       .        ."
         "avatar sender    time      controls ."
@@ -1370,6 +1531,15 @@ a.ykphone-pane-header-channel {
     .message-time {
         place-self: baseline start;
         padding: 0 0 0 0.7em;
+    }
+
+    .message_controls {
+        grid-area: auto;
+        position: absolute;
+        /* Centred on the sender line: the 8px top padding plus half
+           of the line's height (31px) minus the toolbar's (26.5px). */
+        top: 0.75em;
+        right: 0.5714em; /* 8px at 14px/em */
     }
 
     .slow-send-spinner {
@@ -1780,6 +1950,39 @@ body.ykphone-pins-open #ykphone-pins-panel {
 
     .ykphone-thread-panel-content {
         overflow-wrap: anywhere;
+        line-height: 1.46;
+    }
+
+    /* Grouped rows are single lines a few pixels apart, as in the
+       feed: the row's padding provides the gap, not the last block's
+       bottom margin. */
+    &:not(.ykphone-thread-panel-message-with-sender)
+        .ykphone-thread-panel-content
+        > :last-child {
+        margin-bottom: 0;
+    }
+
+    /* Grouped rows show their time in the avatar gutter on hover, as
+       in the feed. */
+    .ykphone-thread-panel-gutter-time {
+        position: absolute;
+        top: 0.1818em; /* the row's 2px padding at 11px/em */
+        /* The right edge at the gutter's edge (the row's 3.4em at
+           11px/em), the text running leftwards from it. */
+        right: calc(100% - 4.3273em);
+        width: max-content;
+        padding-right: 0.2em;
+        font-size: 0.7857em; /* 11px at 14px/em: "오후 3:21" fits */
+        /* The content's line box (14px × 1.46) at 11px. */
+        line-height: 1.858;
+        color: var(--yk-text-muted);
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 100ms ease;
+    }
+
+    &:is(:hover, :focus-within) .ykphone-thread-panel-gutter-time {
+        opacity: 1;
     }
 }
 
@@ -1899,7 +2102,8 @@ body.ykphone-pins-open #ykphone-pins-panel {
 /* Date dividers as centered pills. */
 .message_feed_divider:has(.date-divider-content) {
     grid-template-columns: minmax(20px, 1fr) auto minmax(20px, 1fr);
-    padding: 10px 0;
+    /* Slack's hairline rows are about 20px: the 17px pill plus 2px. */
+    padding: 0.1429em 0; /* 2px at 14px/em */
 
     &:has(.timerender-content)::after {
         display: block;
@@ -2771,4 +2975,153 @@ body.ykphone-conversation .top-messages-logo {
             background-color: var(--yk-row-hover);
         }
     }
+}
+
+/* ---- Activity view ---- */
+
+/* Shown in place of the message feed like the inbox and recent views
+   (ykphone_activity_ui); the bottom padding keeps the last rows above
+   an opened compose box. */
+#ykphone-activity-view {
+    display: none;
+    padding: var(--header-padding-bottom) 0
+        var(--max-unmaximized-compose-height);
+}
+
+.ykphone-activity {
+    max-width: 56em;
+    margin: 0 auto;
+    padding: 0 1em;
+}
+
+.ykphone-activity-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+    margin-bottom: 0.5em;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid var(--yk-hairline);
+}
+
+/* Slack's filter pills: outlined, the active one filled. */
+.ykphone-activity-tab {
+    padding: 0.25em 0.75em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: 999px;
+    background: none;
+    color: var(--color-text-default);
+    font: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    font-weight: 700;
+    line-height: 1.5;
+    cursor: pointer;
+    transition:
+        background-color 100ms ease,
+        color 100ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
+
+    &.active {
+        border-color: var(--yk-blue-selected);
+        background-color: var(--yk-blue-selected);
+        color: hsl(0deg 0% 100%);
+    }
+}
+
+.ykphone-activity-status {
+    padding: 2.5em 1em;
+    color: var(--yk-text-muted);
+    text-align: center;
+}
+
+.ykphone-activity-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ykphone-activity-row {
+    display: grid;
+    grid-template-columns: 2.5714em minmax(0, 1fr) max-content;
+    column-gap: 0.75em;
+    align-items: start;
+    padding: 0.5em 0.75em;
+    border-radius: var(--yk-radius-sm);
+    color: var(--color-text-default);
+    text-decoration: none;
+    transition: background-color 100ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -2px;
+    }
+}
+
+.ykphone-activity-avatar {
+    width: 2.5714em; /* 36px at 14px/em */
+    height: 2.5714em;
+    border-radius: var(--yk-radius-md);
+    object-fit: cover;
+}
+
+.ykphone-activity-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+    min-width: 0;
+}
+
+.ykphone-activity-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
+    min-width: 0;
+}
+
+.ykphone-activity-sender {
+    overflow: hidden;
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 900;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-activity-context {
+    flex-shrink: 0;
+    overflow: hidden;
+    max-width: 50%;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-text-muted);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-activity-snippet {
+    overflow: hidden;
+    font-size: 1.0714em; /* 15px at 14px/em */
+    line-height: 1.46;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-activity-time {
+    padding-top: 0.2em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: var(--yk-text-muted);
+    white-space: nowrap;
 }

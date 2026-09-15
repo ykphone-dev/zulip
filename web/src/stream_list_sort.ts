@@ -251,7 +251,7 @@ export function sort_groups(
                 section = {
                     id: sub.folder_id.toString(),
                     folder_id: sub.folder_id,
-                    section_title: folder.name.toUpperCase(),
+                    section_title: folder.name,
                     default_visible_streams: [],
                     muted_streams: [],
                     inactive_streams: [],
