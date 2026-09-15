@@ -1,0 +1,17 @@
+{{! Pin/unpin entry of the message actions menu; the context is the menu's. }}
+{{#if ykphone_pin}}
+<li role="separator" class="popover-menu-separator"></li>
+<li role="none" class="link-item popover-menu-list-item">
+    {{#if ykphone_pin.is_pinned}}
+    <a role="menuitem" data-message-id="{{ykphone_pin.message_id}}" class="ykphone-unpin-message popover-menu-link" tabindex="0">
+        <i class="popover-menu-icon zulip-icon zulip-icon-unpin" aria-hidden="true"></i>
+        <span class="popover-menu-label">{{t "Unpin from channel" }}</span>
+    </a>
+    {{else}}
+    <a role="menuitem" data-message-id="{{ykphone_pin.message_id}}" class="ykphone-pin-message popover-menu-link" tabindex="0">
+        <i class="popover-menu-icon zulip-icon zulip-icon-pin" aria-hidden="true"></i>
+        <span class="popover-menu-label">{{t "Pin to channel" }}</span>
+    </a>
+    {{/if}}
+</li>
+{{/if}}

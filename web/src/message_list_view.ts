@@ -51,6 +51,7 @@ import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 
 export type MessageContainer = {
@@ -85,6 +86,7 @@ export type MessageContainer = {
     want_subscription_status_divider: boolean;
     ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
     ykphone_can_thread?: boolean;
+    ykphone_pin?: ykphone_pins.PinLineContext | undefined;
 };
 
 export type MessageGroup = {
@@ -612,6 +614,7 @@ export class MessageListView {
         widget_edited: boolean;
         ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
         ykphone_can_thread?: boolean;
+        ykphone_pin?: ykphone_pins.PinLineContext | undefined;
     } {
         const is_typing = typing_data.is_message_editing(message.id);
         if (is_typing) {
@@ -711,6 +714,7 @@ export class MessageListView {
             ...this._get_message_edited_and_moved_vars(message),
             ykphone_thread: ykphone_threads.get_pill_context_for_message(message),
             ykphone_can_thread: ykphone_threads.can_thread(message),
+            ykphone_pin: ykphone_pins.get_pin_line_context(message),
         };
     }
 

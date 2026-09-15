@@ -45,6 +45,7 @@ import * as ui_util from "./ui_util.ts";
 import {parse_html} from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_compose from "./ykphone_compose.ts";
 
 export function initialize(): void {
     // MESSAGE CLICKING
@@ -1103,7 +1104,10 @@ export function initialize(): void {
                 $(e.target).closest("[data-tippy-root]").length === 0 &&
                 $(e.target).closest(".typeahead").length === 0 &&
                 $(e.target).closest(".flatpickr-calendar").length === 0 &&
-                $(e.target).closest("body").length > 0
+                $(e.target).closest("body").length > 0 &&
+                // A box addressed to the conversation on screen only
+                // loses focus (ykphone_compose).
+                !ykphone_compose.handle_dismiss()
             ) {
                 // Unfocus our compose area if we click out of it. Don't let exits out
                 // of overlays or selecting text (for copy+paste) trigger cancelling.

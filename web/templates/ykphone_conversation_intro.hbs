@@ -1,0 +1,33 @@
+{{! Slack-style intro at the top of a conversation's history (ykphone_conversation). }}
+{{#if channel}}
+<div class="ykphone-intro-tile">{{> stream_privacy channel}}</div>
+<h2 class="ykphone-intro-title">
+    {{~#tr}}This is the very beginning of the <z-channel></z-channel> channel.
+        {{#*inline "z-channel"}}<span class="ykphone-intro-name">#{{channel.name}}</span>{{/inline}}
+    {{/tr~}}
+</h2>
+{{#if channel.description_html}}
+<div class="ykphone-intro-description rendered_markdown">{{rendered_markdown channel.description_html}}</div>
+{{/if}}
+<p class="ykphone-intro-meta">
+    {{#if channel.created_label}}
+    <span class="ykphone-intro-created">{{channel.created_label}}</span>
+    {{/if}}
+    <a class="ykphone-intro-details" href="{{channel.settings_url}}">{{t 'Channel details' }}</a>
+</p>
+{{else}}
+<div class="ykphone-intro-avatars">
+    {{#each dm.avatar_urls}}
+    <img class="ykphone-intro-avatar" src="{{this}}" alt="" />
+    {{/each}}
+</div>
+<h2 class="ykphone-intro-title">
+    {{#if dm.is_self}}
+    {{t 'This is the very beginning of your direct message history with yourself.' }}
+    {{else}}
+    {{~#tr}}This is the very beginning of your direct message history with <z-names></z-names>.
+        {{#*inline "z-names"}}<span class="ykphone-intro-name">{{dm.names}}</span>{{/inline}}
+    {{/tr~}}
+    {{/if}}
+</h2>
+{{/if}}

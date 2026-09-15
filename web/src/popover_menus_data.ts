@@ -30,6 +30,7 @@ import type {UserStatusEmojiInfo} from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
 
 type ActionPopoverContext = {
     message_id: number;
@@ -47,6 +48,7 @@ type ActionPopoverContext = {
     should_display_read_receipts_option: boolean;
     should_display_add_reaction_option: boolean;
     should_display_message_report_option: boolean;
+    ykphone_pin: ykphone_pins.PinMenuContext | undefined;
 };
 
 type TopicPopoverContext = {
@@ -256,6 +258,7 @@ export function get_actions_popover_content_context(message_id: number): ActionP
         should_display_read_receipts_option,
         should_display_quote_message,
         should_display_message_report_option: should_display_message_report_option(),
+        ykphone_pin: ykphone_pins.get_menu_context(message),
     };
 }
 

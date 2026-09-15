@@ -2,8 +2,8 @@
 //
 // A narrow column at the left edge of the app holds the organization
 // logo, the primary views (home, direct messages, activity and, for
-// administrators, the admin panel), a dark-mode toggle and the
-// personal menu. It is mounted inside .column-left next to the left
+// administrators, the admin panel) and the personal menu; the theme
+// is switched in Settings > Preferences. It is mounted inside .column-left next to the left
 // sidebar, so upstream's rules for hiding that column (the navbar
 // toggle on wide screens, the overlay on narrow ones) cover the rail
 // too. The card header at the top of the sidebar (organization name
@@ -22,14 +22,9 @@ import render_ykphone_rail from "../templates/ykphone_rail.hbs";
 import render_ykphone_sidebar_header from "../templates/ykphone_sidebar_header.hbs";
 
 import * as browser_history from "./browser_history.ts";
-import * as channel from "./channel.ts";
-import * as feedback_widget from "./feedback_widget.ts";
 import {$t} from "./i18n.ts";
 import * as left_sidebar_navigation_area from "./left_sidebar_navigation_area.ts";
-import * as settings_config from "./settings_config.ts";
-import * as settings_data from "./settings_data.ts";
 import {current_user, realm} from "./state_data.ts";
-import {user_settings} from "./user_settings.ts";
 
 export type RailItem = {
     id: string;
@@ -105,57 +100,6 @@ function refresh_active_item(): void {
 // #organization, whose hashes never activate a narrow.
 export function handle_narrow_activated(): void {
     refresh_active_item();
-}
-
-// The theme most recently requested from the server, until it
-// answers; user_settings only learns the value from the settings
-// event, so without this a second click before the event would
-// re-send the same value instead of toggling back.
-let requested_color_scheme: number | undefined;
-
-// Flips between the light and dark themes; "automatic" counts as
-// whichever it currently resolves to. The app applies the change when
-// the resulting settings event arrives, like the personal menu's
-// theme switch.
-export function toggle_color_scheme(): void {
-    const {light, dark} = settings_config.color_scheme_values;
-    const currently_dark =
-        requested_color_scheme === undefined
-            ? settings_data.using_dark_theme()
-            : requested_color_scheme === dark.code;
-    const next_color_scheme = currently_dark ? light.code : dark.code;
-    requested_color_scheme = next_color_scheme;
-    void channel.patch({
-        url: "/json/settings",
-        data: {color_scheme: next_color_scheme},
-        success() {
-            if (requested_color_scheme === next_color_scheme) {
-                // The event may still be in flight; the next click
-                // should already build on this value.
-                user_settings.color_scheme = next_color_scheme;
-                requested_color_scheme = undefined;
-            }
-        },
-        error(xhr) {
-            if (requested_color_scheme === next_color_scheme) {
-                requested_color_scheme = undefined;
-            }
-            const message = channel.xhr_error_message(
-                $t({defaultMessage: "Failed to change the theme."}),
-                xhr,
-            );
-            feedback_widget.show({
-                title_text: $t({defaultMessage: "Theme"}),
-                populate($container) {
-                    $container.text(message);
-                },
-            });
-        },
-    });
-}
-
-export function clear_for_testing(): void {
-    requested_color_scheme = undefined;
 }
 
 export function mount(): void {

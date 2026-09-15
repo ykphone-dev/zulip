@@ -15,6 +15,7 @@ import * as message_lists from "./message_lists.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
 import {page_params} from "./page_params.ts";
+import * as people from "./people.ts";
 import * as stream_data from "./stream_data.ts";
 import * as timerender from "./timerender.ts";
 
@@ -24,6 +25,8 @@ const thread_schema = z.object({
     topic_name: z.string(),
     reply_count: z.number(),
     last_reply_timestamp: z.nullable(z.number()),
+    // Senders of the newest replies, newest first.
+    participant_user_ids: z.array(z.number()),
 });
 const threads_response_schema = z.object({threads: z.array(thread_schema)});
 
@@ -33,7 +36,13 @@ export type ThreadPillContext = {
     topic_name: string;
     reply_label: string;
     last_reply_label: string | undefined;
+    // Avatars of the newest repliers, like Slack's pill.
+    avatar_urls: string[];
+    has_avatars: boolean;
 };
+
+// Slack shows the avatars of the last few people who replied.
+const MAX_PILL_AVATARS = 3;
 
 const threads_by_root = new Map<number, ThreadInfo>();
 const root_by_topic = new Map<string, number>();
@@ -84,6 +93,11 @@ export function can_thread(message: Message): boolean {
 }
 
 export function pill_context(thread: ThreadInfo): ThreadPillContext {
+    const avatar_urls = thread.participant_user_ids
+        .slice(0, MAX_PILL_AVATARS)
+        .map((user_id) => people.maybe_get_user_by_id(user_id, true))
+        .filter((user) => user !== undefined)
+        .map((user) => people.small_avatar_url_for_person(user));
     return {
         topic_name: thread.topic_name,
         reply_label: $t(
@@ -96,7 +110,13 @@ export function pill_context(thread: ThreadInfo): ThreadPillContext {
                 : timerender.relative_time_string_from_date(
                       new Date(thread.last_reply_timestamp * 1000),
                   ),
+        avatar_urls,
+        has_avatars: avatar_urls.length > 0,
     };
+}
+
+function same_participants(a: number[], b: number[]): boolean {
+    return a.length === b.length && a.every((user_id, i) => user_id === b[i]);
 }
 
 // Called while building message rows, so it must stay cheap; the
@@ -148,7 +168,8 @@ export function load_stream_threads(stream_id: number, force = false): void {
                 const previous = threads_by_root.get(thread.root_message_id);
                 if (
                     previous?.reply_count !== thread.reply_count ||
-                    previous.topic_name !== thread.topic_name
+                    previous.topic_name !== thread.topic_name ||
+                    !same_participants(previous.participant_user_ids, thread.participant_user_ids)
                 ) {
                     changed.push(thread.root_message_id);
                 }
@@ -217,6 +238,10 @@ export function on_new_messages(messages: Message[]): void {
         const thread = threads_by_root.get(root_id)!;
         thread.reply_count += 1;
         thread.last_reply_timestamp = message.timestamp;
+        thread.participant_user_ids = [
+            message.sender_id,
+            ...thread.participant_user_ids.filter((user_id) => user_id !== message.sender_id),
+        ].slice(0, MAX_PILL_AVATARS);
         changed.add(root_id);
     }
     rerender_roots([...changed]);

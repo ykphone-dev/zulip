@@ -1,22 +1,22 @@
 {{! Icon rail at the left edge of the app; the logo is moved in from the navbar by ykphone_rail.ts. }}
 <nav
-    id="ykphone-rail"
-    class="ykphone-rail"
-    aria-label="{{t 'Main navigation'}}"
->
+  id="ykphone-rail"
+  class="ykphone-rail"
+  aria-label="{{t 'Main navigation'}}"
+  >
     <div class="ykphone-rail-logo"></div>
     <ul class="ykphone-rail-items hidden-for-spectators">
         {{#each items}}
             <li>
                 <a
-                    class="ykphone-rail-item auto-hide-left-sidebar-overlay"
-                    href="{{href}}"
-                    data-rail-item="{{id}}"
-                >
+                  class="ykphone-rail-item auto-hide-left-sidebar-overlay"
+                  href="{{href}}"
+                  data-rail-item="{{id}}"
+                  >
                     <i
-                        class="zulip-icon zulip-icon-{{icon}}"
-                        aria-hidden="true"
-                    ></i>
+                      class="zulip-icon zulip-icon-{{icon}}"
+                      aria-hidden="true"
+                      ></i>
                     <span class="ykphone-rail-label">{{label}}</span>
                 </a>
             </li>
@@ -24,30 +24,16 @@
     </ul>
     <div class="ykphone-rail-bottom hidden-for-spectators">
         <button
-            type="button"
-            class="ykphone-rail-item ykphone-rail-theme-toggle"
-            aria-label="{{t 'Toggle dark theme'}}"
-        >
-            <i
-                class="zulip-icon zulip-icon-moon ykphone-rail-icon-light"
-                aria-hidden="true"
-            ></i>
-            <i
-                class="zulip-icon zulip-icon-sun ykphone-rail-icon-dark"
-                aria-hidden="true"
-            ></i>
-        </button>
-        <button
-            type="button"
-            id="ykphone-rail-avatar"
-            class="ykphone-rail-avatar"
-            aria-label="{{t 'Personal menu'}}"
-        >
+          type="button"
+          id="ykphone-rail-avatar"
+          class="ykphone-rail-avatar"
+          aria-label="{{t 'Personal menu'}}"
+          >
             <img
-                class="ykphone-rail-avatar-image header-button-avatar-image"
-                src="{{avatar_url}}"
-                alt=""
-            />
+              class="ykphone-rail-avatar-image header-button-avatar-image"
+              src="{{avatar_url}}"
+              alt=""
+              />
         </button>
     </div>
 </nav>

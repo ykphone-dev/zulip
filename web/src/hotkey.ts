@@ -73,6 +73,8 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status_ui from "./user_status_ui.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as util from "./util.ts";
+import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 
 function do_narrow_action(
@@ -518,7 +520,9 @@ function process_escape_key(e: JQuery.KeyDownEvent): boolean {
             }
 
             // If the user hit the Esc key, cancel the current compose
-            compose_actions.cancel();
+            if (!ykphone_compose.handle_dismiss()) {
+                compose_actions.cancel();
+            }
             return true;
         }
 
@@ -533,7 +537,7 @@ function process_escape_key(e: JQuery.KeyDownEvent): boolean {
         return true;
     }
 
-    if (compose_state.composing()) {
+    if (compose_state.composing() && !ykphone_compose.composer_belongs_to_narrow()) {
         compose_actions.cancel();
         return true;
     }
@@ -543,7 +547,7 @@ function process_escape_key(e: JQuery.KeyDownEvent): boolean {
         return true;
     }
 
-    if (ykphone_thread_panel.close()) {
+    if (ykphone_thread_panel.close() || ykphone_pins.close_panel()) {
         return true;
     }
 
@@ -1307,7 +1311,7 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
             compose_reply.respond_to_message({trigger: "hotkey"});
             return true;
         case "compose": // 'c': compose
-            if (!compose_state.composing()) {
+            if (!compose_state.composing() || ykphone_compose.composer_belongs_to_narrow()) {
                 compose_actions.start({
                     message_type: "stream",
                     trigger: "compose_hotkey",
@@ -1316,7 +1320,7 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
             }
             return true;
         case "compose_private_message":
-            if (!compose_state.composing()) {
+            if (!compose_state.composing() || ykphone_compose.composer_belongs_to_narrow()) {
                 compose_actions.start({
                     message_type: "private",
                     trigger: "compose_hotkey",

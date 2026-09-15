@@ -8,6 +8,7 @@ import * as message_lists from "./message_lists.ts";
 import * as narrow_banner from "./narrow_banner.ts";
 import * as narrow_state from "./narrow_state.ts";
 import * as people from "./people.ts";
+import * as ykphone_conversation from "./ykphone_conversation.ts";
 
 function show_history_limit_notice(): void {
     $(".top-messages-logo").hide();
@@ -69,9 +70,11 @@ export function update_top_of_narrow_notices(msg_list: MessageList): void {
     if (msg_list.data.fetch_status.history_limited()) {
         show_history_limit_notice();
     }
+    ykphone_conversation.update_intro(msg_list);
 }
 
 export function hide_top_of_narrow_notices(): void {
     hide_end_of_results_notice();
     hide_history_limit_notice();
+    ykphone_conversation.hide_intro();
 }

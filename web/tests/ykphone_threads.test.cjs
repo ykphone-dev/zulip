@@ -11,6 +11,10 @@ const channel = mock_esm("../src/channel", {
 });
 const feedback_widget = mock_esm("../src/feedback_widget");
 const message_lists = mock_esm("../src/message_lists");
+mock_esm("../src/people", {
+    maybe_get_user_by_id: (user_id) => (user_id === 99 ? undefined : {user_id}),
+    small_avatar_url_for_person: (person) => `/avatar/${person.user_id}`,
+});
 const stream_data = mock_esm("../src/stream_data", {
     is_empty_topic_only_channel: () => false,
 });
@@ -28,6 +32,7 @@ function stream_message(id, topic) {
         stream_id: verona_id,
         topic,
         timestamp: 1_700_000_000 + id,
+        sender_id: 20 + id,
         locally_echoed: false,
     };
 }
@@ -36,13 +41,14 @@ const root = stream_message(10, "");
 const reply = stream_message(11, "Shall we ship on Friday?");
 const dm = {id: 12, type: "private", timestamp: 1_700_000_012};
 
-function thread_dict(reply_count, last_reply_timestamp = null) {
+function thread_dict(reply_count, last_reply_timestamp = null, participant_user_ids = []) {
     return {
         root_message_id: root.id,
         stream_id: verona_id,
         topic_name: "Shall we ship on Friday?",
         reply_count,
         last_reply_timestamp,
+        participant_user_ids,
     };
 }
 
@@ -82,6 +88,14 @@ run_test("pill_context", () => {
     const several = ykphone_threads.pill_context(thread_dict(3));
     assert.equal(several.reply_label, "translated: 3 replies");
     assert.equal(several.last_reply_label, undefined);
+    assert.deepEqual(several.avatar_urls, []);
+    assert.equal(several.has_avatars, false);
+
+    // The newest repliers' avatars, at most three, skipping people we
+    // do not know.
+    const with_people = ykphone_threads.pill_context(thread_dict(5, null, [7, 99, 8, 9]));
+    assert.deepEqual(with_people.avatar_urls, ["/avatar/7", "/avatar/8"]);
+    assert.equal(with_people.has_avatars, true);
 });
 
 run_test("load and pill on first look", ({override}) => {
@@ -139,9 +153,21 @@ run_test("load and pill on first look", ({override}) => {
     requests[2].success({threads: [thread_dict(2, root.timestamp)]});
     assert.deepEqual(rerendered, [[root.id]]);
 
+    // New repliers re-render the pill; the same list does not.
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[3].success({threads: [thread_dict(2, root.timestamp, [7])]});
+    assert.deepEqual(rerendered, [[root.id], [root.id]]);
+    rerendered.length = 0;
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[4].success({threads: [thread_dict(2, root.timestamp, [8])]});
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[5].success({threads: [thread_dict(2, root.timestamp, [8])]});
+    assert.deepEqual(rerendered, [[root.id]]);
+    rerendered.length = 0;
+
     // Threads without replies do not get a pill.
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[3].success({threads: [thread_dict(0)]});
+    requests[6].success({threads: [thread_dict(0)]});
     assert.equal(ykphone_threads.get_pill_context_for_message(root), undefined);
 
     assert.deepEqual(ykphone_threads.get_thread(root.id), thread_dict(0));
@@ -218,12 +244,23 @@ run_test("on_new_messages", ({override}) => {
     // The initial load re-rendered the root once; start counting afresh.
     rerendered.length = 0;
 
-    // A reply in a known thread bumps the count and re-renders the root.
+    // A reply in a known thread bumps the count, puts its sender first
+    // among the participants and re-renders the root.
     ykphone_threads.on_new_messages([dm, root, reply]);
     const thread = ykphone_threads.get_thread(root.id);
     assert.equal(thread.reply_count, 1);
     assert.equal(thread.last_reply_timestamp, reply.timestamp);
+    assert.deepEqual(thread.participant_user_ids, [reply.sender_id]);
     assert.deepEqual(rerendered, [[root.id]]);
+    ykphone_threads.on_new_messages([
+        {...reply, id: 15, sender_id: 40},
+        {...reply, id: 16, sender_id: 41},
+        {...reply, id: 17, sender_id: 42},
+        {...reply, id: 18, sender_id: 40},
+    ]);
+    assert.deepEqual(thread.participant_user_ids, [40, 42, 41]);
+    assert.deepEqual(rerendered, [[root.id], [root.id]]);
+    rerendered.length = 0;
 
     // A reply in an unknown topic of a loaded channel refreshes it.
     ykphone_threads.on_new_messages([stream_message(13, "someone else's thread")]);
@@ -232,7 +269,7 @@ run_test("on_new_messages", ({override}) => {
     // Roots that are not in the message store are skipped quietly.
     message_store.clear_for_testing();
     ykphone_threads.on_new_messages([reply]);
-    assert.deepEqual(rerendered, [[root.id]]);
+    assert.deepEqual(rerendered, []);
 
     // Unknown topics in channels we never loaded are ignored.
     ykphone_threads.on_new_messages([{...reply, stream_id: 99}]);

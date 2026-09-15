@@ -98,7 +98,11 @@ function stream_popover_sub(
     return sub;
 }
 
-function build_stream_popover(opts: {elt: HTMLElement; stream_id: number}): void {
+export function build_stream_popover(opts: {
+    elt: HTMLElement;
+    stream_id: number;
+    placement?: tippy.Placement;
+}): void {
     const {elt, stream_id} = opts;
 
     // This will allow the user to close the popover by clicking
@@ -153,6 +157,7 @@ function build_stream_popover(opts: {elt: HTMLElement; stream_id: number}): void
             // See https://github.com/atomiks/tippyjs/issues/230 for more details.
             delay: [100, 0],
             ...left_sidebar_tippy_options,
+            ...(opts.placement !== undefined && {placement: opts.placement}),
             onCreate(instance) {
                 const $popover = $(instance.popper);
                 $popover.addClass("stream-popover-root");

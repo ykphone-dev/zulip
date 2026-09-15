@@ -1,0 +1,16 @@
+{{! Shell of the pinned-messages panel; the list is rendered separately by ykphone_pins_panel_body. }}
+<div class="ykphone-thread-panel-header">
+    <div class="ykphone-thread-panel-titles">
+        <span class="ykphone-thread-panel-title">{{t 'Pinned messages' }}</span>
+        {{#if channel}}
+        <span class="ykphone-thread-panel-channel">
+            <span class="stream-privacy filter-icon" style="color: {{channel.color}}">{{> stream_privacy channel}}</span>
+            <span class="ykphone-thread-panel-channel-name">{{channel.name}}</span>
+        </span>
+        {{/if}}
+    </div>
+    <button type="button" class="ykphone-thread-panel-close ykphone-pins-panel-close" aria-label="{{t 'Close pinned messages' }}">
+        <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
+    </button>
+</div>
+<div class="ykphone-thread-panel-body ykphone-pins-panel-body"></div>

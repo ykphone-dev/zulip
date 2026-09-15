@@ -66,6 +66,7 @@
             </a>
         </li>
         {{/if}}
+        {{> ../ykphone_pin_menu_items .}}
         {{!-- Group 4 --}}
         {{#if (or should_display_mark_as_unread should_display_remind_me_option should_display_collapse should_display_uncollapse)}}
         <li role="separator" class="popover-menu-separator"></li>

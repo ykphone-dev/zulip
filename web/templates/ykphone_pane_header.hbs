@@ -1,7 +1,7 @@
 {{! Header at the top of the message pane: the current channel, conversation or view. }}
 <div class="ykphone-pane-header-main">
     {{#if channel}}
-    <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-tippy-content="{{t 'Channel settings' }}" data-tippy-placement="bottom">
+    <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{t 'Channel menu' }}" data-tippy-placement="bottom" aria-haspopup="true">
         <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
         <span class="ykphone-pane-header-name">{{title}}</span>
         {{#if topic}}
@@ -15,18 +15,23 @@
     {{! no-auto-hide-right-sidebar-overlay: sidebar_ui's document-level handler would otherwise close the list before the toggle runs. }}
     <button type="button" class="ykphone-pane-header-members hidden-for-spectators tippy-zulip-tooltip no-auto-hide-right-sidebar-overlay" data-tippy-content="{{members_label}}" data-tippy-placement="bottom" aria-label="{{members_label}}">
         <span class="ykphone-pane-header-avatars">
+            {{#if channel.has_avatars}}
             {{#each channel.avatar_urls}}
-            <img class="ykphone-pane-header-avatar" src="{{this}}" alt="" loading="lazy" />
+                <img class="ykphone-pane-header-avatar" src="{{this}}" alt="" loading="lazy" />
+            {{/each}}
             {{else}}
             <i class="zulip-icon zulip-icon-user-list" aria-hidden="true"></i>
-            {{/each}}
+            {{/if}}
         </span>
         <span class="ykphone-pane-header-member-count">{{channel.member_count}}</span>
     </button>
     {{else}}
     <span class="ykphone-pane-header-title">
-        {{#if user_circle_class}}
-        <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-pane-header-presence"></span>
+        {{#if dm_avatar_url}}
+        <span class="ykphone-pane-header-dm">
+            <img class="ykphone-pane-header-dm-avatar" src="{{dm_avatar_url}}" alt="" />
+            <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-pane-header-presence"></span>
+        </span>
         {{else if zulip_icon}}
         <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
         {{else if icon}}
@@ -36,6 +41,15 @@
     </span>
     {{/if}}
 </div>
-{{#if description_html}}
-<div class="ykphone-pane-header-description rendered_markdown single-line-rendered-markdown">{{rendered_markdown description_html}}</div>
+{{#if tabs}}
+<nav class="ykphone-pane-header-tabs" aria-label="{{t 'Channel views' }}">
+    <a class="ykphone-pane-header-tab{{#if (eq tabs.active "messages")}} active{{/if}}" href="{{tabs.messages_url}}" {{#if (eq tabs.active "messages")}}aria-current="page"{{/if}}>{{t 'Messages' }}</a>
+    <a class="ykphone-pane-header-tab{{#if (eq tabs.active "files")}} active{{/if}}" href="{{tabs.files_url}}" {{#if (eq tabs.active "files")}}aria-current="page"{{/if}}>{{t 'Files' }}</a>
+    <button type="button" class="ykphone-pane-header-tab ykphone-pane-header-pins-tab{{#if (eq tabs.active "pins")}} active{{/if}}" data-stream-id="{{channel.stream_id}}" {{#if (eq tabs.active "pins")}}aria-current="true"{{/if}}>
+        {{t 'Pins' }}
+        {{#if tabs.has_pins}}
+        <span class="ykphone-pane-header-tab-count">{{tabs.pin_count}}</span>
+        {{/if}}
+    </button>
+</nav>
 {{/if}}

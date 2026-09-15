@@ -670,6 +670,17 @@ run_test("show_empty_narrow_message", ({mock_template, override, override_rewire
         ),
     );
 
+    // A channel's Files tab (the 옆커폰 fork) has its own empty state.
+    current_filter = set_filter([
+        ["stream", "1"],
+        ["has", "attachment"],
+    ]);
+    narrow_banner.show_empty_narrow_message(current_filter);
+    assert.equal(
+        $(".empty_feed_notice_main").html(),
+        empty_narrow_html("translated: No files have been shared in this channel yet."),
+    );
+
     // The channel is private, and the user cannot subscribe (e.g., they
     // have access to channel metadata, but don't have content access).
     const private_sub = make_stream({

@@ -8,6 +8,7 @@
             </span>
             <span class="popover-stream-name">{{stream.name}}</span>
         </li>
+        {{#if stream.rendered_description}}<li role="none" class="text-item popover-menu-list-item ykphone-popover-stream-description rendered_markdown">{{rendered_markdown stream.rendered_description}}</li>{{/if}}
         <li role="separator" class="popover-menu-separator"></li>
         {{#if has_unread_messages}}
         <li role="none" class="link-item popover-menu-list-item hidden-for-spectators">

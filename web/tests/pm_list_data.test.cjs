@@ -130,6 +130,7 @@ test("get_conversations", ({override}) => {
                 emoji_code: "20",
             },
             has_unread_mention: true,
+            avatar_url: "/avatar/103",
         },
         {
             recipients: "Alice, Bob",
@@ -145,6 +146,7 @@ test("get_conversations", ({override}) => {
             is_bot: false,
             status_emoji_info: undefined,
             has_unread_mention: false,
+            avatar_url: undefined,
         },
     ];
 
@@ -177,6 +179,7 @@ test("get_conversations", ({override}) => {
         is_group: false,
         is_bot: false,
         has_unread_mention: false,
+        avatar_url: "/avatar/106",
     });
     set_pm_with_filter([iago.user_id]);
     pm_data = pm_list_data.get_conversations();
@@ -219,6 +222,7 @@ test("get_conversations bot", ({override}) => {
             is_group: false,
             is_bot: true,
             has_unread_mention: false,
+            avatar_url: "/avatar/314",
         },
         {
             recipients: "Alice, Bob",
@@ -234,6 +238,7 @@ test("get_conversations bot", ({override}) => {
             is_group: true,
             is_bot: false,
             has_unread_mention: false,
+            avatar_url: undefined,
         },
     ];
 

@@ -14,6 +14,7 @@ import * as spectators from "./spectators.ts";
 import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as util from "./util.ts";
+import * as ykphone_conversation from "./ykphone_conversation.ts";
 
 const SPECTATOR_STREAM_NARROW_BANNER = {
     title: "",
@@ -118,6 +119,10 @@ function empty_search_query_banner(current_filter: Filter): NarrowBannerData {
 }
 
 export function pick_empty_narrow_banner(current_filter: Filter): NarrowBannerData {
+    const ykphone_banner = ykphone_conversation.empty_narrow_banner(current_filter);
+    if (ykphone_banner !== undefined) {
+        return ykphone_banner;
+    }
     const default_banner = {
         title: $t({defaultMessage: "There are no messages here."}),
         // Spectators cannot start a conversation.

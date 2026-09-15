@@ -64,6 +64,7 @@ run_test("t_tag", ({mock_template}) => {
         editability_menu_item: "Edit message",
         conversation_time_url:
             "http://zulip.zulipdev.com/#narrow/channel/101-devel/topic/testing/near/99",
+        ykphone_pin: undefined,
     };
 
     mock_template("popovers/message_actions_popover.hbs", true, (data, html) => {

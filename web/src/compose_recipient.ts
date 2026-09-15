@@ -31,6 +31,7 @@ import * as typeahead_helper from "./typeahead_helper.ts";
 import * as ui_util from "./ui_util.ts";
 import * as user_groups from "./user_groups.ts";
 import * as util from "./util.ts";
+import * as ykphone_compose from "./ykphone_compose.ts";
 
 type MessageType = "stream" | "private";
 
@@ -133,6 +134,7 @@ export function set_high_attention_recipient_row(): void {
 }
 
 export let update_narrow_to_recipient_visibility = (): void => {
+    ykphone_compose.update_recipient_row();
     const message_type = compose_state.get_message_type();
     const display_intro_go_to_conversation_tooltip =
         onboarding_steps.ONE_TIME_NOTICES_TO_DISPLAY.has("intro_go_to_conversation_tooltip");

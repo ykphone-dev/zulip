@@ -1,7 +1,8 @@
 // DOM event wiring for the 옆커폰 web UI: Slack-style threads (the
 // feed controls and the side panel), the icon rail, the sidebar card
-// header, the pane header, the navbar history controls and the
-// two-row compose box. The state and rendering live in the other
+// header, the pane header, the navbar history controls, the always-open
+// two-row compose box and the conversation intro. Pinned messages have
+// their own wiring in ykphone_pins_ui. The state and rendering live in the other
 // ykphone_* modules; this one only mounts them and binds handlers, so
 // it is exempt from node coverage.
 
@@ -17,11 +18,16 @@ import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
 import * as rows from "./rows.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
+import * as stream_popover from "./stream_popover.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
+import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_history from "./ykphone_history.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pane_header from "./ykphone_pane_header.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -40,8 +46,10 @@ export function open_in_full_view(thread: ThreadInfo): void {
 
 function open_thread(thread: ThreadInfo): void {
     // A buddy list opened as an overlay on narrow screens would sit
-    // on top of the panel; the panel takes the column over instead.
+    // on top of the panel, and the pins panel shares the column; the
+    // thread panel takes it over.
     sidebar_ui.hide_userlist_sidebar();
+    ykphone_pins.close_panel();
     ykphone_thread_panel.open_thread(thread);
 }
 
@@ -54,12 +62,12 @@ export function open_thread_for_message(message_id: number): void {
 // The lightbox takes the sender from the enclosing .message_row, which
 // panel rows and the root block do not have (on purpose: feed handlers
 // must not treat them as feed rows), so it is filled in from the row's
-// message id instead.
+// message id instead; pinned messages, which may not be in the store,
+// carry the name on the row.
 function show_lightbox_sender($media: JQuery): void {
-    const message_id = Number(
-        $media.closest(".ykphone-thread-panel-message").attr("data-message-id"),
-    );
-    const sender = message_store.get(message_id)?.sender_full_name;
+    const $row = $media.closest(".ykphone-thread-panel-message");
+    const message_id = Number($row.attr("data-message-id"));
+    const sender = message_store.get(message_id)?.sender_full_name ?? $row.attr("data-sender-name");
     if (sender !== undefined) {
         $("#lightbox_overlay .media-description .user").text(sender).prop("title", sender);
     }
@@ -72,11 +80,18 @@ function add_mount_points(): void {
     $("#right-sidebar-container").append(
         $("<div>")
             .attr("id", "ykphone-thread-panel")
-            .addClass("ykphone-thread-panel")
+            .addClass("ykphone-thread-panel ykphone-side-panel")
             .attr("role", "complementary")
             .attr("aria-label", $t({defaultMessage: "Thread"})),
     );
     $("#message-lists-container").before($("<div>").attr("id", "ykphone-thread-root"));
+    // The conversation intro takes the place of upstream's logo.
+    $(".top-messages-logo").before(
+        $("<div>")
+            .attr("id", "ykphone-conversation-intro")
+            .addClass("ykphone-conversation-intro")
+            .hide(),
+    );
 }
 
 export function initialize(): void {
@@ -87,6 +102,9 @@ export function initialize(): void {
     ykphone_layout.hide_member_list_by_default();
     ykphone_pane_header.mount();
     ykphone_compose.mount();
+    ykphone_compose_narrow.initialize();
+    ykphone_pins_ui.initialize();
+    ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
     document.documentElement.style.setProperty(
         "--yk-new-label",
@@ -118,6 +136,25 @@ export function initialize(): void {
         e.preventDefault();
         ykphone_compose.insert_mention();
     });
+    $("#compose").on("click", ".ykphone-compose-more", (e) => {
+        e.preventDefault();
+        ykphone_compose.toggle_extras();
+    });
+
+    // The channel title opens the channel menu, as in Slack; modified
+    // clicks keep the link to the channel settings.
+    $("body").on("click", ".ykphone-pane-header-channel", function (this: HTMLElement, e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        stream_popover.build_stream_popover({
+            elt: this,
+            stream_id: Number($(this).attr("data-stream-id")),
+            placement: "bottom-start",
+        });
+    });
 
     // The logo keeps upstream's navbar behaviour (click_handlers.ts binds
     // "#header-container .brand", which the moved node no longer matches):
@@ -130,10 +167,6 @@ export function initialize(): void {
         e.preventDefault();
         e.stopPropagation();
         hashchange.set_hash_to_home_view();
-    });
-
-    $("body").on("click", ".ykphone-rail-theme-toggle", () => {
-        ykphone_rail.toggle_color_scheme();
     });
 
     // Like the compose bar's "Start new conversation" button, this
@@ -195,7 +228,7 @@ export function initialize(): void {
     // without these the browser would follow the link and leave the app.
     $("body").on(
         "click",
-        "#ykphone-thread-panel .message-media-inline-image a, #ykphone-thread-panel .message-media-preview-image:not(.message_inline_video) a, #ykphone-thread-panel .message_inline_animated_image_still",
+        ".ykphone-side-panel .message-media-inline-image a, .ykphone-side-panel .message-media-preview-image:not(.message_inline_video) a, .ykphone-side-panel .message_inline_animated_image_still",
         function (this: HTMLElement, e) {
             e.preventDefault();
             e.stopPropagation();
@@ -205,7 +238,7 @@ export function initialize(): void {
     );
     $("body").on(
         "click",
-        "#ykphone-thread-panel .message_inline_video",
+        ".ykphone-side-panel .message_inline_video",
         function (this: HTMLElement, e) {
             e.preventDefault();
             e.stopPropagation();

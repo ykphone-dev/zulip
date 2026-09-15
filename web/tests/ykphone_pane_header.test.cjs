@@ -22,6 +22,9 @@ const archived = {
 
 mock_esm("../src/hash_util", {
     channels_settings_edit_url: (sub, section) => `#channels/${sub.stream_id}/${section}`,
+    channel_url_by_user_setting: (stream_id) => `#narrow/channel/${stream_id}-x/topic/`,
+    search_terms_to_hash: (terms) =>
+        "#narrow/" + terms.map((term) => `${term.operator}/${term.operand}`).join("/"),
 });
 const inbox_util = mock_esm("../src/inbox_util", {
     is_visible: () => false,
@@ -42,7 +45,6 @@ mock_esm("../src/presence", {
 const recent_view_util = mock_esm("../src/recent_view_util", {
     is_visible: () => false,
 });
-const rendered_markdown = mock_esm("../src/rendered_markdown");
 mock_esm("../src/stream_data", {
     get_sub_by_id_string(stream_id_string) {
         return [verona, archived].find((sub) => sub.stream_id.toString() === stream_id_string);
@@ -50,6 +52,10 @@ mock_esm("../src/stream_data", {
 });
 const ui_util = mock_esm("../src/ui_util", {
     matches_viewport_state: () => true,
+});
+const ykphone_pins = mock_esm("../src/ykphone_pins", {
+    pin_count: (stream_id) => (stream_id === verona.stream_id ? 2 : 0),
+    get_panel_stream_id: () => undefined,
 });
 
 const ykphone_pane_header = zrequire("ykphone_pane_header");
@@ -63,6 +69,10 @@ function fake_filter({terms, title, common = true, in_home = false, icon}) {
         add_icon_data: (context) => ({...context, ...icon}),
         has_operator: (operator) => terms.some((term) => term.operator === operator),
         terms_with_operator: (operator) => terms.filter((term) => term.operator === operator),
+        sorted_term_types: () =>
+            terms
+                .map((term) => (term.operator === "has" ? `has-${term.operand}` : term.operator))
+                .toSorted(),
     };
 }
 
@@ -71,6 +81,14 @@ const verona_filter = fake_filter({
     title: "Verona",
     icon: {zulip_icon: "hashtag"},
 });
+
+const verona_tabs = {
+    active: "messages",
+    messages_url: "#narrow/channel/3-x/topic/",
+    files_url: "#narrow/channel/3/has/attachment",
+    pin_count: 2,
+    has_pins: true,
+};
 
 run_test("get_context views", ({override}) => {
     page_params.is_spectator = false;
@@ -137,20 +155,22 @@ run_test("get_context views", ({override}) => {
 });
 
 run_test("get_context channel", ({override}) => {
+    page_params.is_spectator = false;
     // Before the subscriber list is loaded the button shows the count
-    // alone.
+    // alone. A channel's own view carries the tab row.
     assert.deepEqual(ykphone_pane_header.get_context(verona_filter), {
         title: "Verona",
         zulip_icon: "hashtag",
         icon: undefined,
-        description_html: "<p>Plans for <em>Verona</em></p>",
         channel: {
             stream_id: 3,
             settings_url: "#channels/3/general",
             member_count: 11,
             avatar_urls: [],
+            has_avatars: false,
             is_archived: false,
         },
+        tabs: verona_tabs,
     });
 
     // With subscribers known, the first three humans (by id) supply
@@ -171,10 +191,12 @@ run_test("get_context channel", ({override}) => {
     const archived_context = ykphone_pane_header.get_context(archived_filter);
     assert.equal(archived_context.channel.is_archived, true);
     assert.equal(archived_context.channel.member_count, 0);
-    assert.equal(archived_context.description_html, "");
+    assert.equal(archived_context.tabs.pin_count, 0);
+    assert.equal(archived_context.tabs.has_pins, false);
+    assert.equal(ykphone_pane_header.get_context(verona_filter).channel.has_avatars, true);
 
-    // A thread's full view names the thread after the channel; the
-    // empty topic is the channel's general chat and adds nothing.
+    // A thread's full view names the thread after the channel and has
+    // no tabs; the empty topic is the channel's general chat.
     const topic_filter = fake_filter({
         terms: [
             {operator: "channel", operand: "3"},
@@ -183,7 +205,9 @@ run_test("get_context channel", ({override}) => {
         title: "Verona",
         icon: {zulip_icon: "hashtag"},
     });
-    assert.equal(ykphone_pane_header.get_context(topic_filter).topic, "Shall we ship on Friday?");
+    const topic_context = ykphone_pane_header.get_context(topic_filter);
+    assert.equal(topic_context.topic, "Shall we ship on Friday?");
+    assert.equal(topic_context.tabs, undefined);
     const general_chat = fake_filter({
         terms: [
             {operator: "channel", operand: "3"},
@@ -192,7 +216,21 @@ run_test("get_context channel", ({override}) => {
         title: "Verona",
         icon: {zulip_icon: "hashtag"},
     });
-    assert.equal(ykphone_pane_header.get_context(general_chat).topic, undefined);
+    const general_context = ykphone_pane_header.get_context(general_chat);
+    assert.equal(general_context.topic, undefined);
+    assert.deepEqual(general_context.tabs, verona_tabs);
+
+    // The Pins tab is active while the panel shows this channel.
+    override(ykphone_pins, "get_panel_stream_id", () => 3);
+    assert.equal(ykphone_pane_header.get_context(general_chat).tabs.active, "pins");
+    assert.equal(ykphone_pane_header.get_context(archived_filter).tabs.active, "messages");
+    override(ykphone_pins, "get_panel_stream_id", () => undefined);
+
+    // Spectators cannot fetch pins, so their count is unknown.
+    page_params.is_spectator = true;
+    assert.equal(ykphone_pane_header.get_context(verona_filter).tabs.pin_count, undefined);
+    assert.equal(ykphone_pane_header.get_context(verona_filter).tabs.has_pins, false);
+    page_params.is_spectator = false;
 
     // A channel the user cannot see keeps upstream's title and gets
     // no channel controls.
@@ -208,8 +246,42 @@ run_test("get_context channel", ({override}) => {
     });
 });
 
+run_test("get_context files tab", () => {
+    page_params.is_spectator = false;
+    // The Files tab is a search narrow upstream would call "Search
+    // results"; the header keeps the channel with that tab active.
+    const files = fake_filter({
+        terms: [
+            {operator: "channel", operand: "3"},
+            {operator: "has", operand: "attachment"},
+        ],
+        common: false,
+        icon: {zulip_icon: "hashtag"},
+    });
+    const context = ykphone_pane_header.get_context(files);
+    assert.equal(context.title, "Verona");
+    assert.equal(context.zulip_icon, "hashtag");
+    assert.equal(context.channel.stream_id, 3);
+    assert.deepEqual(context.tabs, {...verona_tabs, active: "files"});
+    assert.equal(ykphone_pane_header.files_url(3), "#narrow/channel/3/has/attachment");
+
+    // An unknown channel's files are a plain search.
+    const unknown_files = fake_filter({
+        terms: [
+            {operator: "channel", operand: "5"},
+            {operator: "has", operand: "attachment"},
+        ],
+        common: false,
+    });
+    assert.equal(
+        ykphone_pane_header.get_context(unknown_files).title,
+        "translated: Search results",
+    );
+});
+
 run_test("get_context direct messages", () => {
-    // One-to-one conversations show the other person's presence.
+    // One-to-one conversations show the other person's avatar and
+    // presence.
     const one_to_one = fake_filter({
         terms: [{operator: "dm", operand: [7]}],
         title: "Cordelia",
@@ -220,6 +292,7 @@ run_test("get_context direct messages", () => {
         zulip_icon: "user",
         icon: undefined,
         user_circle_class: "user-circle-active",
+        dm_avatar_url: "/avatar/7",
     });
 
     // Group conversations keep the icon.
@@ -229,6 +302,7 @@ run_test("get_context direct messages", () => {
         icon: {zulip_icon: "user"},
     });
     assert.equal(ykphone_pane_header.get_context(group).user_circle_class, undefined);
+    assert.equal(ykphone_pane_header.get_context(group).dm_avatar_url, undefined);
     assert.equal(ykphone_pane_header.get_context(group).title, "Cordelia and Hamlet");
 });
 
@@ -287,18 +361,16 @@ run_test("render before mount", ({override, mock_template}) => {
     ykphone_pane_header.render();
     assert.equal(rendered.data.title, "translated: Threads");
     assert.ok(rendered.html.includes("zulip-icon-recent"));
-    assert.ok(!rendered.html.includes("ykphone-pane-header-description"));
+    assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
 });
 
-run_test("spectators never fetch subscribers", ({override, mock_template}) => {
+run_test("spectators never fetch subscribers or pins", ({override, mock_template}) => {
     ykphone_pane_header.clear_for_testing();
     $.clear_all_elements();
     page_params.is_spectator = true;
     override(narrow_state, "filter", () => verona_filter);
-    // peer_data's mock has no get_subscribers_with_possible_fetch: a
-    // fetch attempt would throw.
-    override(rendered_markdown, "update_elements", () => {});
-    $("#ykphone-pane-header").set_find_results(".rendered_markdown", $.create("desc"));
+    // peer_data's mock has no get_subscribers_with_possible_fetch and
+    // ykphone_pins's no load_stream_pins: an attempt would throw.
     let rendered;
     mock_template("ykphone_pane_header.hbs", true, (data, html) => {
         rendered = {data, html};
@@ -308,9 +380,11 @@ run_test("spectators never fetch subscribers", ({override, mock_template}) => {
     ykphone_pane_header.render();
     assert.equal(rendered.data.title, "Verona");
     // The count still renders (the button is hidden for spectators
-    // by upstream's CSS class).
+    // by upstream's CSS class); the Pins tab shows no count.
     assert.ok(rendered.html.includes("hidden-for-spectators"));
     assert.ok(rendered.html.includes(">11<"));
+    assert.ok(rendered.html.includes("ykphone-pane-header-pins-tab"));
+    assert.ok(!rendered.html.includes("ykphone-pane-header-tab-count"));
     page_params.is_spectator = false;
 });
 
@@ -323,16 +397,16 @@ run_test("render and mount", ({override, mock_template}) => {
     $("body").addClass("hide-right-sidebar");
 
     let rendered;
+    let render_count = 0;
     mock_template("ykphone_pane_header.hbs", true, (data, html) => {
         rendered = {data, html};
+        render_count += 1;
         return html;
     });
     const $header = $("#ykphone-pane-header");
-    const $description = $.create("#ykphone-pane-header .rendered_markdown");
-    $header.set_find_results(".rendered_markdown", $description);
-    const updated = [];
-    override(rendered_markdown, "update_elements", ($elem) => {
-        updated.push($elem);
+    const pin_loads = [];
+    override(ykphone_pins, "load_stream_pins", (stream_id) => {
+        pin_loads.push(stream_id);
     });
 
     // The first render finds no subscriber data and asks for it once;
@@ -364,20 +438,25 @@ run_test("render and mount", ({override, mock_template}) => {
     assert.equal(rendered.data.members_label, "translated: Show members");
     assert.ok(rendered.html.includes("zulip-icon-hashtag"));
     assert.ok(rendered.html.includes('href="#channels/3/general"'));
+    assert.ok(rendered.html.includes('data-stream-id="3"'));
     assert.ok(rendered.html.includes("zulip-icon-chevron-down"));
     assert.ok(rendered.html.includes("no-auto-hide-right-sidebar-overlay"));
     assert.ok(rendered.html.includes('aria-label="translated: Show members"'));
     // No avatars yet: the member button shows the list icon and count.
     assert.ok(rendered.html.includes("zulip-icon-user-list"));
     assert.ok(rendered.html.includes(">11<"));
-    assert.ok(rendered.html.includes("<em>Verona</em>"));
     assert.ok(!rendered.html.includes("ykphone-pane-header-topic"));
+    // The tab row: Messages active, Files a link, Pins with its count.
+    assert.ok(rendered.html.includes('href="#narrow/channel/3-x/topic/" aria-current="page"'));
+    assert.ok(rendered.html.includes('href="#narrow/channel/3/has/attachment"'));
+    assert.ok(rendered.html.includes('<span class="ykphone-pane-header-tab-count">2</span>'));
+    assert.ok(!rendered.html.includes('aria-current="true"'));
     assert.equal($header.html(), rendered.html);
-    assert.equal(updated.length, 1);
-    assert.equal(updated[0][0], $description[0]);
     assert.deepEqual(fetches, [3]);
+    assert.deepEqual(pin_loads, [3]);
 
-    // A second render while the fetch is in flight does not fetch again.
+    // A second render while the fetch is in flight does not fetch
+    // subscribers again (pins are cheap to ask for; the cache dedupes).
     ykphone_pane_header.render();
     assert.deepEqual(fetches, [3]);
 
@@ -406,14 +485,15 @@ run_test("render and mount", ({override, mock_template}) => {
 
         // A fetch that finishes after the user moved on renders nothing
         // for the old channel.
-        const render_count_before = updated.length;
+        const render_count_before = render_count;
         override(narrow_state, "stream_id", () => 4);
         settle_fetch.resolve();
         await Promise.resolve();
         await Promise.resolve();
-        assert.equal(updated.length, render_count_before);
+        assert.equal(render_count, render_count_before);
 
-        // A thread's full view shows the thread after the channel.
+        // A thread's full view shows the thread after the channel and
+        // no tabs.
         override(narrow_state, "filter", () =>
             fake_filter({
                 terms: [
@@ -430,20 +510,19 @@ run_test("render and mount", ({override, mock_template}) => {
                 '<span class="ykphone-pane-header-topic">Shall we &lt;ship&gt;?</span>',
             ),
         );
+        assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
 
-        // Views render without the markdown pass, a description or a
-        // fetch.
-        const updates_before_views = updated.length;
+        // Views render without tabs, a member button or a fetch.
         override(recent_view_util, "is_visible", () => true);
         ykphone_pane_header.render();
         assert.equal(rendered.data.title, "translated: Threads");
         assert.ok(rendered.html.includes("zulip-icon-recent"));
-        assert.ok(!rendered.html.includes("ykphone-pane-header-description"));
+        assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
         assert.ok(!rendered.html.includes("ykphone-pane-header-members"));
-        assert.equal(updated.length, updates_before_views);
         override(recent_view_util, "is_visible", () => false);
 
-        // A one-to-one direct message shows the presence dot.
+        // A one-to-one direct message shows the avatar with the
+        // presence dot on it.
         override(narrow_state, "filter", () =>
             fake_filter({
                 terms: [{operator: "dm", operand: [7]}],
@@ -452,6 +531,7 @@ run_test("render and mount", ({override, mock_template}) => {
             }),
         );
         ykphone_pane_header.render();
+        assert.ok(rendered.html.includes('class="ykphone-pane-header-dm-avatar" src="/avatar/7"'));
         assert.ok(rendered.html.includes("user-circle-active"));
         assert.ok(!rendered.html.includes("zulip-icon-user "));
         assert.ok(!rendered.html.includes("ykphone-pane-header-members"));

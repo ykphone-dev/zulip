@@ -1601,13 +1601,7 @@ export function to_compose_target(): void {
     }
 }
 
-function handle_post_view_change(
-    msg_list: MessageList,
-    opts: {
-        change_hash: boolean;
-        show_more_topics: boolean;
-    },
-): void {
+function handle_post_view_change(msg_list: MessageList, opts: NarrowActivateOpts): void {
     const filter = msg_list.data.filter;
 
     if (narrow_state.narrowed_by_reply()) {
@@ -1634,7 +1628,7 @@ function handle_post_view_change(
     left_sidebar_navigation_area.handle_narrow_activated(filter);
     stream_list.handle_narrow_activated(filter, opts.change_hash, opts.show_more_topics);
     pm_list.handle_narrow_activated(filter);
-    ykphone_ui_hooks.handle_narrow_activated();
+    ykphone_ui_hooks.handle_narrow_activated(opts);
     // This also builds the user sidebar.
     activity_ui.clear_search();
 }

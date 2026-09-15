@@ -51,6 +51,7 @@ import * as sub_store from "./sub_store.ts";
 import * as unread from "./unread.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as util from "./util.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 
@@ -1025,5 +1026,6 @@ export function remove_messages(message_ids: number[]): void {
     starred_messages_ui.rerender_ui();
     ykphone_threads.on_messages_removed(message_ids);
     ykphone_thread_panel.on_messages_removed(message_ids);
+    ykphone_pins.on_messages_removed(message_ids);
     message_store.remove(message_ids);
 }

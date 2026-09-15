@@ -48,6 +48,7 @@ const message_events = mock_esm("../src/message_events", {
 });
 const message_lists = mock_esm("../src/message_lists");
 const user_topics_ui = mock_esm("../src/user_topics_ui");
+const ykphone_pins = mock_esm("../src/ykphone_pins");
 const muted_users_ui = mock_esm("../src/muted_users_ui");
 const narrow_title = mock_esm("../src/narrow_title");
 const navbar_alerts = mock_esm("../src/navbar_alerts");
@@ -940,6 +941,17 @@ run_test("realm_playgrounds", ({override}) => {
     override(realm_playground, "update_playgrounds", noop);
     dispatch(event);
     assert_same(realm.realm_playgrounds, event.realm_playgrounds);
+});
+
+run_test("ykphone_pin", ({override}) => {
+    // The 옆커폰 fork's pin events go to its own cache.
+    const event = {type: "ykphone_pin", op: "remove", stream_id: 1, message_id: 2};
+    let handled;
+    override(ykphone_pins, "handle_event", (pin_event) => {
+        handled = pin_event;
+    });
+    dispatch(event);
+    assert_same(handled, event);
 });
 
 run_test("realm_domains", ({override}) => {

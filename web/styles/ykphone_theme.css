@@ -104,6 +104,8 @@
     --yk-hairline: light-dark(var(--yk-line), var(--yk-dark-line));
     --yk-border: light-dark(var(--yk-line-strong), var(--yk-dark-line));
     --yk-row-hover: light-dark(var(--yk-white-warm), var(--yk-dark-hover));
+    /* Slack's soft yellow behind a pinned message. */
+    --yk-pin-tint: light-dark(hsl(46deg 100% 96%), hsl(46deg 20% 12%));
     --yk-text: light-dark(var(--yk-ink), var(--yk-dark-text));
     --yk-text-muted: light-dark(var(--yk-ink-muted), var(--yk-dark-muted));
     --yk-link: light-dark(var(--yk-blue-link), hsl(204deg 90% 66%));
@@ -614,6 +616,27 @@ body {
     }
 }
 
+/* In a channel+topic narrow (our general chat, a thread's full view)
+   upstream marks the channel row only as expanded and highlights the
+   topic row, which the theme hides; Slack highlights the channel. The
+   whole-channel narrow carries .active-filter as well, and keeps
+   upstream's styling of the li. */
+#stream_filters
+    .narrow-filter.stream-expanded:not(.active-filter)
+    > .bottom_left_row {
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--color-background-active-narrow-filter);
+    color: var(--color-text-active-narrow-filter);
+
+    .stream-name {
+        font-weight: 600;
+    }
+
+    &:hover {
+        background-color: var(--color-background-active-narrow-filter);
+    }
+}
+
 /* Unread channels read as bold white text rather than a count; a
    mention shows Slack's red pill instead. Direct message rows keep
    the count as a white pill. */
@@ -784,34 +807,6 @@ body:has(#ykphone-rail) {
     align-items: center;
     gap: 0.5em;
     margin-top: auto;
-}
-
-/* The toggle shows the theme it switches to: a moon in light mode, a
-   sun in dark mode, following the resolved theme when automatic. */
-.ykphone-rail-theme-toggle .ykphone-rail-icon-dark {
-    display: none;
-}
-
-:root.dark-theme .ykphone-rail-theme-toggle {
-    .ykphone-rail-icon-light {
-        display: none;
-    }
-
-    .ykphone-rail-icon-dark {
-        display: block;
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    :root.color-scheme-automatic .ykphone-rail-theme-toggle {
-        .ykphone-rail-icon-light {
-            display: none;
-        }
-
-        .ykphone-rail-icon-dark {
-            display: block;
-        }
-    }
 }
 
 .ykphone-rail-avatar {
@@ -991,10 +986,10 @@ body:has(#ykphone-rail) {
     );
 }
 
-/* With a channel description the header has a second line (58px at
-   14px). */
-.app-main .column-middle:has(.ykphone-pane-header-description) {
-    --yk-pane-header-height: calc(4.1429 * var(--base-font-size-px));
+/* A channel's own views carry the tab row under the title (76px at
+   14px: the 46px title row and a 30px tab row). */
+.app-main .column-middle:has(.ykphone-pane-header-tabs) {
+    --yk-pane-header-height: calc(5.4286 * var(--base-font-size-px));
 }
 
 #message_feed_container {
@@ -1188,21 +1183,83 @@ a.ykphone-pane-header-channel {
     }
 }
 
-.ykphone-pane-header-description {
-    height: 1.2143em; /* 17px at 14px/em */
-    margin-top: -0.3571em; /* 5px at 14px/em */
-    padding: 0 1.1em;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.9286em; /* 13px at 14px/em */
-    line-height: 1.3;
-    color: var(--yk-text-muted);
+/* Slack's Messages / Files / Pins row. */
+.ykphone-pane-header-tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0.25em;
+    height: 2.1429em; /* 30px at 14px/em */
+    padding: 0 0.9em;
+}
 
-    p {
-        display: inline;
-        margin: 0;
+.ykphone-pane-header-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0 0.6em;
+    border: none;
+    border-bottom: 2px solid transparent;
+    border-radius: var(--yk-radius-sm) var(--yk-radius-sm) 0 0;
+    background: none;
+    color: var(--yk-text-muted);
+    font: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background-color 100ms ease,
+        color 100ms ease;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+        text-decoration: none;
     }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -2px;
+    }
+
+    &.active {
+        color: var(--color-text-default);
+        border-bottom-color: var(--yk-link);
+    }
+}
+
+.ykphone-pane-header-tab-count {
+    padding: 0 0.5em;
+    border-radius: 999px;
+    background-color: var(--yk-composer-bg);
+    font-size: 0.85em;
+    line-height: 1.6;
+}
+
+/* One-to-one direct messages: the other person's avatar, with the
+   presence dot at its corner. */
+.ykphone-pane-header-dm {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    margin-right: 0.1em;
+}
+
+.ykphone-pane-header-dm-avatar {
+    width: 1.3333em; /* 24px at 18px/em */
+    height: 1.3333em;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+.ykphone-pane-header-dm .ykphone-pane-header-presence {
+    position: absolute;
+    right: -0.15em;
+    bottom: -0.15em;
+    font-size: 0.5em;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--color-background);
 }
 
 /* ---- Message feed ---- */
@@ -1262,6 +1319,7 @@ a.ykphone-pane-header-channel {
        under the reactions and reminders; see the sender-row and
        me-message overrides below for the other variants. */
     grid-template-areas:
+        ".      pin       .        . .   "
         "edited message   controls . time"
         ".      message   .        . .   "
         ".      more      .        . .   "
@@ -1297,6 +1355,7 @@ a.ykphone-pane-header-channel {
         var(--message-box-avatar-column-width) minmax(0, max-content)
         minmax(0, 1fr) max-content 8px;
     grid-template-areas:
+        ".      pin       pin       .        ."
         "avatar sender    time      controls ."
         "avatar message   message   .        ."
         ".      more      more      .        ."
@@ -1437,7 +1496,7 @@ a.ykphone-pane-header-channel {
 
 .messagebox-includes-sender .messagebox-content.is-me-message {
     grid-template-areas:
-        ".      .         .        . .   "
+        ".      pin       .        . .   "
         "avatar sender    controls . time"
         ".      more      .        . .   "
         ".      reactions .        . .   "
@@ -1482,7 +1541,27 @@ a.ykphone-pane-header-channel {
     opacity: 0.7;
 }
 
-.content_edit_mode .ykphone-thread-pill {
+/* The newest repliers, stacked like Slack's. */
+.ykphone-thread-pill-avatars {
+    display: flex;
+    align-items: center;
+}
+
+.ykphone-thread-pill-avatar {
+    width: 1.5385em; /* 20px at 13px/em */
+    height: 1.5385em;
+    margin-left: -0.4em;
+    border: 1px solid var(--color-background);
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+
+    &:first-child {
+        margin-left: 0;
+    }
+}
+
+.content_edit_mode .ykphone-thread-pill,
+.content_edit_mode .ykphone-pin-line {
     display: none;
 }
 
@@ -1495,12 +1574,13 @@ a.ykphone-pane-header-channel {
     display: none;
 }
 
-/* Thread side panel. While a thread is open the right column widens
-   to the panel and shows it instead of the buddy list. This is all
-   keyed off body.ykphone-thread-open, so the user's own choice to
-   hide the right sidebar is untouched and simply applies again once
-   the panel closes. */
-body.ykphone-thread-open {
+/* Side panels (a thread, or the channel's pinned messages). While one
+   is open the right column widens to the panel and shows it instead
+   of the buddy list. This is all keyed off body.ykphone-thread-open /
+   body.ykphone-pins-open, so the user's own choice to hide the right
+   sidebar is untouched and simply applies again once the panel
+   closes. */
+body:is(.ykphone-thread-open, .ykphone-pins-open) {
     .app-main {
         --right-sidebar-width: var(--yk-thread-panel-width);
 
@@ -1537,13 +1617,15 @@ body.ykphone-thread-open {
    the display change waits for it, browsers without it simply hide
    the panel). A @starting-style slide-in was tried first and left the
    panel at its starting values for good in Chrome, so it is not used. */
-body:not(.ykphone-thread-open) #ykphone-thread-panel {
+body:not(.ykphone-thread-open) #ykphone-thread-panel,
+body:not(.ykphone-pins-open) #ykphone-pins-panel {
     display: none;
     transform: translateX(1em);
     opacity: 0;
 }
 
-body.ykphone-thread-open #ykphone-thread-panel {
+body.ykphone-thread-open #ykphone-thread-panel,
+body.ykphone-pins-open #ykphone-pins-panel {
     animation: ykphone-thread-panel-in 150ms ease;
 }
 
@@ -1554,7 +1636,7 @@ body.ykphone-thread-open #ykphone-thread-panel {
     }
 }
 
-#ykphone-thread-panel {
+.ykphone-side-panel {
     /* Fixed like the buddy list, so it keeps its place while the
        feed scrolls, and anchored to the viewport's right edge: the
        middle column ends --yk-thread-panel-width from that edge, so
@@ -1579,7 +1661,7 @@ body.ykphone-thread-open #ykphone-thread-panel {
 /* Below the md breakpoint the panel covers the viewport under the
    navbar; the middle column keeps its narrow-screen margins. */
 @media (width < $md_min) {
-    body.ykphone-thread-open {
+    body:is(.ykphone-thread-open, .ykphone-pins-open) {
         .app-main .column-right {
             left: 0;
             right: auto;
@@ -1593,7 +1675,7 @@ body.ykphone-thread-open #ykphone-thread-panel {
         }
     }
 
-    #ykphone-thread-panel {
+    .ykphone-side-panel {
         left: 0;
         width: 100%;
         border-radius: 0;
@@ -2020,26 +2102,45 @@ body.ykphone-thread-open #ykphone-thread-panel {
         order: 21;
     }
 
+    > .ykphone-compose-more-container {
+        order: 6;
+    }
+
+    /* Everything else (time, GIF, snippet, poll, to-do, help, preview)
+       lives behind the "⋯" toggle; the buttons stay in the DOM so
+       their hotkeys keep working. The exit-preview button is kept so
+       a preview entered by hotkey can be left by mouse. */
     > .compose_control_button_container:not(
             :has(
                 .compose_upload_file,
                 .emoji_map,
                 .video_link,
                 .audio_link,
+                .undo_markdown_preview,
                 .ykphone-compose-formatting-toggle,
-                .ykphone-compose-mention
+                .ykphone-compose-mention,
+                .ykphone-compose-more
             )
-        )
-        .compose_control_button,
+        ),
     > .compose_help_button {
-        font-size: 1.2143em; /* 17px at 14px/em */
-        width: 1.6471em; /* 28px at 17px/em */
-        height: 1.6471em;
-        opacity: 0.5;
+        display: none;
+    }
+}
 
-        &:hover {
-            opacity: 1;
-        }
+#compose.ykphone-compose-extras-open .compose-scrollable-buttons {
+    > .compose_control_button_container,
+    > .compose_help_button {
+        display: flex;
+    }
+}
+
+/* Slack's "⋯" is horizontal; the icon set has the vertical one. */
+#compose .ykphone-compose-more {
+    transform: rotate(90deg);
+
+    &.active {
+        background-color: var(--yk-composer-bg);
+        opacity: 1;
     }
 }
 
@@ -2175,4 +2276,499 @@ body.ykphone-thread-open #ykphone-thread-panel {
     border-radius: 999px;
     padding: 0 6px;
     font-weight: 700;
+}
+
+/* ---- Always-open composer ---- */
+
+/* Slack never shows a collapsed "Message #x" bar: in a conversation
+   the box is open (ykphone_compose_narrow), elsewhere there is
+   nothing. Upstream's bar stays below the md breakpoint, where the
+   open box would cover the feed, and in a channel the user may not
+   post to, where it explains why. */
+@media (width >= $md_min) {
+    body:not(.ykphone-conversation) #closed-compose-controls {
+        display: none;
+    }
+
+    body:not(.ykphone-conversation)
+        #compose:not(.compose-box-open)
+        #compose-content {
+        padding: 0;
+        margin-bottom: 0;
+    }
+}
+
+/* A box addressed to the conversation on screen needs no recipient
+   row (the pane header names the room) and no close button. */
+#compose.ykphone-compose-recipient-implied {
+    #compose_top,
+    #compose_close {
+        display: none;
+    }
+}
+
+/* ---- Conversations: date pills and the intro ---- */
+
+/* In one conversation every recipient bar is a centered date pill
+   between two hairlines, as in Slack: the channel and topic labels
+   and the topic controls are hidden, the elements stay for the sticky
+   header math. The sticky bar floats the same pill. */
+body.ykphone-conversation .message-feed .message_header {
+    .message-header-contents {
+        display: grid;
+        grid-template-columns: minmax(20px, 1fr) auto minmax(20px, 1fr);
+        align-items: center;
+        height: 2.2em;
+        padding: 0;
+        /* The stream tint arrives as an inline style. */
+        background: transparent !important;
+        border-bottom: none;
+
+        &::before,
+        &::after {
+            content: "";
+            height: 0;
+            border-bottom: 1px solid var(--yk-hairline);
+        }
+
+        &::before {
+            order: -1;
+        }
+    }
+
+    .stream_label,
+    .stream_topic_separator,
+    .copy-paste-text,
+    .stream_topic,
+    .recipient_bar_controls {
+        display: none;
+    }
+
+    .recipient_row_date {
+        display: block;
+        position: static;
+        margin: 0;
+        padding: 0.2em 0.9em;
+        border: 1px solid var(--yk-hairline);
+        border-radius: 999px;
+        background-color: var(--color-background);
+        color: var(--color-text-default);
+        font-size: 0.8571em; /* 12px at 14px/em */
+        font-weight: 700;
+        line-height: 1.5;
+        text-transform: none;
+    }
+
+    &.sticky_header {
+        box-shadow: none;
+    }
+}
+
+/* Upstream toggles the logo with inline styles. */
+body.ykphone-conversation .top-messages-logo {
+    display: none !important;
+}
+
+.ykphone-conversation-intro {
+    padding: 2.5em 1.5em 1em;
+}
+
+.ykphone-intro-tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.5714em; /* 64px at 14px/em */
+    height: 4.5714em;
+    border-radius: var(--yk-radius-lg);
+    background-color: var(--yk-composer-bg);
+
+    .zulip-icon {
+        font-size: 2.2857em; /* 32px at 14px/em */
+        color: var(--color-text-default);
+    }
+}
+
+.ykphone-intro-avatars {
+    display: flex;
+    gap: 0.4em;
+}
+
+.ykphone-intro-avatar {
+    width: 4.5714em; /* 64px at 14px/em */
+    height: 4.5714em;
+    border-radius: var(--yk-radius-lg);
+    object-fit: cover;
+}
+
+.ykphone-intro-title {
+    margin: 0.8em 0 0.3em;
+    font-size: 1.5714em; /* 22px at 14px/em */
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--color-text-default);
+
+    .ykphone-intro-name {
+        font-weight: 900;
+    }
+}
+
+.ykphone-intro-description {
+    font-size: 1.0714em; /* 15px at 14px/em */
+    line-height: 1.4667;
+
+    p {
+        margin: 0;
+    }
+}
+
+.ykphone-intro-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3em 1em;
+    margin: 0.6em 0 0;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-text-muted);
+}
+
+/* ---- Direct message avatars in the sidebar ---- */
+
+/* A 20px avatar in the icon cell, the presence dot at its corner;
+   the row keeps its 28px. */
+#direct-messages-list .dm-list-item,
+#modal-direct-messages-list .dm-list-item {
+    .ykphone-dm-avatar {
+        grid-area: starting-anchor-element;
+        place-self: center;
+        width: 1.4286em; /* 20px at 14px/em */
+        height: 1.4286em;
+        border-radius: var(--yk-radius-sm);
+        object-fit: cover;
+    }
+
+    .conversation-partners-icon.user-circle {
+        place-self: end;
+        z-index: 1;
+        margin: 0 -1px -1px 0;
+        font-size: 0.5714em; /* 8px at 14px/em */
+        border-radius: 50%;
+        box-shadow: 0 0 0 2px var(--yk-card-bg);
+    }
+}
+
+/* ---- Pinned messages ---- */
+
+/* The "pinned by" line above a pinned message, with Slack's soft
+   tint on the row. */
+.ykphone-pin-line {
+    grid-area: pin;
+    display: flex;
+    align-items: center;
+    gap: 0.35em;
+    padding: 0.2em 0 0;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    color: var(--yk-text-muted);
+
+    .zulip-icon {
+        font-size: 1em;
+    }
+}
+
+.message_row:has(.ykphone-pin-line):not(.selected_message) {
+    background-color: var(--yk-pin-tint);
+}
+
+.ykphone-pins-panel-item {
+    padding: 0.6em 0;
+    border-bottom: 1px solid var(--yk-hairline);
+
+    .ykphone-pin-line {
+        padding: 0 1em;
+    }
+
+    .ykphone-thread-panel-message {
+        margin-top: 0.2em;
+    }
+}
+
+.ykphone-pins-panel-actions {
+    display: flex;
+    gap: 1em;
+    padding: 0.3em 1em 0 3.4em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 600;
+}
+
+.ykphone-pins-panel-unpin {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-text-link);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--color-text-link-hover);
+        text-decoration: underline;
+    }
+}
+
+/* ---- Popovers in Slack's layout ---- */
+
+/* Menus: icon, label, hotkey hint; the hint as a quiet chip. */
+.tippy-box[data-theme="popover-menu"] {
+    .popover-menu-list .popover-menu-link {
+        padding: 0.35em 0.8em;
+    }
+
+    .popover-menu-hotkey-hints > .popover-menu-hotkey-hint {
+        border-color: transparent;
+        background-color: var(--yk-composer-bg);
+        color: var(--yk-text-muted);
+    }
+}
+
+/* The channel menu (from the pane header title and the sidebar):
+   "# name" and the description as its header. */
+.stream-popover-root {
+    .popover-stream-header {
+        padding: 0.5em 0.9em 0.1em;
+        font-size: 1.0714em; /* 15px at 14px/em */
+        font-weight: 900;
+    }
+
+    .ykphone-popover-stream-description {
+        display: block;
+        max-width: 20em;
+        padding: 0 0.9em 0.5em;
+        white-space: normal;
+        font-size: 0.9286em; /* 13px at 14px/em */
+        color: var(--yk-text-muted);
+
+        p {
+            margin: 0;
+        }
+    }
+}
+
+/* User card: a large avatar on top, the name under it, the message
+   action as the primary button, the rest as a list. */
+#user_card_popover {
+    --length-user-popover-menu-avatar: 6.8571em; /* 96px at 14px/em */
+
+    .popover-menu-user-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5em;
+        padding: 1em 1em 0.4em;
+        text-align: center;
+    }
+
+    .popover-menu-user-avatar {
+        border-radius: var(--yk-radius-md);
+    }
+
+    .popover-menu-user-presence {
+        font-size: 1.1em;
+        right: -0.2em;
+        bottom: -0.2em;
+    }
+
+    .popover-menu-user-info {
+        width: 100%;
+    }
+
+    .popover-menu-user-full-name {
+        justify-content: center;
+        font-size: 1.1429em; /* 16px at 14px/em */
+        font-weight: 900;
+    }
+
+    .popover-menu-user-type {
+        justify-content: center;
+    }
+
+    .popover-menu-list-item:has(> .popover-menu-link.respond_personal_button),
+    .popover-menu-list-item:has(> .popover-menu-link.compose_private_message) {
+        padding: 0.3em 0.8em;
+
+        > .popover-menu-link {
+            justify-content: center;
+            border-radius: var(--yk-radius-sm);
+            background-color: var(--yk-green);
+            color: var(--yk-shell-text-strong);
+            font-weight: 700;
+
+            &:hover,
+            &:focus-visible {
+                background-color: var(--yk-green-hover);
+                color: var(--yk-shell-text-strong);
+            }
+
+            .popover-menu-icon,
+            .popover-menu-hotkey-hints {
+                display: none;
+            }
+        }
+    }
+}
+
+/* Emoji picker: a pill search field, an icon row of categories,
+   36px cells (six per row, which the keyboard navigation assumes:
+   6 × (36 + 2 × 5) = 276 plus the map's padding) and the name of the
+   hovered emoji in the footer. */
+.emoji-picker-popover {
+    .emoji-popover {
+        width: 20em; /* 300px at 15px/em */
+
+        .popover-filter-input-wrapper {
+            padding: 0.5em 0.5em 0.3em;
+        }
+
+        #emoji-popover-filter {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 0.3em 0.8em;
+            border: 1px solid var(--yk-border);
+            border-radius: 999px;
+            background-color: var(--color-background);
+        }
+
+        .emoji-popover-category-tabs {
+            gap: 2px;
+            padding: 0 0.4em;
+            background: none;
+            border-bottom: 1px solid var(--yk-hairline);
+
+            .emoji-popover-tab-item {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: auto;
+                height: 2em;
+                padding: 0;
+                border-radius: var(--yk-radius-sm);
+                color: var(--yk-text-muted);
+
+                &.active {
+                    background-color: var(--yk-composer-bg);
+                    color: var(--color-text-default);
+                }
+            }
+        }
+
+        .emoji-popover-emoji-map,
+        .emoji-search-results-container {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 0 0.4em;
+        }
+
+        .emoji-popover-subheading,
+        .emoji-popover-results-heading {
+            font-size: 0.8667em; /* 13px at 15px/em */
+            color: var(--yk-text-muted);
+        }
+
+        .emoji-popover-emoji {
+            width: 2.4em; /* 36px at 15px/em */
+            height: 2.4em;
+            margin: 0.3333em; /* 5px at 15px/em */
+            padding: 0.2667em; /* 4px at 15px/em */
+            border-radius: var(--yk-radius-sm);
+
+            .emoji {
+                width: 1.8667em; /* 28px at 15px/em */
+                height: 1.8667em;
+            }
+        }
+    }
+
+    .emoji-showcase-container {
+        width: 20em; /* 300px at 15px/em */
+        border-top: 1px solid var(--yk-hairline);
+        border-radius: 0 0 var(--yk-radius-md) var(--yk-radius-md);
+        background-color: var(--yk-composer-bg);
+    }
+}
+
+/* ---- Settings, channel and group settings, modals: Slack skin ---- */
+
+/* The item layout is upstream's; only the surface changes. Scoped to
+   the overlay containers so nothing reaches the message feed. */
+#settings_overlay_container,
+#channels_overlay_container,
+#groups_overlay_container,
+.micromodal,
+#user-profile-modal {
+    .overlay-container,
+    .modal__container {
+        border-radius: var(--yk-radius-lg);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="password"],
+    input[type="url"],
+    textarea,
+    select,
+    .dropdown-widget-button,
+    .settings_text_input,
+    .pill-container {
+        border: 1px solid var(--yk-border);
+        border-radius: 4px;
+    }
+
+    .action-button,
+    .button,
+    button.bootstrap-btn,
+    .settings-save-button,
+    .input-append button {
+        border-radius: var(--yk-radius-sm);
+    }
+
+    .settings-section-title,
+    .settings-header h1,
+    .two-pane-settings-header,
+    .modal__title {
+        font-weight: 900;
+    }
+}
+
+/* Slack's settings nav: rounded rows, 15px labels, the active one
+   filled. */
+#settings_page .sidebar-list .sidebar-item {
+    margin: 0 8px;
+    border-radius: var(--yk-radius-sm);
+    font-size: 1.0714em; /* 15px at 14px/em */
+    transition: background-color 100ms ease;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &.active {
+        background-color: var(--yk-shell-row-active);
+        color: hsl(0deg 0% 100%);
+
+        .sidebar-item-icon,
+        .text {
+            color: hsl(0deg 0% 100%);
+        }
+    }
+}
+
+#channels_overlay_container,
+#groups_overlay_container {
+    .stream-row,
+    .group-row {
+        border-radius: var(--yk-radius-sm);
+        transition: background-color 100ms ease;
+
+        &:hover {
+            background-color: var(--yk-row-hover);
+        }
+    }
 }

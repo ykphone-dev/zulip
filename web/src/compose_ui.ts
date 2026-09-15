@@ -33,6 +33,7 @@ import {current_user} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as user_status from "./user_status.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 export const DEFAULT_COMPOSE_PLACEHOLDER = $t({defaultMessage: "Compose your message here"});
 
@@ -438,7 +439,9 @@ export function compute_placeholder_text(opts: ComposePlaceholderOptions): strin
             topic_display_name = opts.topic;
         } else if (
             stream_data.can_use_empty_topic(opts.stream_id) &&
-            !$("input#stream_message_recipient_topic").is(":focus")
+            !$("input#stream_message_recipient_topic").is(":focus") &&
+            // With channels as rooms, the general chat is the channel itself.
+            !ykphone_flags.channels_open_in_general_chat()
         ) {
             topic_display_name = util.get_final_topic_display_name(opts.topic);
         }

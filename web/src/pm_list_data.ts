@@ -53,6 +53,7 @@ export type DisplayObject = {
     is_bot: boolean;
     has_unread_mention: boolean;
     includes_deactivated_user: boolean;
+    avatar_url: string | undefined;
 };
 
 export function get_conversations(search_string = ""): DisplayObject[] {
@@ -97,6 +98,7 @@ export function get_conversations(search_string = ""): DisplayObject[] {
         let status_emoji_info: UserStatusEmojiInfo | undefined;
         let is_bot = false;
         let is_current_user = false;
+        let avatar_url: string | undefined;
 
         if (!is_group) {
             const user_id = Number.parseInt(user_ids_string, 10);
@@ -105,6 +107,7 @@ export function get_conversations(search_string = ""): DisplayObject[] {
                 includes_deactivated_user,
             );
             const recipient_user_obj = people.get_by_user_id(user_id);
+            avatar_url = people.small_avatar_url_for_person(recipient_user_obj);
 
             if (recipient_user_obj.is_bot) {
                 is_bot = true;
@@ -128,6 +131,7 @@ export function get_conversations(search_string = ""): DisplayObject[] {
             has_unread_mention,
             includes_deactivated_user,
             is_current_user,
+            avatar_url,
         };
         display_objects.push(display_object);
     }

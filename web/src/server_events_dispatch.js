@@ -104,6 +104,7 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
+import * as ykphone_pins from "./ykphone_pins.ts";
 
 export function dispatch_normal_event(event) {
     const noop = function () {
@@ -196,6 +197,10 @@ export function dispatch_normal_event(event) {
 
             break;
         }
+
+        case "ykphone_pin":
+            ykphone_pins.handle_event(event);
+            break;
 
         case "has_zoom_token":
             current_user.has_zoom_token = event.value;

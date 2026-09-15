@@ -11,19 +11,10 @@ const $ = require("./lib/zjquery.cjs");
 const browser_history = mock_esm("../src/browser_history", {
     get_home_view_hash: () => "#inbox",
 });
-const channel = mock_esm("../src/channel", {
-    xhr_error_message: (message, xhr) => `${message} ${xhr.responseJSON.msg}`,
-});
-const feedback_widget = mock_esm("../src/feedback_widget");
 const left_sidebar_navigation_area = mock_esm("../src/left_sidebar_navigation_area");
-const settings_data = mock_esm("../src/settings_data");
 
 const {set_current_user, set_realm} = zrequire("state_data");
-const {initialize_user_settings} = zrequire("user_settings");
 const ykphone_rail = zrequire("ykphone_rail");
-
-const user_settings = {color_scheme: 1};
-initialize_user_settings({user_settings});
 
 set_realm(make_realm({realm_name: "옆커폰"}));
 
@@ -104,58 +95,6 @@ run_test("update_active_item", () => {
 
     ykphone_rail.update_active_item("#recent");
     assert.deepEqual(active_ids(), []);
-});
-
-run_test("toggle_color_scheme", ({override}) => {
-    ykphone_rail.clear_for_testing();
-    const patches = [];
-    override(channel, "patch", (opts) => {
-        patches.push(opts);
-    });
-    const toasts = [];
-    override(feedback_widget, "show", (opts) => {
-        const $container = $.create(`toast-${toasts.length}`);
-        opts.populate($container);
-        toasts.push($container.text());
-    });
-
-    // 3 is the light theme, 2 the dark one (settings_config).
-    override(settings_data, "using_dark_theme", () => true);
-    ykphone_rail.toggle_color_scheme();
-    assert.equal(patches[0].url, "/json/settings");
-    assert.deepEqual(patches[0].data, {color_scheme: 3});
-
-    // A second click before the server answers toggles back rather
-    // than repeating the request, since the setting has not caught up.
-    ykphone_rail.toggle_color_scheme();
-    assert.deepEqual(patches[1].data, {color_scheme: 2});
-
-    // Only the latest request's answer counts; it primes the setting
-    // for the next click before the event arrives.
-    user_settings.color_scheme = 2;
-    patches[0].success();
-    assert.equal(user_settings.color_scheme, 2);
-    patches[1].success();
-    assert.equal(user_settings.color_scheme, 2);
-    override(settings_data, "using_dark_theme", () => false);
-    ykphone_rail.toggle_color_scheme();
-    assert.deepEqual(patches[2].data, {color_scheme: 2});
-
-    // A failure is reported and forgotten, so the next click starts
-    // again from the real setting.
-    patches[2].error({responseJSON: {msg: "Server down"}});
-    assert.deepEqual(toasts, ["translated: Failed to change the theme. Server down"]);
-    ykphone_rail.toggle_color_scheme();
-    assert.deepEqual(patches[3].data, {color_scheme: 2});
-
-    // A stale failure (after a newer click) does not clear the newer request.
-    ykphone_rail.toggle_color_scheme();
-    assert.deepEqual(patches[4].data, {color_scheme: 3});
-    patches[3].error({responseJSON: {msg: "Late"}});
-    assert.equal(toasts.length, 2);
-    ykphone_rail.toggle_color_scheme();
-    assert.deepEqual(patches[5].data, {color_scheme: 2});
-    ykphone_rail.clear_for_testing();
 });
 
 run_test("mount", ({override, mock_template}) => {

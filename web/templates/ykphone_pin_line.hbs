@@ -1,0 +1,7 @@
+{{! "Pinned by …" line above a pinned message in the feed; the context is the message container. }}
+{{#if ykphone_pin}}
+<div class="ykphone-pin-line">
+    <i class="zulip-icon zulip-icon-pin" aria-hidden="true"></i>
+    <span class="ykphone-pin-line-text">{{ykphone_pin.pinned_by_label}}</span>
+</div>
+{{/if}}

@@ -1,5 +1,13 @@
 <button type="button" class="ykphone-thread-pill" data-topic-name="{{topic_name}}" aria-label="{{t 'Open thread' }}">
+    {{#if has_avatars}}
+    <span class="ykphone-thread-pill-avatars">
+        {{#each avatar_urls}}
+            <img class="ykphone-thread-pill-avatar" src="{{this}}" alt="" loading="lazy" />
+        {{/each}}
+    </span>
+    {{else}}
     <i class="zulip-icon zulip-icon-threads" aria-hidden="true"></i>
+    {{/if}}
     <span class="ykphone-thread-pill-count">{{reply_label}}</span>
     {{#if last_reply_label}}
     <span class="ykphone-thread-pill-time">{{last_reply_label}}</span>
