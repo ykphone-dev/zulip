@@ -19,6 +19,10 @@ from zerver.models.streams import StreamTopicsPolicyEnum
 # preview; it is also short enough to read in the sidebar.
 THREAD_TOPIC_SNIPPET_LENGTH = 50
 
+# Slack's thread pill shows the avatars of the last few people who
+# replied.
+MAX_THREAD_PARTICIPANTS = 3
+
 
 class ThreadDict(TypedDict):
     root_message_id: int
@@ -26,6 +30,8 @@ class ThreadDict(TypedDict):
     topic_name: str
     reply_count: int
     last_reply_timestamp: int | None
+    # Senders of the newest replies, newest first, distinct.
+    participant_user_ids: list[int]
 
 
 def thread_topic_snippet(content: str) -> str:
@@ -121,6 +127,13 @@ def readable_messages(user_profile: UserProfile, stream: Stream) -> QuerySet[Mes
     return messages
 
 
+def latest_senders(sender_rows: list[tuple[int, int]]) -> list[int]:
+    """The newest few distinct senders from (sender_id, latest message
+    id) rows."""
+    sender_rows.sort(key=lambda row: row[1], reverse=True)
+    return [sender_id for sender_id, _message_id in sender_rows[:MAX_THREAD_PARTICIPANTS]]
+
+
 def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[ThreadDict]:
     stream, _sub = access_stream_by_id(user_profile, stream_id)
     thread_rows = MessageThread.objects.filter(stream=stream).order_by("root_message_id")
@@ -134,13 +147,24 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
     if not threads:
         return []
 
+    replies = readable_messages(user_profile, stream).filter(
+        subject__in=[thread.topic_name for thread in threads]
+    )
     stats = {
         row["subject"]: row
-        for row in readable_messages(user_profile, stream)
-        .filter(subject__in=[thread.topic_name for thread in threads])
-        .values("subject")
-        .annotate(reply_count=Count("id"), last_reply=Max("date_sent"))
+        for row in replies.values("subject").annotate(
+            reply_count=Count("id"), last_reply=Max("date_sent")
+        )
     }
+    # One row per (topic, sender) with that sender's newest reply, so
+    # the newest senders can be picked without reading every reply.
+    senders_by_topic: dict[str, list[tuple[int, int]]] = {}
+    for subject, sender_id, latest_id in (
+        replies.order_by("subject", "sender_id", "-id")
+        .distinct("subject", "sender_id")
+        .values_list("subject", "sender_id", "id")
+    ):
+        senders_by_topic.setdefault(subject, []).append((sender_id, latest_id))
 
     result: list[ThreadDict] = []
     for thread in threads:
@@ -152,16 +176,19 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
                 topic_name=thread.topic_name,
                 reply_count=row["reply_count"] if row else 0,
                 last_reply_timestamp=datetime_to_timestamp(row["last_reply"]) if row else None,
+                participant_user_ids=latest_senders(senders_by_topic.get(thread.topic_name, [])),
             )
         )
     return result
 
 
 def thread_dict(user_profile: UserProfile, thread: MessageThread) -> ThreadDict:
-    stats = (
-        readable_messages(user_profile, thread.stream)
-        .filter(subject__iexact=thread.topic_name)
-        .aggregate(reply_count=Count("id"), last_reply=Max("date_sent"))
+    replies = readable_messages(user_profile, thread.stream).filter(
+        subject__iexact=thread.topic_name
+    )
+    stats = replies.aggregate(reply_count=Count("id"), last_reply=Max("date_sent"))
+    sender_rows = list(
+        replies.order_by("sender_id", "-id").distinct("sender_id").values_list("sender_id", "id")
     )
     return ThreadDict(
         root_message_id=thread.root_message_id,
@@ -171,4 +198,5 @@ def thread_dict(user_profile: UserProfile, thread: MessageThread) -> ThreadDict:
         last_reply_timestamp=(
             datetime_to_timestamp(stats["last_reply"]) if stats["last_reply"] else None
         ),
+        participant_user_ids=latest_senders(sender_rows),
     )

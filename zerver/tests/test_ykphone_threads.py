@@ -56,6 +56,7 @@ class ThreadAPITest(ZulipTestCase):
         self.assertEqual(data["topic_name"], "Shall we ship on Friday?")
         self.assertEqual(data["reply_count"], 0)
         self.assertIsNone(data["last_reply_timestamp"])
+        self.assertEqual(data["participant_user_ids"], [])
 
         # Opening the thread again is idempotent.
         again = self.assert_json_success(self.create("hamlet", root_id))
@@ -71,6 +72,18 @@ class ThreadAPITest(ZulipTestCase):
         self.assertEqual(listed[0]["root_message_id"], root_id)
         self.assertEqual(listed[0]["reply_count"], 2)
         self.assertGreaterEqual(listed[0]["last_reply_timestamp"], int(reply.date_sent.timestamp()))
+        # Newest reply's sender first, each sender once.
+        self.assertEqual(listed[0]["participant_user_ids"], [hamlet.id, cordelia.id])
+        self.send_stream_message(cordelia, "Verona", "Again", data["topic_name"])
+        self.send_stream_message(self.example_user("iago"), "Verona", "Ok", data["topic_name"])
+        self.send_stream_message(self.example_user("othello"), "Verona", "!", data["topic_name"])
+        listed = self.assert_json_success(self.list_threads("hamlet", verona.id))["threads"]
+        self.assertEqual(
+            listed[0]["participant_user_ids"],
+            [self.example_user("othello").id, self.example_user("iago").id, cordelia.id],
+        )
+        again = self.assert_json_success(self.create("hamlet", root_id))
+        self.assertEqual(again["participant_user_ids"], listed[0]["participant_user_ids"])
 
         # A second root whose snippet collides gets a numbered name.
         other_root = self.send_stream_message(hamlet, "Verona", "Shall we ship on Friday?", "")
