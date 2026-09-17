@@ -37,6 +37,7 @@ import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_rich_compose from "./ykphone_rich_compose.ts";
+import * as ykphone_shell_theme_ui from "./ykphone_shell_theme_ui.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -127,6 +128,7 @@ export function initialize(): void {
     ykphone_pins_ui.initialize();
     ykphone_favorites_ui.initialize();
     ykphone_channel_create_ui.initialize();
+    ykphone_shell_theme_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
     document.documentElement.style.setProperty(

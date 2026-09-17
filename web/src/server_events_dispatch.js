@@ -105,6 +105,7 @@ import * as user_status from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_shell_theme from "./ykphone_shell_theme.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 
 export function dispatch_normal_event(event) {
@@ -201,6 +202,10 @@ export function dispatch_normal_event(event) {
 
         case "ykphone_pin":
             ykphone_pins.handle_event(event);
+            break;
+
+        case "ykphone_preference":
+            ykphone_shell_theme.handle_event(event);
             break;
 
         case "has_zoom_token":

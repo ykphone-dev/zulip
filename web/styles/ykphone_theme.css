@@ -1,7 +1,8 @@
 /* 옆커폰 theme.
 
-   A restyle of the web app after Slack's desktop client: an aubergine
-   shell (icon rail, sidebar, navbar) with the content pane floating
+   A restyle of the web app after Slack's desktop client: a coloured
+   shell (icon rail, sidebar, navbar; see "Shell themes" for the
+   user's choice of colours) with the content pane floating
    inside it, Slack's palette, Lato for Latin text with Pretendard for
    Hangul, a header row at the top of the message pane, a two-row
    compose box and Slack's message density. It is layered on top of
@@ -15,9 +16,9 @@
    turns every sticky header and mask in the sidebar dark along with
    it, because upstream already reads that token everywhere.
 
-   The palette lives in the --yk-* block below. The brand purple scale
-   is kept there too, so switching the shell back to the 옆커폰 purple
-   is a matter of pointing the region surfaces at it again. */
+   The pane's palette lives in the --yk-* block below, the shell's in
+   the theme blocks after it. The brand purple scale is kept in the
+   first, unused, for a theme built on it. */
 
 :root {
     /* Brand palette, derived from the 옆커폰 mark (deep purple
@@ -34,10 +35,8 @@
     --yk-purple-100: hsl(256deg 50% 93%);
     --yk-purple-50: hsl(256deg 50% 97%);
 
-    /* Slack "Aubergine" shell, light. */
-    --yk-aubergine-navbar: hsl(299deg 61% 13%); /* #350D36 */
-    --yk-aubergine: hsl(299deg 64% 15%); /* #3F0E40 */
-    --yk-aubergine-text: hsl(300deg 11% 79%); /* #CFC3CF */
+    /* Pane accents, light. The shell's colours are the themes' (see
+       "Shell themes"). */
     --yk-blue-selected: hsl(206deg 81% 35%); /* #1164A3 */
     --yk-blue-link: hsl(206deg 80% 35%); /* #1264A3 */
     --yk-blue-light: hsl(200deg 64% 95%); /* reacted pill fill */
@@ -52,9 +51,7 @@
     --yk-line: hsl(0deg 0% 87%); /* #DDDDDD, separators */
     --yk-line-strong: hsl(300deg 1% 73%); /* #BBBABB, borders */
 
-    /* Slack "Aubergine" dark. */
-    --yk-dark-navbar: hsl(264deg 14% 8%); /* #121016 */
-    --yk-dark-shell: hsl(260deg 12% 10%); /* #19171D */
+    /* Pane neutrals, dark. */
     --yk-dark-pane: hsl(214deg 12% 12%); /* #1A1D21 */
     --yk-dark-hover: hsl(216deg 8% 15%); /* #222529 */
     --yk-dark-text: hsl(210deg 2% 82%); /* #D1D2D3 */
@@ -101,13 +98,8 @@
         0 0 0 1px var(--yk-shadow-ring-color),
         0 4px 12px var(--yk-shadow-drop-color);
 
-    /* Region surfaces. */
-    --yk-frame-bg: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
-    --yk-navbar-bg: light-dark(
-        var(--yk-aubergine-navbar),
-        var(--yk-dark-navbar)
-    );
-    --yk-card-bg: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
+    /* Region surfaces. The shell's (frame, navbar, sidebar card) come
+       from the selected theme; see "Shell themes" below. */
     --yk-pane-bg: light-dark(hsl(0deg 0% 100%), var(--yk-dark-pane));
     --yk-composer-bg: light-dark(var(--yk-white-warm), var(--yk-dark-hover));
     --yk-hairline: light-dark(var(--yk-line), var(--yk-dark-line));
@@ -122,15 +114,43 @@
     --yk-split-active-bg: light-dark(hsl(206deg 60% 94%), hsl(206deg 30% 20%));
     /* 380px at 14px; the list column of the split pages. */
     --yk-split-list-width: calc(27.1429 * var(--base-font-size-px));
-    --yk-shell-text: light-dark(var(--yk-aubergine-text), var(--yk-dark-text));
-    --yk-shell-text-strong: hsl(0deg 0% 100%);
-    --yk-shell-text-muted: light-dark(
-        hsl(300deg 11% 79% / 70%),
-        var(--yk-dark-muted)
+    /* Tints of the shell's strongest text colour, so that they lighten
+       a dark shell and darken a light one. The strengths are tokens of
+       their own because web/tests/ykphone_shell_theme.test.cjs reads
+       them to measure the text drawn on these surfaces. */
+    --yk-shell-tint-hover: 10%;
+    --yk-shell-tint-input-focus: 16%;
+    --yk-shell-tint-search: 14%;
+    --yk-shell-tint-active-tile: 24%;
+    --yk-shell-tint-count: 90%;
+    /* The rail's glyphs and labels until hovered or current. */
+    --yk-rail-item-rest-opacity: 0.7;
+    --yk-shell-row-hover: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) var(--yk-shell-tint-hover),
+        transparent
     );
-    --yk-shell-row-hover: hsl(0deg 0% 100% / 10%);
-    --yk-shell-row-active: var(--yk-blue-selected);
-    --yk-shell-divider: hsl(0deg 0% 100% / 10%);
+    --yk-shell-divider: var(--yk-shell-row-hover);
+    --yk-shell-input-focus-bg: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) var(--yk-shell-tint-input-focus),
+        transparent
+    );
+    --yk-shell-search-bg: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) var(--yk-shell-tint-search),
+        transparent
+    );
+    --yk-shell-active-tile-bg: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) var(--yk-shell-tint-active-tile),
+        transparent
+    );
+    --yk-shell-count-bg: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) var(--yk-shell-tint-count),
+        transparent
+    );
     /* Height of the header row at the top of the message pane; the
        description line adds to it (see .column-middle below).
        46px at 14px. */
@@ -269,6 +289,268 @@
     --color-text-sidebar-heading: var(--yk-text-muted);
 }
 
+/* ---- Shell themes ---- */
+
+/* The colours of the shell (icon rail, navbar, sidebar card and its
+   rows, badges and presence dots), one block per theme, each for the
+   light and the dark message pane. ykphone_shell_theme sets
+   data-yk-theme on <html> (the server writes it there on page load,
+   so the first frame is already in the user's theme); the picker's
+   swatches carry the same attribute, which is why every block defines
+   the tokens themselves rather than values other tokens derive from.
+
+   Every theme keeps sidebar text, muted text, placeholders (also in a
+   focused input), selected-row text and icons, count and pill text at
+   WCAG AA (4.5:1) against what they sit on, and the mention pill, the
+   three presence dots, icons, the rail logo's shape and both focus
+   rings (--yk-shell-focus on the shell, --yk-shell-row-active-focus
+   on the selected row, which must also stand out from the card) at
+   3:1;
+   web/tests/ykphone_shell_theme.test.cjs reads these blocks and checks
+   the ratios. Keep the declarations in this form (one hsl() per mode)
+   for that test. */
+
+:root,
+[data-yk-theme="ykphone"] {
+    --yk-frame-bg: light-dark(hsl(299deg 64% 15%), hsl(260deg 12% 10%));
+    --yk-navbar-bg: light-dark(hsl(299deg 61% 13%), hsl(264deg 14% 8%));
+    --yk-card-bg: light-dark(hsl(299deg 64% 15%), hsl(260deg 12% 10%));
+    --yk-shell-text: light-dark(hsl(300deg 11% 79%), hsl(210deg 2% 82%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(300deg 9% 70%), hsl(240deg 1% 67%));
+    --yk-shell-row-active: light-dark(hsl(206deg 81% 35%), hsl(206deg 81% 35%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(204deg 90% 70%),
+        hsl(204deg 90% 70%)
+    );
+    --yk-shell-mention: light-dark(hsl(342deg 76% 50%), hsl(342deg 76% 50%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(137deg 42% 45%), hsl(137deg 67% 58%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(204deg 90% 70%), hsl(204deg 90% 70%));
+}
+
+[data-yk-theme="navy"] {
+    --yk-frame-bg: light-dark(hsl(216deg 58% 17%), hsl(218deg 32% 10%));
+    --yk-navbar-bg: light-dark(hsl(217deg 60% 14%), hsl(220deg 34% 8%));
+    --yk-card-bg: light-dark(hsl(216deg 58% 17%), hsl(218deg 32% 10%));
+    --yk-shell-text: light-dark(hsl(214deg 30% 82%), hsl(214deg 20% 82%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(214deg 22% 76%), hsl(214deg 12% 68%));
+    --yk-shell-row-active: light-dark(hsl(188deg 70% 30%), hsl(188deg 65% 28%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(190deg 80% 65%),
+        hsl(190deg 80% 65%)
+    );
+    --yk-shell-mention: light-dark(hsl(8deg 78% 47%), hsl(8deg 78% 47%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(150deg 60% 50%), hsl(150deg 60% 48%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(190deg 80% 65%), hsl(190deg 80% 65%));
+}
+
+[data-yk-theme="graphite"] {
+    --yk-frame-bg: light-dark(hsl(220deg 7% 15%), hsl(220deg 6% 9%));
+    --yk-navbar-bg: light-dark(hsl(220deg 8% 11%), hsl(220deg 7% 6%));
+    --yk-card-bg: light-dark(hsl(220deg 7% 15%), hsl(220deg 6% 9%));
+    --yk-shell-text: light-dark(hsl(220deg 6% 80%), hsl(220deg 5% 80%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(220deg 4% 75%), hsl(220deg 4% 66%));
+    --yk-shell-row-active: light-dark(hsl(32deg 70% 30%), hsl(32deg 62% 28%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(40deg 95% 66%),
+        hsl(40deg 95% 66%)
+    );
+    --yk-shell-mention: light-dark(hsl(4deg 80% 48%), hsl(4deg 80% 48%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(140deg 55% 50%), hsl(140deg 55% 48%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(40deg 95% 62%), hsl(40deg 95% 62%));
+}
+
+[data-yk-theme="forest"] {
+    --yk-frame-bg: light-dark(hsl(152deg 42% 12%), hsl(155deg 22% 8%));
+    --yk-navbar-bg: light-dark(hsl(152deg 44% 9%), hsl(155deg 24% 6%));
+    --yk-card-bg: light-dark(hsl(152deg 42% 12%), hsl(155deg 22% 8%));
+    --yk-shell-text: light-dark(hsl(140deg 16% 80%), hsl(140deg 10% 80%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(140deg 10% 74%), hsl(140deg 6% 66%));
+    --yk-shell-row-active: light-dark(hsl(84deg 55% 30%), hsl(84deg 50% 27%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(70deg 80% 62%),
+        hsl(70deg 80% 62%)
+    );
+    --yk-shell-mention: light-dark(hsl(12deg 85% 45%), hsl(12deg 85% 45%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(95deg 70% 55%), hsl(95deg 65% 50%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(70deg 80% 62%), hsl(70deg 80% 62%));
+}
+
+[data-yk-theme="burgundy"] {
+    --yk-frame-bg: light-dark(hsl(343deg 52% 15%), hsl(345deg 24% 9%));
+    --yk-navbar-bg: light-dark(hsl(343deg 54% 12%), hsl(345deg 26% 7%));
+    --yk-card-bg: light-dark(hsl(343deg 52% 15%), hsl(345deg 24% 9%));
+    --yk-shell-text: light-dark(hsl(345deg 25% 84%), hsl(345deg 12% 82%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(345deg 18% 74%), hsl(345deg 8% 68%));
+    --yk-shell-row-active: light-dark(hsl(28deg 70% 34%), hsl(28deg 60% 30%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(38deg 95% 65%),
+        hsl(38deg 95% 65%)
+    );
+    --yk-shell-mention: light-dark(hsl(12deg 85% 45%), hsl(12deg 85% 45%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(150deg 58% 50%), hsl(150deg 58% 48%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(38deg 95% 65%), hsl(38deg 95% 65%));
+}
+
+[data-yk-theme="ocean"] {
+    --yk-frame-bg: light-dark(hsl(192deg 75% 12%), hsl(195deg 35% 8%));
+    --yk-navbar-bg: light-dark(hsl(193deg 78% 9%), hsl(197deg 38% 6%));
+    --yk-card-bg: light-dark(hsl(192deg 75% 12%), hsl(195deg 35% 8%));
+    --yk-shell-text: light-dark(hsl(185deg 30% 82%), hsl(185deg 15% 82%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(185deg 20% 72%), hsl(185deg 8% 68%));
+    --yk-shell-row-active: light-dark(hsl(222deg 60% 42%), hsl(222deg 50% 36%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(180deg 70% 62%),
+        hsl(180deg 70% 62%)
+    );
+    --yk-shell-mention: light-dark(hsl(342deg 76% 50%), hsl(342deg 76% 50%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(140deg 60% 55%), hsl(140deg 55% 50%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(180deg 70% 62%), hsl(180deg 70% 62%));
+}
+
+[data-yk-theme="sand"] {
+    --yk-frame-bg: light-dark(hsl(38deg 32% 89%), hsl(32deg 12% 10%));
+    --yk-navbar-bg: light-dark(hsl(38deg 30% 86%), hsl(32deg 13% 8%));
+    --yk-card-bg: light-dark(hsl(40deg 36% 94%), hsl(32deg 12% 10%));
+    --yk-shell-text: light-dark(hsl(30deg 25% 16%), hsl(36deg 18% 80%));
+    --yk-shell-text-strong: light-dark(hsl(28deg 30% 8%), hsl(40deg 40% 96%));
+    --yk-shell-text-muted: light-dark(hsl(30deg 14% 26%), hsl(36deg 10% 66%));
+    --yk-shell-row-active: light-dark(hsl(174deg 40% 42%), hsl(174deg 55% 24%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(28deg 30% 8%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(174deg 70% 8%),
+        hsl(40deg 80% 62%)
+    );
+    --yk-shell-mention: light-dark(hsl(352deg 72% 40%), hsl(342deg 76% 50%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(150deg 70% 28%), hsl(150deg 55% 48%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(30deg 90% 34%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(30deg 8% 52%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(210deg 80% 38%), hsl(40deg 80% 62%));
+}
+
+[data-yk-theme="midnight"] {
+    --yk-frame-bg: light-dark(hsl(232deg 30% 11%), hsl(232deg 24% 6%));
+    --yk-navbar-bg: light-dark(hsl(232deg 32% 8%), hsl(232deg 26% 4%));
+    --yk-card-bg: light-dark(hsl(232deg 30% 11%), hsl(232deg 24% 6%));
+    --yk-shell-text: light-dark(hsl(230deg 20% 80%), hsl(230deg 12% 80%));
+    --yk-shell-text-strong: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-text-muted: light-dark(hsl(230deg 12% 70%), hsl(230deg 8% 66%));
+    --yk-shell-row-active: light-dark(hsl(262deg 50% 45%), hsl(262deg 45% 40%));
+    --yk-shell-row-active-text: light-dark(
+        hsl(0deg 0% 100%),
+        hsl(0deg 0% 100%)
+    );
+    --yk-shell-row-active-focus: light-dark(
+        hsl(255deg 90% 84%),
+        hsl(255deg 90% 84%)
+    );
+    --yk-shell-mention: light-dark(hsl(335deg 80% 47%), hsl(335deg 80% 47%));
+    --yk-shell-mention-text: light-dark(hsl(0deg 0% 100%), hsl(0deg 0% 100%));
+    --yk-shell-presence: light-dark(hsl(160deg 60% 50%), hsl(160deg 60% 48%));
+    --yk-shell-presence-idle: light-dark(
+        hsl(32deg 88% 68%),
+        hsl(33deg 85% 52%)
+    );
+    --yk-shell-presence-offline: light-dark(
+        hsl(228deg 13% 77%),
+        hsl(231deg 8% 52%)
+    );
+    --yk-shell-focus: light-dark(hsl(255deg 90% 76%), hsl(255deg 90% 76%));
+}
+
 /* ---- Typography ---- */
 
 /* Lato for Latin, Pretendard for Hangul (Lato has none, so the
@@ -304,19 +586,20 @@ body {
     --color-text-message-view-header: var(--yk-shell-text-strong);
     --color-text-default: var(--yk-shell-text);
     --color-header-button-hover: var(--yk-shell-row-hover);
-    --color-header-button-focus: hsl(0deg 0% 100% / 16%);
+    --color-header-button-focus: var(--yk-shell-input-focus-bg);
     --color-icon-purple: var(--yk-shell-text);
-    --color-background-search: hsl(0deg 0% 100% / 14%);
-    --color-background-search-collapsed: hsl(0deg 0% 100% / 14%);
+    --color-background-search: var(--yk-shell-search-bg);
+    --color-background-search-collapsed: var(--yk-shell-search-bg);
     --color-search-box-hover-shadow: transparent;
     --color-text-search: var(--yk-shell-text-strong);
     --color-text-search-hover: var(--yk-shell-text-strong);
-    --color-text-search-placeholder: hsl(0deg 0% 100% / 70%);
+    --color-text-search-placeholder: var(--yk-shell-text-muted);
     --color-search-icons: var(--yk-shell-text-strong);
-    --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
-    --color-unread-counter-normal: var(--yk-aubergine);
-    --color-background-unread-counter-prominent: var(--yk-red);
-    --color-outline-focus: hsl(204deg 90% 70%);
+    --color-background-unread-counter-normal: var(--yk-shell-count-bg);
+    --color-unread-counter-normal: var(--yk-navbar-bg);
+    --color-background-unread-counter-prominent: var(--yk-shell-mention);
+    --color-unread-counter-prominent: var(--yk-shell-mention-text);
+    --color-outline-focus: var(--yk-shell-focus);
 }
 
 .header {
@@ -451,7 +734,8 @@ body {
     }
 
     .navbar-search:has(#searchbox-input-container:focus-visible) {
-        outline: 2px solid hsl(0deg 0% 100% / 45%);
+        outline: 2px solid
+            color-mix(in srgb, var(--yk-shell-text-strong) 45%, transparent);
     }
 }
 
@@ -460,7 +744,9 @@ body {
     --color-text-default: var(--yk-shell-text);
     --color-text-sidebar-base: var(--yk-shell-text-strong);
     --color-text-sidebar-row: var(--yk-shell-text);
-    --color-text-active-narrow-filter: var(--yk-shell-text-strong);
+    --color-text-active-narrow-filter: var(--yk-shell-row-active-text);
+    /* Bold (unread) names; see the selected rows below. */
+    --yk-shell-row-strong-text: var(--yk-shell-text-strong);
     --color-background-active-narrow-filter: var(--yk-shell-row-active);
     --color-background-hover-narrow-filter: var(--yk-shell-row-hover);
     --color-shadow-sidebar-row-hover: transparent;
@@ -492,29 +778,44 @@ body {
     --color-left-sidebar-outer-box-shadow-hover: transparent;
     --color-topic-indent-border: var(--yk-shell-divider);
     --color-unmuted-or-followed-topic-list-item: var(--yk-shell-text-strong);
-    --color-outline-focus: hsl(204deg 90% 70%);
+    --color-outline-focus: var(--yk-shell-focus);
+    --color-user-circle-active: var(--yk-shell-presence);
+    --color-user-circle-idle: var(--yk-shell-presence-idle);
+    --color-user-circle-offline: var(--yk-shell-presence-offline);
+    /* Upstream's are the pane's colours. */
+    --color-vdots-visible: var(--yk-shell-text-muted);
+    --color-vdots-hover: var(--yk-shell-text-strong);
     --opacity-left-sidebar-muted: 0.45;
     --opacity-left-sidebar-muted-hover: 0.7;
     /* Slack's 28px rows. */
     --line-height-sidebar-row-prominent: 2em;
     --line-height-sidebar-row: 2em;
 
-    /* Unread pills: white for normal counts, red for mentions. */
-    --color-background-unread-counter-normal: hsl(0deg 0% 100% / 90%);
-    --color-unread-counter-normal: var(--yk-aubergine);
+    /* Unread pills: the shell's strong text colour for normal counts,
+       the theme's mention colour for mentions. */
+    --color-background-unread-counter-normal: var(--yk-shell-count-bg);
+    --color-unread-counter-normal: var(--yk-card-bg);
     --box-shadow-unread-counter-normal: none;
-    --color-background-unread-counter-prominent: var(--yk-red);
-    --color-unread-counter-prominent: hsl(0deg 0% 100%);
+    --color-background-unread-counter-prominent: var(--yk-shell-mention);
+    --color-unread-counter-prominent: var(--yk-shell-mention-text);
     --color-unread-counter-quiet: var(--yk-shell-text-muted);
-    --color-unread-counter-muted: hsl(0deg 0% 100% / 35%);
+    --color-unread-counter-muted: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) 35%,
+        transparent
+    );
     --color-background-unread-counter-dot: var(--yk-shell-text-strong);
-    --color-background-unread-counter-no-alpha: hsl(0deg 0% 100% / 90%);
-    --color-masked-unread-marker: hsl(0deg 0% 100% / 35%);
+    --color-background-unread-counter-no-alpha: var(--yk-shell-count-bg);
+    --color-masked-unread-marker: color-mix(
+        in srgb,
+        var(--yk-shell-text-strong) 35%,
+        transparent
+    );
 
     /* Filter input at the top of the sidebar. */
-    --color-background-input: hsl(0deg 0% 100% / 10%);
-    --color-background-input-focus: hsl(0deg 0% 100% / 16%);
-    --color-text-placeholder: hsl(0deg 0% 100% / 50%);
+    --color-background-input: var(--yk-shell-row-hover);
+    --color-background-input-focus: var(--yk-shell-input-focus-bg);
+    --color-text-placeholder: var(--yk-shell-text-muted);
 }
 
 .app-main .column-left .left-sidebar {
@@ -646,7 +947,11 @@ body {
     }
 
     .simplebar-track .simplebar-scrollbar::before {
-        background-color: hsl(300deg 11% 79% / 50%);
+        background-color: color-mix(
+            in srgb,
+            var(--yk-shell-text) 50%,
+            transparent
+        );
         box-shadow: none;
     }
 }
@@ -687,7 +992,7 @@ body {
     }
 
     &.ykphone-unread .stream-name {
-        color: var(--yk-shell-text-strong);
+        color: var(--yk-shell-row-strong-text);
         font-weight: 700;
     }
 }
@@ -698,8 +1003,47 @@ body {
 #left-sidebar-navigation-list
     .top_left_row.top_left_recent_view.ykphone-unread
     .left-sidebar-navigation-label {
-    color: var(--yk-shell-text-strong);
+    color: var(--yk-shell-row-strong-text);
     font-weight: 700;
+}
+
+/* The selected row's fill can be lighter than the shell (샌드) or a
+   colour the shell's muted text and focus ring do not stand out on,
+   so bold names, counts, icons and action buttons on it take the
+   selected row's text colour, and its (inset) keyboard focus ring the
+   theme's colour for that fill. While a split page is open the rows
+   are not filled and keep the shell's colours. */
+.app-main .column-left li.active-filter,
+.app-main .column-left li.top-left-active-filter,
+.app-main .column-left li.active-sub-filter,
+.app-main
+    .column-left
+    .narrow-filter.stream-expanded:not(.active-filter)
+    > .bottom_left_row {
+    --yk-shell-row-strong-text: var(--yk-shell-row-active-text);
+    --color-left-sidebar-navigation-icon: var(--yk-shell-row-active-text);
+    --color-sidebar-action: var(--yk-shell-row-active-text);
+    --color-sidebar-action-hover: var(--yk-shell-row-active-text);
+    --color-vdots-visible: var(--yk-shell-row-active-text);
+    --color-vdots-hover: var(--yk-shell-row-active-text);
+    --color-outline-focus: var(--yk-shell-row-active-focus);
+}
+
+body.ykphone-split-open .app-main .column-left li.active-filter,
+body.ykphone-split-open .app-main .column-left li.top-left-active-filter,
+body.ykphone-split-open .app-main .column-left li.active-sub-filter,
+body.ykphone-split-open
+    .app-main
+    .column-left
+    .narrow-filter.stream-expanded:not(.active-filter)
+    > .bottom_left_row {
+    --yk-shell-row-strong-text: var(--yk-shell-text-strong);
+    --color-left-sidebar-navigation-icon: var(--yk-shell-text-muted);
+    --color-sidebar-action: var(--yk-shell-text-muted);
+    --color-sidebar-action-hover: var(--yk-shell-text-strong);
+    --color-vdots-visible: var(--yk-shell-text-muted);
+    --color-vdots-hover: var(--yk-shell-text-strong);
+    --color-outline-focus: var(--yk-shell-focus);
 }
 
 #direct-messages-list .dm-markers-and-unreads .unread_mention_info {
@@ -746,7 +1090,7 @@ body {
     }
 }
 
-/* One badge everywhere: the same red and white text in both themes, on
+/* One badge everywhere: the theme's mention colour and its text, on
    hover and on the selected row. The navigation rows' plain-text count
    rule below is more specific than a single class, hence the repeated
    row classes. Upstream's opacity rules still apply: a channel's
@@ -765,8 +1109,8 @@ body {
     height: 1.5em;
     padding: 0 0.4167em; /* 5px at 12px/em */
     border-radius: 0.75em; /* 9px at 12px/em */
-    background-color: var(--yk-red);
-    color: hsl(0deg 0% 100%);
+    background-color: var(--yk-shell-mention);
+    color: var(--yk-shell-mention-text);
     font-size: 0.8571em; /* 12px at 14px/em */
     font-weight: 700;
     line-height: 1.5em;
@@ -778,8 +1122,9 @@ body {
    as Slack's "Drafts & sent  2" does. Upstream subdues a quiet count
    and the theme's muted shell colour made it read only under the
    pointer; a normal count's white pill would hide shell-coloured text,
-   so it goes too. On the selected row the label and the count are both
-   white (the shell text colour is 3.7:1 on the blue, white is 6.3:1). Channel and direct-message rows are not navigation rows
+   so it goes too. On the selected row the label and the count take the
+   selected row's text colour (for the default theme the shell text
+   colour is 3.7:1 on the blue, white is 6.3:1). Channel and direct-message rows are not navigation rows
    and keep their own treatment above. */
 #left-sidebar-navigation-list .top_left_row .unread_count {
     &.quiet-count,
@@ -795,7 +1140,7 @@ body {
     .left-sidebar-navigation-label,
     .unread_count.quiet-count,
     .unread_count.normal-count {
-        color: var(--yk-shell-text-strong);
+        color: var(--yk-shell-row-strong-text);
     }
 }
 
@@ -911,7 +1256,7 @@ body:has(#ykphone-rail) {
        tile, so that an unread badge on the tile keeps its full red. */
     .ykphone-rail-glyph,
     .ykphone-rail-label {
-        opacity: 0.7;
+        opacity: var(--yk-rail-item-rest-opacity);
         transition: opacity 120ms ease;
     }
 
@@ -947,7 +1292,7 @@ body:has(#ykphone-rail) {
         color: var(--yk-shell-text-strong);
 
         .ykphone-rail-tile {
-            background-color: hsl(0deg 0% 100% / 24%);
+            background-color: var(--yk-shell-active-tile-bg);
         }
 
         .ykphone-rail-glyph-outline {
@@ -1089,12 +1434,16 @@ body:has(#ykphone-rail) {
     border: none;
     border-radius: 50%;
     background-color: var(--yk-shell-text-strong);
-    color: light-dark(var(--yk-aubergine), var(--yk-dark-shell));
+    color: var(--yk-card-bg);
     cursor: pointer;
 
     &:hover,
     &:focus-visible {
-        background-color: hsl(0deg 0% 100% / 85%);
+        background-color: color-mix(
+            in srgb,
+            var(--yk-shell-text-strong) 85%,
+            transparent
+        );
     }
 
     &:focus-visible {
@@ -4058,16 +4407,19 @@ body.ykphone-keyboard-nav
         padding: 0.3em 0.8em;
 
         > .popover-menu-link {
+            /* White in every theme and mode, like the other green
+               buttons. Upstream colours menu links from this token
+               with !important, so the token itself is redefined. */
+            --color-text-popover-menu: hsl(0deg 0% 100%);
+
             justify-content: center;
             border-radius: var(--yk-radius-sm);
             background-color: var(--yk-green);
-            color: var(--yk-shell-text-strong);
             font-weight: 700;
 
             &:hover,
             &:focus-visible {
                 background-color: var(--yk-green-hover);
-                color: var(--yk-shell-text-strong);
             }
 
             .popover-menu-icon,
@@ -4221,11 +4573,11 @@ body.ykphone-keyboard-nav
 
     &.active {
         background-color: var(--yk-shell-row-active);
-        color: hsl(0deg 0% 100%);
+        color: var(--yk-shell-row-active-text);
 
         .sidebar-item-icon,
         .text {
-            color: hsl(0deg 0% 100%);
+            color: var(--yk-shell-row-active-text);
         }
     }
 }
@@ -5058,5 +5410,172 @@ body.ykphone-split-highlight .message_row.selected_message {
 
     .ykphone-pane-header-back {
         display: flex;
+    }
+}
+
+/* ---- Theme picker (Settings → Preferences) ---- */
+
+/* Swatches after Slack's theme cards: a small picture of the shell in
+   the theme's colours (rail, a row, the selected row, a row with a
+   presence dot and a mention pill) with the name under it. Each
+   swatch carries data-yk-theme, so the var()s below read that theme's
+   colours rather than the page's. */
+.ykphone-theme-picker {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(8.5714em, 1fr)
+    ); /* 120px at 14px/em */
+    gap: 0.8571em; /* 12px at 14px/em */
+    max-width: 42.8571em; /* 600px at 14px/em: four across */
+    margin-top: 0.4286em; /* 6px at 14px/em */
+}
+
+.ykphone-theme-swatch {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4286em; /* 6px at 14px/em */
+    min-width: 0;
+    margin: 0;
+    cursor: pointer;
+}
+
+/* The native radio keeps the keyboard behaviour (Tab into the group,
+   arrow keys between swatches); the preview shows its state. */
+.ykphone-theme-swatch-input {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ykphone-theme-swatch-preview {
+    box-sizing: border-box;
+    display: flex;
+    height: 4.8571em; /* 68px at 14px/em */
+    overflow: hidden;
+    border-radius: var(--yk-radius-md);
+    background-color: var(--yk-frame-bg);
+    box-shadow: 0 0 0 1px var(--yk-hairline);
+    transition: box-shadow 100ms ease;
+}
+
+.ykphone-theme-swatch:hover .ykphone-theme-swatch-preview {
+    box-shadow: 0 0 0 1px var(--yk-border);
+}
+
+.ykphone-theme-swatch-input:checked + .ykphone-theme-swatch-preview {
+    box-shadow: 0 0 0 2px var(--yk-link);
+}
+
+.ykphone-theme-swatch-input:focus-visible + .ykphone-theme-swatch-preview {
+    outline: 2px solid var(--color-outline-focus);
+    outline-offset: 3px;
+}
+
+.ykphone-theme-swatch-rail {
+    flex-shrink: 0;
+    width: 1.1429em; /* 16px at 14px/em */
+}
+
+.ykphone-theme-swatch-card {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.2857em; /* 4px at 14px/em */
+    min-width: 0;
+    margin-block-start: 0.4286em; /* 6px at 14px/em */
+    margin-inline-end: 0.4286em;
+    padding: 0.4286em 0.2857em; /* 6px 4px at 14px/em */
+    border-start-start-radius: 0.4286em;
+    border-start-end-radius: 0.4286em;
+    background-color: var(--yk-card-bg);
+}
+
+.ykphone-theme-swatch-row {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 0.2857em; /* 4px at 14px/em */
+    height: 1.0714em; /* 15px at 14px/em */
+    padding: 0 0.2857em;
+    border-radius: 0.2857em;
+
+    --yk-swatch-line: var(--yk-shell-text);
+}
+
+.ykphone-theme-swatch-row-active {
+    background-color: var(--yk-shell-row-active);
+
+    --yk-swatch-line: var(--yk-shell-row-active-text);
+}
+
+.ykphone-theme-swatch-line {
+    flex: 1;
+    height: 0.2857em; /* 4px at 14px/em */
+    border-radius: 0.1429em;
+    background-color: var(--yk-swatch-line);
+}
+
+.ykphone-theme-swatch-line-short {
+    flex: 0 1 45%;
+}
+
+.ykphone-theme-swatch-presence {
+    flex-shrink: 0;
+    width: 0.4286em; /* 6px at 14px/em */
+    height: 0.4286em;
+    border-radius: 50%;
+    background-color: var(--yk-shell-presence);
+}
+
+.ykphone-theme-swatch-pill {
+    box-sizing: border-box;
+    min-width: 1.3333em; /* 12px at 9px/em */
+    height: 1.3333em;
+    margin-inline-start: auto;
+    padding: 0 0.3333em; /* 3px at 9px/em */
+    border-radius: 0.6667em;
+    background-color: var(--yk-shell-mention);
+    color: var(--yk-shell-mention-text);
+    font-size: 0.6429em; /* 9px at 14px/em */
+    font-weight: 700;
+    line-height: 1.3333em;
+    text-align: center;
+}
+
+.ykphone-theme-swatch-name {
+    display: flex;
+    align-items: center;
+    gap: 0.3077em; /* 4px at 13px/em */
+    min-width: 0;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.3;
+}
+
+.ykphone-theme-swatch-name-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ykphone-theme-swatch-check {
+    flex-shrink: 0;
+    visibility: hidden;
+    color: var(--yk-link);
+    font-size: 1.0769em; /* 14px at 13px/em */
+}
+
+.ykphone-theme-swatch-input:checked ~ .ykphone-theme-swatch-name {
+    font-weight: 700;
+
+    .ykphone-theme-swatch-check {
+        visibility: visible;
     }
 }

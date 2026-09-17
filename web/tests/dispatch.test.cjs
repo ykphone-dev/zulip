@@ -49,6 +49,7 @@ const message_events = mock_esm("../src/message_events", {
 const message_lists = mock_esm("../src/message_lists");
 const user_topics_ui = mock_esm("../src/user_topics_ui");
 const ykphone_pins = mock_esm("../src/ykphone_pins");
+const ykphone_shell_theme = mock_esm("../src/ykphone_shell_theme");
 const muted_users_ui = mock_esm("../src/muted_users_ui");
 const narrow_title = mock_esm("../src/narrow_title");
 const navbar_alerts = mock_esm("../src/navbar_alerts");
@@ -949,6 +950,17 @@ run_test("ykphone_pin", ({override}) => {
     let handled;
     override(ykphone_pins, "handle_event", (pin_event) => {
         handled = pin_event;
+    });
+    dispatch(event);
+    assert_same(handled, event);
+});
+
+run_test("ykphone_preference", ({override}) => {
+    // The 옆커폰 fork's synced preferences (the shell theme).
+    const event = {type: "ykphone_preference", property: "shell_theme", value: "navy"};
+    let handled;
+    override(ykphone_shell_theme, "handle_event", (preference_event) => {
+        handled = preference_event;
     });
     dispatch(event);
     assert_same(handled, event);

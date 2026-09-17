@@ -57,6 +57,7 @@ user-circle-active.svg
 user-circle-deactivated.svg
 user-circle-idle.svg
 user-circle-offline.svg
+ykphone-palette.svg
 ykphone-rail-bell.svg
 ykphone-rail-bell-filled.svg
 ykphone-rail-dm.svg
@@ -74,3 +75,7 @@ messages, activity, files, admin), drawn in-house on a 24px grid with a
 outlines for the icon font; the `-filled` variants are the same
 silhouettes filled. The rail renders both glyphs of an item and the
 theme shows the filled one while the item is active.
+
+`ykphone-palette.svg` (the theme picker's menu item) is also drawn
+in-house: a filled 20px disc with a thumb notch and four paint wells
+cut out, on the same 24px grid.

@@ -49,6 +49,7 @@
             <span class="slider"></span>
         </div>
     </div>
+    {{#unless for_realm_settings}}{{> ../ykphone_theme_picker .}}{{/unless}}
 
     {{> settings_checkbox
       setting_name="enter_sends"

@@ -1,0 +1,33 @@
+{{! The shell colour themes (ykphone_shell_theme_ui), under upstream's
+    light/dark control. Each swatch carries data-yk-theme, so the theme
+    stylesheet paints its preview in that theme's own colours. }}
+<div class="input-group ykphone-theme-picker-group">
+    <span class="settings-field-label" id="ykphone-theme-picker-label">{{t "Color theme" }}</span>
+    <div class="ykphone-theme-picker" role="radiogroup" aria-labelledby="ykphone-theme-picker-label">
+        {{#each ykphone_shell_themes.themes}}
+            <label class="ykphone-theme-swatch" data-yk-theme="{{this.id}}">
+                <input type="radio" class="ykphone-theme-swatch-input" name="ykphone_shell_theme" value="{{this.id}}" {{#if this.is_active}}checked{{/if}} />
+                <span class="ykphone-theme-swatch-preview" aria-hidden="true">
+                    <span class="ykphone-theme-swatch-rail"></span>
+                    <span class="ykphone-theme-swatch-card">
+                        <span class="ykphone-theme-swatch-row">
+                            <span class="ykphone-theme-swatch-line"></span>
+                        </span>
+                        <span class="ykphone-theme-swatch-row ykphone-theme-swatch-row-active">
+                            <span class="ykphone-theme-swatch-line"></span>
+                        </span>
+                        <span class="ykphone-theme-swatch-row">
+                            <span class="ykphone-theme-swatch-presence"></span>
+                            <span class="ykphone-theme-swatch-line ykphone-theme-swatch-line-short"></span>
+                            <span class="ykphone-theme-swatch-pill">2</span>
+                        </span>
+                    </span>
+                </span>
+                <span class="ykphone-theme-swatch-name">
+                    <span class="ykphone-theme-swatch-name-text">{{this.name}}</span>
+                    <i class="zulip-icon zulip-icon-check ykphone-theme-swatch-check" aria-hidden="true"></i>
+                </span>
+            </label>
+        {{/each}}
+    </div>
+</div>

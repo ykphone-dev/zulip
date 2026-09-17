@@ -25,6 +25,7 @@ import * as settings_toggle from "./settings_toggle.ts";
 import {current_user, realm} from "./state_data.ts";
 import * as timerender from "./timerender.ts";
 import {user_settings} from "./user_settings.ts";
+import * as ykphone_shell_theme from "./ykphone_shell_theme.ts";
 
 function get_parsed_date_of_joining(): string {
     const user_date_joined = people.get_by_user_id(current_user.user_id).date_joined;
@@ -123,6 +124,7 @@ export function build_page(): void {
         web_stream_unreads_count_display_policy_values:
             settings_config.web_stream_unreads_count_display_policy_values,
         color_scheme_values: settings_config.color_scheme_values,
+        ykphone_shell_themes: ykphone_shell_theme.picker_context(),
         web_home_view_values: settings_config.web_home_view_values,
         twenty_four_hour_time_values: settings_config.twenty_four_hour_time_values,
         general_settings: settings_config.all_notifications(user_settings).general_settings,
