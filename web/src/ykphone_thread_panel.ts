@@ -4,8 +4,10 @@
 // column, in place of the buddy list, instead of narrowing the main
 // feed away from the channel; the "Open in full view" link keeps the
 // old topic narrow for everything the panel does not offer. The panel
-// is deliberately minimal: no typeahead, uploads, emoji picker or
-// reactions here, since the full view has all of those.
+// is deliberately minimal: no uploads, emoji picker or reactions here,
+// since the full view has all of those. The reply box is a rich editor
+// (ykphone_rich_surfaces.ts) over its textarea, which holds the reply as
+// Markdown.
 //
 // This module owns the state and rendering; the DOM event wiring
 // lives in ykphone_threads_ui.ts.
@@ -19,6 +21,7 @@ import render_ykphone_thread_panel_body from "../templates/ykphone_thread_panel_
 import render_ykphone_thread_root from "../templates/ykphone_thread_root.hbs";
 
 import * as channel from "./channel.ts";
+import * as compose_validate from "./compose_validate.ts";
 import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import * as message_helper from "./message_helper.ts";
@@ -33,6 +36,8 @@ import * as rendered_markdown from "./rendered_markdown.ts";
 import * as stream_data from "./stream_data.ts";
 import * as timerender from "./timerender.ts";
 import * as unread_ops from "./unread_ops.ts";
+import * as util from "./util.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
 import * as ykphone_time from "./ykphone_time.ts";
@@ -352,11 +357,40 @@ export function close_if_narrowed_to_open_thread(): void {
     }
 }
 
+// Why the user cannot post in the thread's channel, if they cannot: the
+// checks upstream's compose box makes before sending to a channel.
+function posting_error(stream_id: number): string | undefined {
+    const sub = stream_data.get_sub_by_id(stream_id);
+    if (sub === undefined) {
+        return $t({
+            defaultMessage: "This channel doesn't exist, or you are not allowed to view it.",
+        });
+    }
+    if (sub.is_archived) {
+        return $t({defaultMessage: "This channel has been archived."});
+    }
+    if (!sub.subscribed) {
+        return compose_validate.UNSUBSCRIBED_CHANNEL_ERROR_MESSAGE;
+    }
+    if (!stream_data.can_post_messages_in_stream(sub)) {
+        return compose_validate.NO_PERMISSION_TO_POST_IN_CHANNEL_ERROR_MESSAGE;
+    }
+    return undefined;
+}
+
+// The user confirmed the warning about notifying everyone in a large
+// channel, shown in the panel's banners: the reply is sent.
+export function confirm_wildcard_mention(): void {
+    compose_validate.clear_stream_wildcard_warnings($panel().find(".ykphone-thread-panel-banners"));
+    compose_validate.set_user_acknowledged_stream_wildcard_flag(true);
+    send_reply();
+}
+
 export function send_reply(): void {
     if (current_thread === undefined || sending_thread !== undefined) {
         return;
     }
-    const $textarea = $panel().find(".ykphone-thread-panel-textarea");
+    const $textarea = $panel().find<HTMLTextAreaElement>(".ykphone-thread-panel-textarea");
     const raw_content = $textarea.val();
     assert(typeof raw_content === "string");
     const content = raw_content.trim();
@@ -368,6 +402,30 @@ export function send_reply(): void {
     const $send_button = $panel().find(".ykphone-thread-panel-send");
     // An empty error element is hidden by the theme.
     const $error = $panel().find(".ykphone-thread-panel-send-error");
+    // The rich editor over the textarea shows why formatting that
+    // Markdown cannot carry is not sent.
+    if (ykphone_rich_hooks.send_error_for($textarea[0], true) !== undefined) {
+        return;
+    }
+    const cannot_post = posting_error(thread.stream_id);
+    if (cannot_post !== undefined) {
+        $error.text(cannot_post);
+        return;
+    }
+    // Mentioning everyone in a large channel needs a confirmation (or
+    // the permission to), as from the compose box; the warning is shown
+    // in the panel.
+    const $banners = $panel().find(".ykphone-thread-panel-banners");
+    if (
+        !compose_validate.validate_stream_message_mentions({
+            stream_id: thread.stream_id,
+            $banner_container: $banners,
+            stream_wildcard_mention: util.find_stream_wildcard_mentions(content),
+            scheduling_message: false,
+        })
+    ) {
+        return;
+    }
     sending_thread = thread;
     $send_button.prop("disabled", true);
 
@@ -391,6 +449,7 @@ export function send_reply(): void {
             $send_button.prop("disabled", false);
             $textarea.val("");
             $error.text("");
+            $banners.empty();
         },
         error(xhr) {
             if (sending_thread === thread) {

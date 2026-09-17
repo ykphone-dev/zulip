@@ -14,6 +14,7 @@ const verona = {
     invite_only: false,
     is_web_public: false,
     is_archived: false,
+    subscribed: true,
 };
 const topic_name = "Shall we ship on Friday?";
 const thread = {
@@ -43,8 +44,13 @@ const message_viewport = mock_esm("../src/message_viewport");
 const narrow_state = mock_esm("../src/narrow_state");
 mock_esm("../src/people", {small_avatar_url: (message) => `avatar-${message.sender_id}.png`});
 const rendered_markdown = mock_esm("../src/rendered_markdown");
-mock_esm("../src/stream_data", {
+const compose_validate = mock_esm("../src/compose_validate", {
+    UNSUBSCRIBED_CHANNEL_ERROR_MESSAGE: "not subscribed",
+    NO_PERMISSION_TO_POST_IN_CHANNEL_ERROR_MESSAGE: "no permission",
+});
+const stream_data = mock_esm("../src/stream_data", {
     get_sub_by_id: (stream_id) => (stream_id === verona_id ? verona : undefined),
+    can_post_messages_in_stream: () => true,
 });
 mock_esm("../src/timerender", {
     get_localized_date_or_time_for_format: (date, format) => `${format} ${date.getTime()}`,
@@ -56,6 +62,7 @@ mock_esm("../src/ykphone_time", {
 });
 
 const message_store = zrequire("message_store");
+const rich_hooks = zrequire("ykphone_rich_hooks");
 const ykphone_thread_panel = zrequire("ykphone_thread_panel");
 
 // The root was sent "today"; replies a day later are shown with a date.
@@ -115,10 +122,12 @@ function make_dom() {
     const $send = $.create("panel-send");
     const $error = $.create("panel-send-error");
     const $markdown = $.create("panel-markdown");
+    const $banners = $.create("panel-banners");
     $panel.set_find_results(".ykphone-thread-panel-body", $body);
     $panel.set_find_results(".ykphone-thread-panel-textarea", $textarea);
     $panel.set_find_results(".ykphone-thread-panel-send", $send);
     $panel.set_find_results(".ykphone-thread-panel-send-error", $error);
+    $panel.set_find_results(".ykphone-thread-panel-banners", $banners);
     $body.set_find_results(".rendered_markdown", $markdown);
     $body[0].scrollTop = 0;
     $body[0].clientHeight = 100;
@@ -131,7 +140,7 @@ function make_dom() {
             return this.innerHTML === "" ? 0 : 80;
         },
     });
-    return {$panel, $body, $textarea, $send, $error, $markdown, $root};
+    return {$panel, $body, $textarea, $send, $error, $markdown, $root, $banners};
 }
 
 function setup({override}) {
@@ -415,6 +424,7 @@ run_test("close when narrowed to the open thread", (helpers) => {
 
 run_test("send reply", (helpers) => {
     const t = setup(helpers);
+    helpers.override(compose_validate, "validate_stream_message_mentions", () => true);
     put_in_store(stored_message(thread.root_message_id, {topic: ""}));
 
     // Nothing is sent while the panel is closed or the box is blank.
@@ -478,6 +488,94 @@ run_test("send reply", (helpers) => {
     t.posts[4].error({responseJSON: {msg: "nope"}});
     assert.equal(t.$send.prop("disabled"), "untouched");
     assert.equal(t.$error.text(), "");
+
+    // A reply whose formatting the rich editor cannot write as Markdown
+    // is not sent; the editor says why.
+    const shown = [];
+    const unregister = rich_hooks.register_editor({
+        textarea: t.$textarea[0],
+        has_focus: () => false,
+        send_error(show_banner) {
+            shown.push(show_banner);
+            return "cannot send";
+        },
+    });
+    t.$send.prop("disabled", false);
+    t.$textarea.val("**a**b");
+    ykphone_thread_panel.send_reply();
+    assert.equal(t.posts.length, 5);
+    assert.deepEqual(shown, [true]);
+    assert.equal(t.$send.prop("disabled"), false);
+    unregister();
+});
+
+run_test("a reply is checked as the compose box checks a message", (helpers) => {
+    const t = setup(helpers);
+    put_in_store(stored_message(thread.root_message_id, {topic: ""}));
+    ykphone_thread_panel.open_thread(thread);
+    t.gets[0].success({messages: []});
+
+    // Mentioning everyone in a large channel waits for a confirmation,
+    // shown in the panel's banners.
+    const validations = [];
+    let confirmed = false;
+    helpers.override(compose_validate, "validate_stream_message_mentions", (opts) => {
+        validations.push(opts);
+        return confirmed;
+    });
+    t.$textarea.val("@**all** ship it");
+    ykphone_thread_panel.send_reply();
+    assert.equal(t.posts.length, 0);
+    assert.equal(validations.length, 1);
+    assert.equal(validations[0].stream_id, verona_id);
+    assert.equal(validations[0].$banner_container[0], t.$banners[0]);
+    assert.equal(validations[0].stream_wildcard_mention, "all");
+    assert.equal(validations[0].scheduling_message, false);
+
+    // "Yes, send" acknowledges the warning and sends.
+    const acknowledged = [];
+    helpers.override(compose_validate, "set_user_acknowledged_stream_wildcard_flag", (value) => {
+        acknowledged.push(value);
+        confirmed = value;
+    });
+    const cleared = [];
+    helpers.override(compose_validate, "clear_stream_wildcard_warnings", ($container) => {
+        cleared.push($container);
+    });
+    t.$banners.html("warning");
+    ykphone_thread_panel.confirm_wildcard_mention();
+    assert.deepEqual(acknowledged, [true]);
+    assert.deepEqual(
+        cleared.map(($container) => $container[0]),
+        [t.$banners[0]],
+    );
+    assert.equal(t.posts.length, 1);
+    assert.equal(t.posts[0].data.content, "@**all** ship it");
+    t.posts[0].success({id: 11});
+    assert.equal(t.$banners.html(), "");
+
+    // Nothing is sent to a channel the user cannot post in; the panel
+    // says why, as the compose box would.
+    const cannot_post = (label, expected) => {
+        t.$error.text("");
+        t.$textarea.val("hello");
+        ykphone_thread_panel.send_reply();
+        assert.equal(t.posts.length, 1, label);
+        assert.equal(t.$error.text(), expected, label);
+    };
+    helpers.override(stream_data, "can_post_messages_in_stream", () => false);
+    cannot_post("no permission", "no permission");
+    verona.subscribed = false;
+    cannot_post("unsubscribed", "not subscribed");
+    verona.is_archived = true;
+    cannot_post("archived", "translated: This channel has been archived.");
+    verona.subscribed = true;
+    verona.is_archived = false;
+    helpers.override(stream_data, "get_sub_by_id", () => undefined);
+    cannot_post(
+        "unknown channel",
+        "translated: This channel doesn't exist, or you are not allowed to view it.",
+    );
 });
 
 run_test("new messages", (helpers) => {

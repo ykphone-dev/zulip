@@ -63,6 +63,8 @@ import * as ui_report from "./ui_report.ts";
 import * as upload from "./upload.ts";
 import {the} from "./util.ts";
 import * as util from "./util.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
+import * as ykphone_rich_surfaces from "./ykphone_rich_surfaces.ts";
 
 // Stores the message ID of the message being edited, and the
 // textarea element which has the modified content.
@@ -714,6 +716,8 @@ function edit_message($row: JQuery, raw_content: string): void {
         );
     }
 
+    ykphone_rich_surfaces.mount_edit_form($form, is_editable);
+
     // Add tooltip and timer
     const realm_message_content_edit_limit_seconds =
         realm.realm_message_content_edit_limit_seconds ?? 0;
@@ -1125,6 +1129,7 @@ export function end_message_row_edit($row: JQuery): void {
 
     // Clean up the upload handler
     upload.deactivate_upload(upload.edit_config(row_id));
+    ykphone_rich_surfaces.unmount_edit_forms_in($row);
 
     // Check if the row is in preview mode, and clear the preview area if it is.
     if ($row.hasClass("preview_mode")) {
@@ -1312,6 +1317,9 @@ export async function save_message_row_edit($row: JQuery): Promise<void> {
 
     const $edit_content_input = $row.find<HTMLTextAreaElement>("textarea.message_edit_content");
     const can_edit_content = $edit_content_input.attr("readonly") !== "readonly";
+    if (ykphone_rich_hooks.send_error_for($edit_content_input[0], true) !== undefined) {
+        return;
+    }
     if (can_edit_content) {
         new_content = $edit_content_input.val();
         changed = old_content !== new_content;

@@ -216,6 +216,10 @@ function get_stream_id_for_textarea($textarea: JQuery<HTMLTextAreaElement>): num
     // recipient of a message being drafted in the compose box.
     // Returns undefined if the appropriate context is a direct
     // message conversation.
+    const rich_recipient = ykphone_rich_hooks.recipient_for($textarea[0]);
+    if (rich_recipient !== undefined) {
+        return rich_recipient.stream_id;
+    }
     const is_in_editing_area = $textarea.closest(".message_row").length > 0;
 
     if (is_in_editing_area) {

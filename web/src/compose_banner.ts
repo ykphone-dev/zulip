@@ -11,6 +11,7 @@ import {$t} from "./i18n.ts";
 import * as scroll_util from "./scroll_util.ts";
 import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 export let scroll_to_message_banner_message_id: number | null = null;
 export function set_scroll_to_message_banner_message_id(val: number | null): void {
@@ -70,6 +71,10 @@ export const CLASSNAMES = {
 };
 
 export function get_compose_banner_container($textarea: JQuery): JQuery {
+    const rich_banners = ykphone_rich_hooks.recipient_for($textarea[0])?.banners;
+    if (rich_banners !== undefined) {
+        return $(rich_banners);
+    }
     return $textarea.attr("id") === "compose-textarea"
         ? $("#compose_banners")
         : $textarea.closest(".message_edit_form").find(".edit_form_banners");

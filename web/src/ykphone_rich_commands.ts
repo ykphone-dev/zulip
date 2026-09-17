@@ -14,7 +14,14 @@
 // character inserted is parsed again, and if it now reads differently
 // the paragraph is replaced. Backspace right after that undoes it.
 
-import {Fragment, type Mark, type MarkType, type Node as PMNode, Slice} from "prosemirror-model";
+import {
+    Fragment,
+    type Mark,
+    type MarkType,
+    type Node as PMNode,
+    type ResolvedPos,
+    Slice,
+} from "prosemirror-model";
 import {
     type Command,
     type EditorState,
@@ -227,6 +234,47 @@ export function link_form_submission(
     return undefined;
 }
 
+// ---- Code block languages ----
+
+const FENCED_BLOCK_NAMES = new Set(["quote", "quoted", "spoiler", "math"]);
+const INFO_LANGUAGE_RE = /^(?<prefix>[ {.]*)(?<lang>[\w+\-./#]*)(?<rest>.*)$/su;
+
+// The language a code block's info string (what follows its fence) names.
+export function code_block_language(info: string): string {
+    return INFO_LANGUAGE_RE.exec(info)!.groups!["lang"]!;
+}
+
+// Whether `language` can be written as a code block's language: the
+// characters a fence line allows, and not a name that makes the block a
+// quote, spoiler or math block.
+export function is_code_language(language: string): boolean {
+    return /^[\w+\-./#]+$/u.test(language) && !FENCED_BLOCK_NAMES.has(language.toLowerCase());
+}
+
+// The info string with its language replaced; "" leaves plain code.
+function info_with_language(info: string, language: string): string {
+    const {prefix, lang, rest} = INFO_LANGUAGE_RE.exec(info)!.groups!;
+    if (language === "") {
+        return "";
+    }
+    return lang === "" ? language : prefix! + language + rest!;
+}
+
+// Sets the language of the code block at `pos` ("" for none).
+export function set_code_block_language(pos: number, language: string): Command {
+    return (state, dispatch) => {
+        const node = state.doc.nodeAt(pos);
+        if (node?.type.name !== "code_block" || (language !== "" && !is_code_language(language))) {
+            return false;
+        }
+        if (dispatch) {
+            const info = info_with_language(String(node.attrs["info"]), language);
+            dispatch(state.tr.setNodeMarkup(pos, undefined, {...node.attrs, info}));
+        }
+        return true;
+    };
+}
+
 export const remove_link: Command = (state, dispatch) => {
     const link = link_at_selection(state);
     if (link === undefined) {
@@ -408,10 +456,6 @@ function line_start_offset(state: EditorState, pos: number): number {
 
 const OBJECT_REPLACEMENT = String.fromCodePoint(0xfffc);
 
-// Blocks whose text is Markdown read as a block of its own: what is
-// typed in one can be read again with the typed character in it.
-const REPARSED_TEXTBLOCKS = new Set(["paragraph", "heading"]);
-
 // The same kind of block, apart from how far it sits from the block
 // before it, which a block of its own has nothing to say about.
 function same_kind_of_block(node: PMNode, other: PMNode): boolean {
@@ -423,8 +467,65 @@ function same_kind_of_block(node: PMNode, other: PMNode): boolean {
     );
 }
 
+// The textblock around `$pos` as a document of its own, and where the
+// textblock's content starts in it. A spoiler's header is read as the
+// header of an otherwise empty spoiler, since it is Markdown only there.
+function standalone_textblock($pos: ResolvedPos): {
+    doc: PMNode;
+    content_start: number;
+    textblock: (doc: PMNode) => PMNode | undefined;
+} {
+    const block = $pos.parent;
+    if (block.type.name === "spoiler_header") {
+        const spoiler = $pos.node(-1);
+        return {
+            doc: schema.node("doc", null, [
+                spoiler.type.create({...spoiler.attrs, sep: null}, [
+                    block,
+                    schema.nodes["paragraph"]!.create(),
+                ]),
+            ]),
+            content_start: 2,
+            // Still one spoiler: its header is what the typing changed.
+            // (Its info string is not compared; a header makes the
+            // writer add a space after "spoiler".) A space at the end of
+            // the header was written as an entity, since the server trims
+            // it; followed by what was typed it is a space again.
+            textblock(doc) {
+                const reparsed = doc.childCount === 1 ? doc.firstChild! : undefined;
+                if (reparsed?.type !== spoiler.type) {
+                    return undefined;
+                }
+                const header = reparsed.firstChild!;
+                return header.type.create(
+                    header.attrs,
+                    header.children.map((child) =>
+                        child.type.name === "escape" && child.attrs["char"] === " "
+                            ? schema.text(" ", child.marks)
+                            : child,
+                    ),
+                );
+            },
+        };
+    }
+    // On its own the block starts the document, whatever it followed.
+    return {
+        doc: schema.node("doc", null, [
+            block.type.create({...block.attrs, sep: null}, block.content),
+        ]),
+        content_start: 1,
+        textblock(doc) {
+            const reparsed = doc.childCount === 1 ? doc.firstChild! : undefined;
+            return reparsed !== undefined && same_kind_of_block(reparsed, block)
+                ? reparsed
+                : undefined;
+        },
+    };
+}
+
 // Re-reads the Markdown of the block around `pos` with `text` inserted
-// at `pos`. Returns a transaction replacing the block's content when the
+// at `pos`: a paragraph, a heading or a spoiler's header, the textblocks
+// outside code, whose text is Markdown. Returns a transaction replacing the block's content when the
 // text makes the Markdown mean something new, or null.
 function reparse_with_typed_text(
     state: EditorState,
@@ -433,34 +534,20 @@ function reparse_with_typed_text(
     ctx: MarkdownContext,
 ): Transaction | null {
     const $pos = state.doc.resolve(pos);
-    const block = $pos.parent;
-    if (!REPARSED_TEXTBLOCKS.has(block.type.name)) {
-        return null;
-    }
-    // On its own the block starts the document, whatever it followed.
-    const standalone = schema.node("doc", null, [
-        block.type.create({...block.attrs, sep: null}, block.content),
-    ]);
-    const {markdown, anchors} = serialize_markdown(standalone, ctx);
-    // In the standalone document the block's content starts at 1.
-    const offset = pos_to_offset(anchors, 1 + $pos.parentOffset);
+    const standalone = standalone_textblock($pos);
+    const {markdown, anchors} = serialize_markdown(standalone.doc, ctx);
+    const at = standalone.content_start + $pos.parentOffset;
+    const offset = pos_to_offset(anchors, at);
     const before = markdown.slice(0, offset);
     const typed = before + text + markdown.slice(offset);
     const inserted = schema.text(text, state.storedMarks ?? $pos.marks());
-    const literal = standalone.replace(
-        1 + $pos.parentOffset,
-        1 + $pos.parentOffset,
-        new Slice(Fragment.from(inserted), 0, 0),
-    );
+    const literal = standalone.doc.replace(at, at, new Slice(Fragment.from(inserted), 0, 0));
     if (serialize_markdown(literal, ctx).markdown === typed) {
         return null;
     }
     const reparsed = parse_markdown(typed, ctx);
-    const blocks: PMNode[] = [];
-    reparsed.forEach((child) => {
-        blocks.push(child);
-    });
-    if (blocks.length !== 1 || !same_kind_of_block(blocks[0]!, block)) {
+    const textblock = standalone.textblock(reparsed);
+    if (textblock === undefined) {
         // Only inline syntax is completed this way; typed block syntax
         // has rules of its own.
         return null;
@@ -470,8 +557,10 @@ function reparse_with_typed_text(
         before.length + text.length,
     );
     const tr = state.tr;
-    tr.replaceWith($pos.start(), $pos.end(), blocks[0]!.content);
-    tr.setSelection(TextSelection.near(tr.doc.resolve($pos.start() + cursor - 1)));
+    tr.replaceWith($pos.start(), $pos.end(), textblock.content);
+    tr.setSelection(
+        TextSelection.near(tr.doc.resolve($pos.start() + cursor - standalone.content_start)),
+    );
     // What is typed next continues outside the syntax just completed, as
     // it would in the textarea.
     tr.setStoredMarks(state.storedMarks ?? $pos.marks());
@@ -641,6 +730,11 @@ export const enter_after_fence: Command = (state, dispatch) => {
     );
     if (tr === null) {
         return false;
+    }
+    if (lang === "spoiler") {
+        // The header came from the fence line; typing goes on in the
+        // spoiler's content.
+        tr.setSelection(TextSelection.create(tr.doc, tr.selection.$from.after() + 1));
     }
     if (dispatch) {
         dispatch(tr.scrollIntoView());

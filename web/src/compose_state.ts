@@ -51,7 +51,8 @@ export function set_message_type(msg_type: "stream" | "private" | undefined): vo
 }
 
 export function get_message_type(): "stream" | "private" | undefined {
-    return message_type;
+    const rich_recipient = ykphone_rich_hooks.current_recipient();
+    return rich_recipient === undefined ? message_type : rich_recipient.message_type;
 }
 
 export function set_recipient_viewed_topic_resolved_banner(flag: boolean): void {
@@ -137,6 +138,10 @@ export function set_selected_recipient_id(recipient_id: number | "direct" | ""):
 }
 
 export function stream_id(): number | undefined {
+    const rich_recipient = ykphone_rich_hooks.current_recipient();
+    if (rich_recipient !== undefined) {
+        return rich_recipient.stream_id;
+    }
     const stream_id = selected_recipient_id;
     if (typeof stream_id === "number") {
         return stream_id;
@@ -165,7 +170,10 @@ export function set_compose_recipient_id(recipient_id: number | "direct"): void 
 }
 
 // TODO: Break out setter and getter into their own functions.
-export let topic = get_or_set("input#stream_message_recipient_topic");
+const compose_topic = get_or_set("input#stream_message_recipient_topic");
+export let topic = (newval?: string): string =>
+    (newval === undefined ? ykphone_rich_hooks.current_recipient()?.topic : undefined) ??
+    compose_topic(newval);
 
 export function rewire_topic(value: typeof topic): void {
     topic = value;

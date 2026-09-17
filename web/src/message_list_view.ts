@@ -53,6 +53,7 @@ import * as util from "./util.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import * as ykphone_time from "./ykphone_time.ts";
 
@@ -322,12 +323,13 @@ function reset_restore_message_edit_focus_state(): void {
 }
 
 function capture_user_message_editing_state(): void {
-    if (document.activeElement?.classList.contains("message_edit_content")) {
-        assert(document.activeElement instanceof HTMLTextAreaElement);
+    const active_element = ykphone_rich_hooks.focused_element(document.activeElement);
+    if (active_element?.classList.contains("message_edit_content")) {
+        assert(active_element instanceof HTMLTextAreaElement);
         message_id_to_focus_after_processing_message_events = {
-            id: rows.get_message_id(document.activeElement),
-            selectionStart: document.activeElement.selectionStart,
-            selectionEnd: document.activeElement.selectionEnd,
+            id: rows.get_message_id(active_element),
+            selectionStart: active_element.selectionStart,
+            selectionEnd: active_element.selectionEnd,
         };
     } else {
         reset_restore_message_edit_focus_state();

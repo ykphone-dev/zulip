@@ -9,7 +9,7 @@
 //
 // The DOM these specs produce is what the clipboard carries between
 // editors; the chips' visible rendering is done by node views in
-// ykphone_rich_compose.ts.
+// ykphone_rich_views.ts.
 
 import {type DOMOutputSpec, type Mark, type Node as PMNode, Schema} from "prosemirror-model";
 

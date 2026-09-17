@@ -13,6 +13,7 @@ import * as dropdown_widget from "./dropdown_widget.ts";
 import {$t, $t_html} from "./i18n.ts";
 import * as rows from "./rows.ts";
 import * as saved_snippets from "./saved_snippets.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 let saved_snippets_widget: dropdown_widget.DropdownWidget | undefined;
 let saved_snippets_dropdown: tippy.Instance | undefined;
@@ -45,6 +46,10 @@ function submit_create_saved_snippet_form(): void {
         ?.trim();
 
     assert(title && content);
+    const $textarea = $<HTMLTextAreaElement>("#add-new-saved-snippet-modal .saved-snippet-content");
+    if (ykphone_rich_hooks.send_error_for($textarea[0], true) !== undefined) {
+        return;
+    }
 
     dialog_widget.submit_api_request(channel.post, "/json/saved_snippets", {title, content});
 }
@@ -58,6 +63,10 @@ function submit_edit_saved_snippet_form(saved_snippet_id: number): void {
         ?.trim();
 
     assert(title && content);
+    const $textarea = $<HTMLTextAreaElement>("#edit-saved-snippet-modal .saved-snippet-content");
+    if (ykphone_rich_hooks.send_error_for($textarea[0], true) !== undefined) {
+        return;
+    }
 
     dialog_widget.submit_api_request(channel.patch, `/json/saved_snippets/${saved_snippet_id}`, {
         title,
@@ -81,10 +90,16 @@ function update_submit_button_state(): void {
 }
 
 function saved_snippet_modal_post_render(): void {
+    ykphone_rich_hooks.mount_plain_editor(
+        $<HTMLTextAreaElement>("#add-new-saved-snippet-modal .saved-snippet-content")[0],
+    );
     $("#add-new-saved-snippet-modal").on("input", "input,textarea", update_submit_button_state);
 }
 
 function saved_snippet_edit_modal_post_render(saved_snippet: saved_snippets.SavedSnippet): void {
+    ykphone_rich_hooks.mount_plain_editor(
+        $<HTMLTextAreaElement>("#edit-saved-snippet-modal .saved-snippet-content")[0],
+    );
     $("#edit-saved-snippet-modal").on("input", "input,textarea", () => {
         const title = $<HTMLInputElement>("#edit-saved-snippet-modal .saved-snippet-title")
             .val()

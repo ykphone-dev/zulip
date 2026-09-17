@@ -1,0 +1,5 @@
+{{! The rich editor's menu for choosing a code block's language: a search field over a listbox of languages. }}
+<div class="ykphone-rich-language-menu">
+    <input type="text" class="modal_text_input ykphone-rich-language-search" placeholder="{{t 'Search languages…' }}" aria-label="{{t 'Code block language' }}" role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="{{list_id}}" autocomplete="off" spellcheck="false" />
+    <ul class="ykphone-rich-language-list" id="{{list_id}}" role="listbox" aria-label="{{t 'Code block language' }}"></ul>
+</div>

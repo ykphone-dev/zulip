@@ -1,4 +1,4 @@
-// The @, # and : suggestion menus of the 옆커폰 rich composer.
+// The @, # and : suggestion menus of the 옆커폰 rich editors.
 //
 // Suggestions, their ranking and the Markdown a chosen suggestion
 // becomes all come from upstream's compose typeahead
@@ -7,8 +7,9 @@
 // the mention upstream would insert, with the same warnings (a user not
 // in the channel, a private channel linked). Those functions read the
 // text before the cursor from a textarea; they are given a detached
-// "shadow" textarea holding the composer's Markdown with the cursor at
-// the editor's, so the real one is never touched while the menu is open.
+// "shadow" textarea holding the editor's Markdown with the cursor at the
+// editor's, so the real one is never touched while the menu is open. The
+// menu belongs to the editor with the focus (set_host).
 //
 // Differences from upstream, for a composer without visible syntax:
 // - Choosing a channel inserts its chip; upstream leaves "#**channel>"
@@ -26,6 +27,7 @@ import type {TypeaheadSuggestion} from "./composebox_typeahead.ts";
 import {$t} from "./i18n.ts";
 import * as scroll_util from "./scroll_util.ts";
 import * as util from "./util.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 // Just the parts of the composer the menu needs.
 export type TypeaheadHost = {
@@ -41,6 +43,15 @@ export type TypeaheadHost = {
     // The text of the current line before the cursor, as the document
     // has it (chips as their Markdown).
     line_before_cursor: () => string;
+    // The shadow textarea for `text` with the cursor at `caret`: where
+    // it is (or which id it has) tells upstream the recipient and where
+    // its warnings go.
+    input: (text: string, caret: number) => JQuery<HTMLTextAreaElement>;
+    // Whether "/poll" and "/todo" are offered.
+    widgets: boolean;
+    // Whether wildcard mentions (@all, @topic…) are offered; there is no
+    // recipient they could notify in a saved snippet.
+    wildcard_mentions: boolean;
 };
 
 const BREAK = "\n";
@@ -55,6 +66,8 @@ type MenuState = {
     caret: number;
     // Where the token being completed starts, in the real Markdown.
     token_start: number;
+    // The shadow textarea get_candidates read.
+    input: HTMLTextAreaElement;
 };
 
 let host: TypeaheadHost | undefined;
@@ -72,11 +85,16 @@ function shadow_input(
     $element: JQuery<HTMLTextAreaElement>;
     type: "textarea";
 } {
-    // The id lets upstream's warnings find the compose banners.
+    return {$element: host!.input(text, caret), type: "textarea"};
+}
+
+// The compose box's shadow: detached, with the compose textarea's id so
+// that upstream's warnings find the compose banners.
+export function compose_input(text: string, caret: number): JQuery<HTMLTextAreaElement> {
     const $shadow = $<HTMLTextAreaElement>("<textarea>").attr("id", "compose-textarea");
     util.the($shadow).value = text;
     util.the($shadow).setSelectionRange(caret, caret);
-    return {$element: $shadow, type: "textarea"};
+    return $shadow;
 }
 
 // The Markdown upstream's typeahead should see: the real Markdown,
@@ -110,6 +128,12 @@ function typeahead_text(
 }
 
 function wanted(item: TypeaheadSuggestion): boolean {
+    if (item.type === "slash" && ["poll", "todo"].includes(item.name)) {
+        return host!.widgets;
+    }
+    if (item.type === "broadcast") {
+        return host!.wildcard_mentions;
+    }
     return !["syntax", "time_jump", "topic_jump"].includes(item.type);
 }
 
@@ -148,10 +172,14 @@ function render(): void {
         });
     }
     const render_item = composebox_typeahead.content_item_html(menu.text);
+    const shown = menu;
     const $items = menu.items.map((item, index) => {
+        const rendered_item = ykphone_rich_hooks.with_recipient_of(shown.input, () =>
+            render_item(item),
+        );
         const $link = $("<a>")
             .addClass("typeahead-item-link")
-            .html(render_item(item) ?? "");
+            .html(rendered_item ?? "");
         const label = option_label(item);
         if (label !== undefined) {
             $link
@@ -266,15 +294,26 @@ export function update(): void {
         return;
     }
     const input = shadow_input(seen.text, seen.caret);
-    const items = composebox_typeahead
-        .get_candidates(seen.text, input)
+    // Upstream asks compose_state who the message is for; an editor with
+    // a recipient of its own answers instead.
+    const items = ykphone_rich_hooks
+        .with_recipient_of(util.the(input.$element), () =>
+            composebox_typeahead.get_candidates(seen.text, input),
+        )
         .filter((item) => wanted(item))
         .slice(0, composebox_typeahead.max_num_items);
     if (items.length === 0) {
         close();
         return;
     }
-    menu = {items, active: 0, text: seen.text, caret: seen.caret, token_start: seen.token_start};
+    menu = {
+        items,
+        active: 0,
+        text: seen.text,
+        caret: seen.caret,
+        token_start: seen.token_start,
+        input: util.the(input.$element),
+    };
     render();
 }
 
@@ -298,7 +337,9 @@ function select(index: number, event?: JQuery.KeyDownEvent): void {
         return;
     }
     const input = shadow_input(text, caret);
-    const updated = composebox_typeahead.content_typeahead_selected(item, text, input, event);
+    const updated = ykphone_rich_hooks.with_recipient_of(util.the(input.$element), () =>
+        composebox_typeahead.content_typeahead_selected(item, text, input, event),
+    );
     let before = updated.slice(0, updated.length - rest.length);
     if (item.type === "stream" && before.endsWith(">")) {
         // Upstream leaves "#**channel>" to pick a topic next; insert the
@@ -344,7 +385,19 @@ export function handle_key(event: KeyboardEvent): boolean {
     }
 }
 
-export function set_host(new_host: TypeaheadHost | undefined): void {
+export function set_host(new_host: TypeaheadHost): void {
+    if (host === new_host) {
+        return;
+    }
     host = new_host;
+    dismissed = undefined;
     close();
+}
+
+// Called when an editor goes away.
+export function remove_host(old_host: TypeaheadHost): void {
+    if (host === old_host) {
+        host = undefined;
+        close();
+    }
 }

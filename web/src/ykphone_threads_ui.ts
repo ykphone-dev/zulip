@@ -13,9 +13,9 @@ import $ from "jquery";
 import assert from "minimalistic-assert";
 
 import * as compose_actions from "./compose_actions.ts";
+import * as compose_banner from "./compose_banner.ts";
 import * as hashchange from "./hashchange.ts";
 import {$t} from "./i18n.ts";
-import * as keydown_util from "./keydown_util.ts";
 import * as lightbox from "./lightbox.ts";
 import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
@@ -37,6 +37,7 @@ import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_rich_compose from "./ykphone_rich_compose.ts";
+import * as ykphone_rich_surfaces from "./ykphone_rich_surfaces.ts";
 import * as ykphone_shell_theme_ui from "./ykphone_shell_theme_ui.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
@@ -62,6 +63,7 @@ function open_thread(thread: ThreadInfo): void {
     sidebar_ui.hide_userlist_sidebar();
     ykphone_pins.close_panel();
     ykphone_thread_panel.open_thread(thread);
+    ykphone_rich_surfaces.mount_thread_reply(thread, ykphone_thread_panel.send_reply);
 }
 
 export function open_thread_for_message(message_id: number): void {
@@ -124,6 +126,7 @@ export function initialize(): void {
     ykphone_pane_header.mount();
     ykphone_compose.mount();
     ykphone_rich_compose.mount();
+    ykphone_rich_surfaces.initialize();
     ykphone_compose_narrow.initialize();
     ykphone_pins_ui.initialize();
     ykphone_favorites_ui.initialize();
@@ -267,15 +270,18 @@ export function initialize(): void {
         ykphone_thread_panel.send_reply();
     });
 
-    // Enter sends and Shift+Enter inserts a newline, as in Slack; the
-    // event stops here so the global hotkey handler does not see it.
-    $("body").on("keydown", ".ykphone-thread-panel-textarea", (e) => {
-        if (keydown_util.is_enter_event(e) && !e.shiftKey) {
+    // "Yes, send" on the panel's warning about notifying everyone in a
+    // large channel sends the reply. Bound on the panel, so that it runs
+    // before (and instead of) upstream's handler for the compose box's.
+    $("#ykphone-thread-panel").on(
+        "click",
+        `.${CSS.escape(compose_banner.CLASSNAMES.wildcard_warning)} .main-view-banner-action-button`,
+        (e) => {
             e.preventDefault();
             e.stopPropagation();
-            ykphone_thread_panel.send_reply();
-        }
-    });
+            ykphone_thread_panel.confirm_wildcard_mention();
+        },
+    );
 
     // The lightbox binds its inline-media handlers to the feed only;
     // without these the browser would follow the link and leave the app.

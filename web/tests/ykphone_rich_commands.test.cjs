@@ -358,6 +358,10 @@ run_test("typed Markdown becomes formatting", () => {
     );
     // Not inside a code block, where text is what it says.
     assert.equal(type(make_state("```\nx*", 6), "*").doc.toString(), 'doc(code_block("x**"))');
+    // Typing that makes a line of the paragraph another block leaves
+    // it to the block rules.
+    const fence = type(typed_state("a\n``", 4), "`");
+    assert.equal(fence.doc.toString(), 'doc(paragraph("a", hard_break, "```"))');
     // A heading holds formatting too.
     assert.equal(type_all("## *h*").doc.toString(), 'doc(heading(em("h")))');
     assert.equal(markdown_of(type_all("## *h*")), "## *h*");
@@ -409,10 +413,11 @@ run_test("Enter after a fence line starts the block", () => {
         run(typed_state("```math", 7), commands.enter_after_fence).state.doc.toString(),
         "doc(math_block)",
     );
-    assert.equal(
-        run(typed_state("```spoiler Header", 17), commands.enter_after_fence).state.doc.toString(),
-        'doc(spoiler(spoiler_header("Header"), paragraph))',
-    );
+    const spoiler = run(typed_state("```spoiler Header", 17), commands.enter_after_fence).state;
+    assert.equal(spoiler.doc.toString(), 'doc(spoiler(spoiler_header("Header"), paragraph))');
+    // The cursor is in the spoiler's content, under its header.
+    assert.equal(spoiler.selection.$from.parent.type.name, "paragraph");
+    assert.equal(spoiler.selection.from, 1 + "Header".length + 2 + 1);
     // A line that is not a fence is left to the other Enter handlers,
     // and so is Enter anywhere but in a paragraph.
     assert.equal(run(typed_state("plain", 5), commands.enter_after_fence), undefined);
@@ -431,6 +436,12 @@ run_test("Enter after a fence line starts the block", () => {
         run(typed_state("```python code()", 9), commands.enter_after_fence).state.doc.toString(),
         'doc(code_block(" code()"))',
     );
+    const spoiler_rest = run(typed_state("```spoiler Hi there", 13), commands.enter_after_fence);
+    assert.equal(
+        spoiler_rest.state.doc.toString(),
+        'doc(spoiler(spoiler_header("Hi"), paragraph(" there")))',
+    );
+    assert.equal(spoiler_rest.state.selection.$from.parentOffset, 0);
     // A fence line inside a list item is not a block of its own.
     const in_item = schema.node("doc", null, [
         schema.node("bullet_list", null, [
@@ -489,5 +500,96 @@ run_test("a link keeps only an address the server accepts", () => {
     assert.equal(
         run(make_state("abc", 0, 3), commands.apply_link("https://ex.com/a b")).markdown,
         "[abc](https://ex.com/a%20b)",
+    );
+});
+
+run_test("a code block's language", () => {
+    assert.equal(commands.code_block_language("python"), "python");
+    assert.equal(commands.code_block_language(" {.c++}"), "c++");
+    assert.equal(commands.code_block_language(""), "");
+    assert.ok(commands.is_code_language("objective-c"));
+    assert.ok(!commands.is_code_language(""));
+    assert.ok(!commands.is_code_language("two words"));
+    assert.ok(!commands.is_code_language("a`b"));
+    // Names that would make the block something else.
+    for (const name of ["quote", "Quoted", "spoiler", "MATH"]) {
+        assert.ok(!commands.is_code_language(name));
+    }
+
+    const set_language = (markdown, language) => {
+        const state = EditorState.create({doc: md.parse_markdown(markdown, context)});
+        // The fenced block is the last one.
+        const pos = state.doc.content.size - state.doc.lastChild.nodeSize;
+        return run(state, commands.set_code_block_language(pos, language));
+    };
+    const cases = [
+        ["```\nx = 1\n```", "python", "```python\nx = 1\n```"],
+        ["```python\nx = 1\n```", "ruby", "```ruby\nx = 1\n```"],
+        ["~~~ {.python}\nx\n~~~", "c++", "~~~ {.c++}\nx\n~~~"],
+        ["```python\nx\n```", "", "```\nx\n```"],
+        ["hi\n\n``` \nx\n```", "js", "hi\n\n```js\nx\n```"],
+    ];
+    for (const [markdown, language, expected] of cases) {
+        const result = set_language(markdown, language);
+        assert.equal(result.markdown, expected);
+        // The Markdown reads back as the same code block.
+        const reparsed = md.parse_markdown(result.markdown, context);
+        assert.equal(reparsed.lastChild.type.name, "code_block");
+        assert.equal(commands.code_block_language(reparsed.lastChild.attrs.info), language);
+    }
+    // Asked whether it would, it changes nothing.
+    const state = EditorState.create({doc: md.parse_markdown("```\nx\n```", context)});
+    assert.ok(commands.set_code_block_language(0, "python")(state));
+    // Only code blocks, and only names that stay code.
+    assert.equal(set_language("```\nx\n```", "quote"), undefined);
+    assert.equal(set_language("```math\nx\n```", "python"), undefined);
+    assert.equal(set_language("text", "python"), undefined);
+});
+
+run_test("Markdown typed in a spoiler's header becomes formatting", () => {
+    const header_state = (markdown, header_offset) => {
+        const doc = md.parse_markdown(markdown, context);
+        const state = EditorState.create({doc, plugins: [rules_plugin]});
+        // Inside the spoiler (0), its header's content starts at 2.
+        return state.apply(state.tr.setSelection(TextSelection.create(doc, 2 + header_offset)));
+    };
+    const type_text = (state, text) => {
+        for (const character of text) {
+            state = type(state, character);
+        }
+        return state;
+    };
+
+    const bold = type_text(header_state("```spoiler Title\nbody\n```", 5), " **big**");
+    assert.equal(
+        bold.doc.toString(),
+        'doc(spoiler(spoiler_header("Title ", strong("big")), paragraph("body")))',
+    );
+    assert.equal(markdown_of(bold), "```spoiler Title **big**\nbody\n```");
+    // The cursor is after the formatting, and what is typed next is not.
+    assert.equal(bold.selection.from, 2 + "Title big".length);
+    assert.deepEqual(bold.storedMarks, []);
+
+    // A header that was empty takes formatting too.
+    const empty = type_text(header_state("```spoiler\nbody\n```", 0), "*a*");
+    assert.equal(markdown_of(empty), "```spoiler *a*\nbody\n```");
+    assert.equal(empty.doc.firstChild.firstChild.toString(), 'spoiler_header(em("a"))');
+
+    // A spoiler that is never closed, at the end of the message.
+    const unclosed = type_text(header_state("```spoiler Hi\nbody", 2), " *x*");
+    assert.equal(markdown_of(unclosed), "```spoiler Hi *x*\nbody");
+    assert.equal(unclosed.doc.firstChild.firstChild.toString(), 'spoiler_header("Hi ", em("x"))');
+
+    // A chip in the header.
+    const emoji = type_text(header_state("```spoiler Hi\nbody\n```", 2), " :smile:");
+    assert.equal(emoji.doc.firstChild.firstChild.toString(), 'spoiler_header("Hi ", emoji)');
+
+    // A backtick cannot be Markdown in the fence line: it stays a
+    // character.
+    const tick = type_text(header_state("```spoiler Hi\nbody\n```", 2), " `a`");
+    assert.equal(tick.doc.firstChild.firstChild.textContent, "Hi `a`");
+    assert.equal(
+        md.parse_markdown(markdown_of(tick), context).firstChild.firstChild.textContent,
+        "Hi `a`",
     );
 });

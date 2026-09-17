@@ -410,7 +410,7 @@ export let processing_text = (): boolean => {
         $focused_elt.parents(".pill-container").length > 0 ||
         $focused_elt.attr("id") === "compose-send-button" ||
         $focused_elt.parents(".dropdown-list-container").length > 0 ||
-        ykphone_rich_hooks.has_focus()
+        ykphone_rich_hooks.editor_has_focus()
     );
 };
 
