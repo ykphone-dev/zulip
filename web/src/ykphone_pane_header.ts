@@ -36,10 +36,10 @@ import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
 import * as ui_util from "./ui_util.ts";
 import * as util from "./util.ts";
-import * as ykphone_activity from "./ykphone_activity.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_split_view from "./ykphone_split_view.ts";
 
 export type PaneHeaderChannel = {
     stream_id: number;
@@ -77,6 +77,9 @@ export type PaneHeaderContext = {
     user_circle_class?: string;
     dm_user_id?: number;
     dm_avatar_url?: string;
+    // On a split page (DM, Activity, Threads) with a selection: the
+    // page's list, which the stacked layout shows a Back button for.
+    split_back_url?: string;
 };
 
 const MAX_HEADER_AVATARS = 3;
@@ -149,8 +152,13 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
     if (inbox_util.is_visible() && !inbox_util.is_channel_view()) {
         return {title: $t({defaultMessage: "Inbox"}), zulip_icon: "inbox"};
     }
-    if (ykphone_activity.is_visible()) {
-        return {title: $t({defaultMessage: "Activity"}), zulip_icon: "bell"};
+    const split_route = ykphone_split_view.get_route();
+    if (split_route !== undefined && filter === undefined) {
+        // Nothing selected on a split page: the placeholder is the view.
+        return {
+            title: ykphone_split_view.page_title(split_route.page),
+            zulip_icon: ykphone_split_view.page_icon(split_route.page),
+        };
     }
     if (filter === undefined || filter.is_in_home()) {
         return {title: $t({defaultMessage: "Combined feed"}), zulip_icon: "all-messages"};
@@ -185,7 +193,9 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
         }
     }
 
-    if (!filter.is_common_narrow()) {
+    // A conversation scrolled to one of its messages (an Activity row,
+    // a message link) is still that conversation.
+    if (!filter.is_common_narrow() && !filter.is_conversation_view_with_near()) {
         return {title: $t({defaultMessage: "Search results"}), zulip_icon: "search"};
     }
 
@@ -205,6 +215,14 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
             : "";
         if (topic !== "") {
             context.topic = topic;
+        }
+        // A thread shown on a split page is named as one, without the
+        // channel controls.
+        if (sub !== undefined && topic !== "" && ykphone_split_view.is_thread_shown()) {
+            return {
+                title: $t({defaultMessage: "Thread · {channel}"}, {channel: `#${sub.name}`}),
+                zulip_icon: "threads",
+            };
         }
         // An unknown or inaccessible channel keeps the title upstream
         // chose ("Unknown channel") without the channel controls.
@@ -291,9 +309,17 @@ export function update_members_button(): void {
     button._tippy?.setContent(label);
 }
 
+function with_split_back_url(context: PaneHeaderContext): PaneHeaderContext {
+    const split_route = ykphone_split_view.get_route();
+    if (split_route?.selection === undefined) {
+        return context;
+    }
+    return {...context, split_back_url: ykphone_split_view.route_hash(split_route, undefined)};
+}
+
 export function render(): void {
     const $header = $("#ykphone-pane-header");
-    const context = get_context(narrow_state.filter());
+    const context = with_split_back_url(get_context(narrow_state.filter()));
     // A channel's header has a tab row that a DM's lacks, and the header
     // is rendered after upstream has scrolled the new conversation into
     // place, so the difference would push the conversation down by 30px

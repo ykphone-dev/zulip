@@ -1,0 +1,20 @@
+{{! The list column of the DM, Activity and Threads pages (ykphone_split_view_ui); the rows are rendered separately into the body. }}
+<div class="ykphone-split-list-card">
+    <div class="ykphone-split-list-header">
+        <h2 class="ykphone-split-list-title">{{title}}</h2>
+    </div>
+    {{#if is_dms}}
+    <div class="ykphone-split-search">
+        <i class="zulip-icon zulip-icon-search ykphone-split-search-icon" aria-hidden="true"></i>
+        <input type="text" class="ykphone-split-search-input" placeholder="{{t 'Find people…' }}" aria-label="{{t 'Find people…' }}" autocomplete="off" />
+    </div>
+    {{/if}}
+    {{#if has_tabs}}
+    <nav class="ykphone-activity-tabs" aria-label="{{t 'Activity filters' }}">
+        {{#each tabs}}
+            <a class="ykphone-activity-tab{{#if active}} active{{/if}}" href="{{url}}" {{#if active}}aria-current="page"{{/if}}>{{label}}</a>
+        {{/each}}
+    </nav>
+    {{/if}}
+    <div class="ykphone-split-list-body"></div>
+</div>

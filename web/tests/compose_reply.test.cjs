@@ -11,7 +11,7 @@ const message_fetch_raw_content = mock_esm("../src/message_fetch_raw_content");
 const compose_paste = mock_esm("../src/compose_paste");
 const message_lists = mock_esm("../src/message_lists");
 const compose_actions = mock_esm("../src/compose_actions");
-const ykphone_activity = mock_esm("../src/ykphone_activity");
+const ykphone_split_view = mock_esm("../src/ykphone_split_view");
 
 const pm_user_ids_1 = "1,2";
 const pm_user_ids_2 = "3,4";
@@ -393,17 +393,18 @@ run_test("build_and_process_quote_assets_for_messages", ({override}) => {
     );
 });
 
-run_test("respond_to_message on the activity view", ({override}) => {
-    // The 옆커폰 Activity view has no message list (like the recent and
+run_test("respond_to_message on a split page with nothing selected", ({override}) => {
+    // The 옆커폰 DM, Activity and Threads pages show a placeholder with
+    // no message list while nothing is selected (like the recent and
     // inbox views): `r` and the compose bar open an empty box.
     message_lists.current = undefined;
-    override(ykphone_activity, "is_visible", () => true);
+    override(ykphone_split_view, "is_placeholder_visible", () => true);
     const calls = [];
     override(compose_actions, "start", (opts) => {
         calls.push(opts);
     });
     compose_reply.respond_to_message({trigger: "hotkey", keep_composebox_empty: true});
     assert.deepEqual(calls, [
-        {message_type: "stream", trigger: "activity_nofocus", keep_composebox_empty: true},
+        {message_type: "stream", trigger: "split_view_nofocus", keep_composebox_empty: true},
     ]);
 });

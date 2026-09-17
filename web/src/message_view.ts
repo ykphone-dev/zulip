@@ -69,8 +69,9 @@ import * as unread_ops from "./unread_ops.ts";
 import * as unread_ui from "./unread_ui.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
-import * as ykphone_activity_ui from "./ykphone_activity_ui.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
+import * as ykphone_split_view from "./ykphone_split_view.ts";
+import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_ui_hooks from "./ykphone_ui_hooks.ts";
 
 const LARGER_THAN_MAX_MESSAGE_ID = 10000000000000000;
@@ -398,11 +399,14 @@ export function try_rendering_locally_for_same_narrow(
 
     message_lists.current.data.filter = filter;
     const remove_current_hash_from_history = opts.remove_current_hash_from_history ?? false;
-    update_hash_to_match_filter(
-        filter,
-        "retarget message location",
-        remove_current_hash_from_history,
-    );
+    // A split page (옆커폰) owns its URL; its own narrows never rewrite it.
+    if (opts.trigger !== ykphone_split_view.TRIGGER) {
+        update_hash_to_match_filter(
+            filter,
+            "retarget message location",
+            remove_current_hash_from_history,
+        );
+    }
     message_view_header.render_title_area();
     return true;
 }
@@ -696,7 +700,7 @@ export let show = (raw_terms: NarrowTerm[], show_opts: ShowMessageViewOpts): voi
         } else if (coming_from_inbox) {
             inbox_ui.hide();
         }
-        ykphone_activity_ui.hide();
+        ykphone_split_view_ui.handle_narrow(opts);
 
         blueslip.debug("Narrowed", {
             operators: terms.map((e) => e.operator),

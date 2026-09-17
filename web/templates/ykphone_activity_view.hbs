@@ -1,9 +1,0 @@
-{{! Slack-style Activity view: the filter tabs and the feed body. }}
-<div class="ykphone-activity">
-    <nav class="ykphone-activity-tabs" aria-label="{{t 'Activity filters' }}">
-        {{#each tabs}}
-            <button type="button" class="ykphone-activity-tab{{#if active}} active{{/if}}" data-tab="{{id}}" aria-pressed="{{#if active}}true{{else}}false{{/if}}">{{label}}</button>
-        {{/each}}
-    </nav>
-    <div class="ykphone-activity-body"></div>
-</div>

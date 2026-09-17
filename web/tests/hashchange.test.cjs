@@ -32,6 +32,7 @@ const spectators = mock_esm("../src/spectators", {
 const stream_settings_ui = mock_esm("../src/stream_settings_ui");
 const ui_util = mock_esm("../src/ui_util");
 const ui_report = mock_esm("../src/ui_report");
+const ykphone_split_view_ui = mock_esm("../src/ykphone_split_view_ui");
 set_global("favicon", {});
 
 const browser_history = zrequire("browser_history");
@@ -163,6 +164,8 @@ function test_helper({override, override_rewire, change_tab}) {
     stub(ui_util, "blur_active_element");
     stub(ui_report, "error");
     stub(spectators, "login_to_access");
+    // A split page (옆커폰) closes before any other narrow is shown.
+    stub(ykphone_split_view_ui, "close");
 
     if (change_tab) {
         override_rewire(message_view, "show", (terms) => {
@@ -221,6 +224,7 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         "message_view.show",
     ]);
 
@@ -229,6 +233,7 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         "message_view.show",
     ]);
 
@@ -260,6 +265,7 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         "message_view.show",
     ]);
     let terms = helper.get_narrow_terms();
@@ -272,10 +278,26 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         "message_view.show",
     ]);
     terms = helper.get_narrow_terms();
     assert.equal(terms.length, 0);
+
+    // A split page's hash is the page's own; no narrow, no close.
+    let shown_parts;
+    ykphone_split_view_ui.show_for_hash = (parts) => {
+        shown_parts = parts;
+        return true;
+    };
+    window.location.hash = "#ykphone/dms/7";
+    helper.clear_events();
+    $window_stub.trigger("hashchange");
+    helper.assert_events([
+        [overlays, "close_for_hash_change"],
+        [message_viewport, "stop_auto_scrolling"],
+    ]);
+    assert.deepEqual(shown_parts, ["dms", "7"]);
 
     page_params.is_spectator = true;
 
@@ -285,6 +307,7 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         "message_view.show",
     ]);
     terms = helper.get_narrow_terms();
@@ -307,6 +330,7 @@ run_test("hash_interactions", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         [ui_report, "error"],
     ]);
 
@@ -451,6 +475,7 @@ run_test("fail_incorrectly_cased_URL", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         [ui_report, "error"],
     ]);
 
@@ -460,6 +485,7 @@ run_test("fail_incorrectly_cased_URL", ({override, override_rewire}) => {
     helper.assert_events([
         [overlays, "close_for_hash_change"],
         [message_viewport, "stop_auto_scrolling"],
+        [ykphone_split_view_ui, "close"],
         [ui_report, "error"],
     ]);
 });

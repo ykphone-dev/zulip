@@ -77,27 +77,17 @@ function raw_message(id, opts = {}) {
     };
 }
 
-run_test("state and tabs", () => {
+run_test("tabs", () => {
     ykphone_activity.clear_for_testing();
-    assert.equal(ykphone_activity.is_visible(), false);
-    ykphone_activity.set_visible(true);
-    assert.equal(ykphone_activity.is_visible(), true);
-
-    assert.equal(ykphone_activity.get_active_tab(), "all");
     assert.deepEqual(
-        ykphone_activity.tabs_context().map((tab) => [tab.id, tab.label, tab.active]),
+        ykphone_activity.TABS.map((tab) => [tab, ykphone_activity.tab_label(tab)]),
         [
-            ["all", "translated: All", true],
-            ["mentions", "translated: Mentions", false],
-            ["threads", "translated: Threads", false],
-            ["reactions", "translated: Reactions", false],
-            ["dm", "translated: Direct messages", false],
+            ["all", "translated: All"],
+            ["mentions", "translated: Mentions"],
+            ["threads", "translated: Threads"],
+            ["reactions", "translated: Reactions"],
+            ["dm", "translated: Direct messages"],
         ],
-    );
-    ykphone_activity.set_active_tab("dm");
-    assert.deepEqual(
-        ykphone_activity.tabs_context().filter((tab) => tab.active),
-        [{id: "dm", label: "translated: Direct messages", active: true}],
     );
 });
 
@@ -241,7 +231,19 @@ run_test("load all", (helpers) => {
     // Nothing is reported until every feed has answered.
     mentions.success({messages: [raw_message(40)]});
     threads.success({messages: [raw_message(41, {subject: "t"})]});
-    reactions.success({messages: [raw_message(42)]});
+    // A message only the user reacted to is not activity.
+    const reaction = (user_id) => ({
+        emoji_name: "+1",
+        emoji_code: "1f44d",
+        reaction_type: "unicode_emoji",
+        user_id,
+    });
+    reactions.success({
+        messages: [
+            raw_message(42, {reactions: [reaction(me.user_id), reaction(7)]}),
+            raw_message(45, {reactions: [reaction(me.user_id)]}),
+        ],
+    });
     assert.deepEqual(results, []);
     // Direct messages the user sent are left out.
     dm.success({
@@ -284,6 +286,19 @@ run_test("load one tab, errors and stale responses", (helpers) => {
     requests[5].error();
     assert.deepEqual(results, [[50]]);
     assert.equal(state.errors, 1);
-    requests[6].success({messages: [raw_message(53)]});
+    requests[6].success({
+        messages: [
+            raw_message(53, {
+                reactions: [
+                    {
+                        emoji_name: "+1",
+                        emoji_code: "1f44d",
+                        reaction_type: "unicode_emoji",
+                        user_id: 7,
+                    },
+                ],
+            }),
+        ],
+    });
     assert.deepEqual(results, [[50], [53]]);
 });

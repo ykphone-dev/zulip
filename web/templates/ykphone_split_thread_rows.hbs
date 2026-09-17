@@ -1,0 +1,39 @@
+{{! Rows of the Threads page: one per thread the user takes part in, or the loading, empty and error states. }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{t 'Could not load your threads.' }}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item">
+            <a class="ykphone-split-row ykphone-split-thread-row{{#if is_active}} active{{/if}}{{#if has_unread}} unread{{/if}}" href="{{url}}" data-root-message-id="{{root_message_id}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-thread-channel">
+                    {{#if channel_name}}
+                    <span class="ykphone-split-thread-channel-name"># {{channel_name}}</span>
+                    {{/if}}
+                    {{#if has_unread}}
+                    <span class="ykphone-split-count">{{unread}}</span>
+                    {{/if}}
+                </span>
+                <span class="ykphone-split-thread-root">
+                    <img class="ykphone-split-avatar-small ykphone-split-thread-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                    <span class="ykphone-split-thread-text">
+                        <span class="ykphone-split-name">{{sender_name}}</span>
+                        <span class="ykphone-split-thread-snippet">{{snippet}}</span>
+                    </span>
+                </span>
+                <span class="ykphone-split-thread-meta">
+                    <span>{{reply_label}}</span>
+                    {{#if last_reply_label}}
+                    <span class="ykphone-split-thread-meta-separator" aria-hidden="true">·</span>
+                    <span>{{last_reply_label}}</span>
+                    {{/if}}
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{t 'No threads yet.' }}</div>
+{{/if}}

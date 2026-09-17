@@ -2,10 +2,10 @@
 // feed controls and the side panel), the icon rail, the sidebar card
 // header, the pane header, the navbar history controls, the always-open
 // two-row compose box and the conversation intro. Pinned messages,
-// favourites and the Activity view have their own wiring in
-// ykphone_pins_ui, ykphone_favorites_ui and ykphone_activity_ui (the
-// last one initialized from ui_init beside the inbox and recent
-// views, whose show/hide it shares). The state and rendering live in the other
+// favourites and the split pages (DM, Activity, Threads) have their own
+// wiring in ykphone_pins_ui, ykphone_favorites_ui and
+// ykphone_split_view_ui (the last one initialized from ui_init beside
+// the inbox and recent views, whose show/hide it shares). The state and rendering live in the other
 // ykphone_* modules; this one only mounts them and binds handlers, so
 // it is exempt from node coverage.
 
@@ -37,6 +37,7 @@ import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_rich_compose from "./ykphone_rich_compose.ts";
+import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
@@ -145,9 +146,11 @@ export function initialize(): void {
         }
         last_pointer_position = position;
         ykphone_keyboard_nav.clear();
+        ykphone_split_view_ui.clear_highlight();
     });
     $("#main_div").on("click", () => {
         ykphone_keyboard_nav.clear();
+        ykphone_split_view_ui.clear_highlight();
     });
 
     // Forwarding: the card above the compose box is dropped by its own

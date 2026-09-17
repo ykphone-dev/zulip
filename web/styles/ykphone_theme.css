@@ -118,6 +118,10 @@
     --yk-text: light-dark(var(--yk-ink), var(--yk-dark-text));
     --yk-text-muted: light-dark(var(--yk-ink-muted), var(--yk-dark-muted));
     --yk-link: light-dark(var(--yk-blue-link), hsl(204deg 90% 66%));
+    /* The selected row of a split page's list (DM, Activity, Threads). */
+    --yk-split-active-bg: light-dark(hsl(206deg 60% 94%), hsl(206deg 30% 20%));
+    /* 380px at 14px; the list column of the split pages. */
+    --yk-split-list-width: calc(27.1429 * var(--base-font-size-px));
     --yk-shell-text: light-dark(var(--yk-aubergine-text), var(--yk-dark-text));
     --yk-shell-text-strong: hsl(0deg 0% 100%);
     --yk-shell-text-muted: light-dark(
@@ -753,7 +757,8 @@ body {
 #left-sidebar-navigation-list
     .top_left_row.top_left_recent_view
     .unread_count.normal-count:not(.hide),
-.ykphone-rail-badge {
+.ykphone-rail-badge,
+.ykphone-split-count {
     box-sizing: border-box;
     display: inline-block;
     min-width: 1.5em; /* 18px at 12px/em */
@@ -831,7 +836,8 @@ body:has(#ykphone-rail) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25em;
+    /* Slack: the first item 12px under the logo. */
+    gap: 0.8571em; /* 12px at 14px/em */
     /* Also paints the frame gap beside the card, so the overlay on
        narrow screens has no see-through strip. */
     width: calc(var(--yk-rail-width) + var(--yk-frame-gap));
@@ -848,7 +854,6 @@ body:has(#ykphone-rail) {
     justify-content: center;
     width: 3em; /* 42px at 14px/em */
     height: 2.7143em; /* 38px at 14px/em */
-    margin-bottom: 0.5em;
     border-radius: var(--yk-radius-md);
 
     &:hover {
@@ -875,24 +880,22 @@ body:has(#ykphone-rail) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25em;
+    /* Slack: 12px between items. */
+    gap: 0.8571em; /* 12px at 14px/em */
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
 .ykphone-rail-item {
-    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.15em;
-    width: 3.1429em; /* 44px at 14px/em */
-    height: 3.1429em;
-    padding: 0;
+    /* Slack: 10px between the tile and its label. */
+    gap: 0.7143em; /* 10px at 14px/em */
+    /* The tile is 40px; the link stays a 44px target. */
+    padding: 0 0.1429em; /* 2px at 14px/em */
     border: none;
-    border-radius: var(--yk-radius-sm);
     background: none;
     color: var(--yk-shell-text);
     font: inherit;
@@ -902,16 +905,11 @@ body:has(#ykphone-rail) {
     /* Slack's rail reads as a set of friendly buttons rather than a
        row of hairline glyphs: the icon is large, the inactive items
        are held back and come up to full strength under the pointer,
-       and the current one wears a rounded tile. The icon set has no
-       filled counterpart for house, bell, file-text or gear, so the
-       active item is marked by that tile and full-opacity white
-       instead of by a second glyph. */
+       and the current one wears a rounded tile with the filled twin
+       of its glyph (the rail's own icon set, web/icons/ykphone-rail-*). */
     /* The glyph and the label are held back rather than the whole
        tile, so that an unread badge on the tile keeps its full red. */
-    position: relative;
-    transition: background-color 120ms ease;
-
-    .zulip-icon,
+    .ykphone-rail-glyph,
     .ykphone-rail-label {
         opacity: 0.7;
         transition: opacity 120ms ease;
@@ -919,63 +917,80 @@ body:has(#ykphone-rail) {
 
     &:hover,
     &:focus-visible {
-        background-color: var(--yk-shell-row-hover);
         color: var(--yk-shell-text-strong);
         text-decoration: none;
+
+        .ykphone-rail-tile {
+            background-color: var(--yk-shell-row-hover);
+        }
     }
 
     &:hover,
     &:focus-visible,
     &.active {
-        .zulip-icon,
+        .ykphone-rail-glyph,
         .ykphone-rail-label {
             opacity: 1;
         }
     }
 
     &:focus-visible {
-        outline: 2px solid var(--color-outline-focus);
-        outline-offset: -2px;
+        outline: none;
+
+        .ykphone-rail-tile {
+            outline: 2px solid var(--color-outline-focus);
+            outline-offset: -2px;
+        }
     }
 
     &.active {
-        border-radius: var(--yk-radius-md);
-        background-color: hsl(0deg 0% 100% / 24%);
         color: var(--yk-shell-text-strong);
-    }
 
-    /* Ink heights differ by a third across these five glyphs
-       (message-square-text is 0.67em where gear is 0.97em), so the
-       size is set per icon to give each about 20px of ink, as the
-       composer's toolbar is normalised. */
-    .zulip-icon {
-        line-height: 1;
-    }
+        .ykphone-rail-tile {
+            background-color: hsl(0deg 0% 100% / 24%);
+        }
 
-    .zulip-icon-house,
-    .zulip-icon-file-text {
-        font-size: 1.543em; /* 21.6px at 14px/em */
-    }
+        .ykphone-rail-glyph-outline {
+            display: none;
+        }
 
-    .zulip-icon-bell {
-        font-size: 1.514em; /* 21.2px at 14px/em */
+        .ykphone-rail-glyph-filled {
+            display: block;
+        }
     }
+}
 
-    .zulip-icon-gear {
-        font-size: 1.471em; /* 20.6px at 14px/em */
-    }
+/* Slack's active tile: 40×40 with 10px corners. */
+.ykphone-rail-tile {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8571em; /* 40px at 14px/em */
+    height: 2.8571em;
+    border-radius: 0.7143em; /* 10px at 14px/em */
+    transition: background-color 120ms ease;
+}
 
-    .zulip-icon-message-square-text {
-        font-size: 2.136em; /* 29.9px at 14px/em */
-    }
+/* One 24px grid for the five glyphs, so no per-icon sizing. (The icon
+   font's own i.zulip-icon rule outweighs a lone class.) */
+.ykphone-rail-item .ykphone-rail-glyph {
+    display: block;
+    font-size: 1.7143em; /* 24px at 14px/em */
+    line-height: 1;
+}
+
+.ykphone-rail-item .ykphone-rail-glyph-filled {
+    display: none;
 }
 
 /* Over the glyph's top-right corner, ringed in the rail's colour so
    it reads as separate from the glyph. */
 .ykphone-rail-badge {
     position: absolute;
-    top: 0.1667em; /* 2px at 12px/em */
-    right: 0.1667em;
+    top: 0;
+    right: 0;
 
     &:empty {
         display: none;
@@ -987,7 +1002,7 @@ body:has(#ykphone-rail) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.7143em; /* 10px at 14px/em */
+    font-size: 0.7857em; /* 11px at 14px/em */
     line-height: 1.2;
     letter-spacing: 0.02em;
 }
@@ -3795,7 +3810,8 @@ body.ykphone-conversation .top-messages-logo {
     > .user-circle,
 #user_card_popover .popover-menu-user-presence.user-circle,
 .ykphone-pane-header-dm .ykphone-pane-header-presence,
-.ykphone-rail-avatar .ykphone-rail-presence {
+.ykphone-rail-avatar .ykphone-rail-presence,
+.ykphone-split-avatar-cell .ykphone-split-presence {
     box-sizing: border-box;
     display: block;
     width: 8px;
@@ -4482,33 +4498,141 @@ body.ykphone-keyboard-nav
     }
 }
 
-/* ---- Activity view ---- */
+/* ---- Split pages: DM, Activity, Threads ---- */
 
-/* Shown in place of the message feed like the inbox and recent views
-   (ykphone_activity_ui); the bottom padding keeps the last rows above
-   an opened compose box. */
-#ykphone-activity-view {
+/* Slack's DM, Activity and Threads pages are two columns inside the
+   middle pane (ykphone_split_view_ui): the page's list on the left,
+   with its own scrolling, and the selected conversation on the right,
+   which is upstream's message view unchanged. The middle column
+   becomes a grid of the two; the list sticks under the navbar like
+   the pane header does, so the feed keeps scrolling with the
+   document and its sticky headers, date pills and compose box behave
+   as in any other narrow, only in a narrower column. */
+body.ykphone-split-open .app-main .column-middle {
+    display: grid;
+    grid-template-columns: var(--yk-split-list-width) minmax(0, 1fr);
+}
+
+/* One highlight at a time: the page's rail item (or, on the Threads
+   page, the sidebar's Threads row) marks where the user is; the
+   conversation's channel or DM row, which upstream lights for the
+   narrow on the right on every sidebar rebuild, stays plain. */
+body.ykphone-split-open .app-main .column-left {
+    --color-background-active-narrow-filter: transparent;
+    --color-text-active-narrow-filter: var(--yk-shell-text);
+
+    /* Read rows only: unread rows keep their bold. */
+    #stream_filters
+        .active-sub-filter
+        .subscription_block:not(.ykphone-unread)
+        .stream-name,
+    #direct-messages-list
+        .dm-list-item.zero-dm-unreads.active-sub-filter
+        .conversation-partners {
+        font-weight: 400;
+    }
+}
+
+#ykphone-split-list {
     display: none;
-    padding: var(--header-padding-bottom) 0
-        var(--max-unmaximized-compose-height);
+    position: sticky;
+    top: var(--yk-navbar-bottom);
+    /* Level with the pane header. */
+    z-index: 4;
+    align-self: start;
+    box-sizing: border-box;
+    height: calc(var(--full-height-dynamic-viewport) - var(--yk-navbar-bottom));
+    /* Paints the frame gap above the card, like the pane header. */
+    padding-top: var(--yk-frame-gap);
+    background-color: var(--yk-frame-bg);
 }
 
-.ykphone-activity {
-    max-width: 56em;
-    margin: 0 auto;
-    padding: 0 1em;
+body.ykphone-split-open #ykphone-split-list {
+    display: block;
 }
 
-.ykphone-activity-tabs {
+.ykphone-split-list-card {
+    box-sizing: border-box;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.25em;
-    margin-bottom: 0.5em;
-    padding-bottom: 0.5em;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-right: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-lg) 0 0 0;
+    background-color: var(--color-background);
+}
+
+/* The list header is level with the pane header's title row. */
+.ykphone-split-list-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    height: 3.2857em; /* 46px at 14px/em */
+    padding: 0 1.1429em; /* 16px at 14px/em */
     border-bottom: 1px solid var(--yk-hairline);
 }
 
-/* Slack's filter pills: outlined, the active one filled. */
+.ykphone-split-list-title {
+    margin: 0;
+    overflow: hidden;
+    font-size: 1.2857em; /* 18px at 14px/em */
+    font-weight: 900;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Slack's "Find people" field at the top of the DM list. */
+.ykphone-split-search {
+    position: relative;
+    flex-shrink: 0;
+    padding: 0.5714em 0.8571em; /* 8px 12px at 14px/em */
+    border-bottom: 1px solid var(--yk-hairline);
+}
+
+.ykphone-split-search-icon {
+    position: absolute;
+    top: 50%;
+    left: 1.5em;
+    transform: translateY(-50%);
+    color: var(--yk-text-muted);
+    pointer-events: none;
+}
+
+.ykphone-split-search-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 2.2857em; /* 32px at 14px/em */
+    padding: 0 0.5em 0 2.3em;
+    border: 1px solid var(--yk-border);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--color-background);
+    color: var(--color-text-default);
+    font: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+
+    &::placeholder {
+        color: var(--yk-text-muted);
+    }
+
+    &:focus {
+        border-color: transparent;
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -1px;
+    }
+}
+
+/* Slack's filter pills on the Activity page: outlined, the active one
+   filled. */
+.ykphone-activity-tabs {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+    padding: 0.5em 0.8571em;
+    border-bottom: 1px solid var(--yk-hairline);
+}
+
 .ykphone-activity-tab {
     padding: 0.25em 0.75em;
     border: 1px solid var(--yk-hairline);
@@ -4519,6 +4643,7 @@ body.ykphone-keyboard-nav
     font-size: 0.9286em; /* 13px at 14px/em */
     font-weight: 700;
     line-height: 1.5;
+    text-decoration: none;
     cursor: pointer;
     transition:
         background-color 100ms ease,
@@ -4527,6 +4652,8 @@ body.ykphone-keyboard-nav
     &:hover,
     &:focus-visible {
         background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+        text-decoration: none;
     }
 
     &:focus-visible {
@@ -4534,31 +4661,53 @@ body.ykphone-keyboard-nav
         outline-offset: 1px;
     }
 
-    &.active {
+    &.active,
+    &.active:hover {
         border-color: var(--yk-blue-selected);
         background-color: var(--yk-blue-selected);
         color: hsl(0deg 0% 100%);
     }
 }
 
-.ykphone-activity-status {
+.ykphone-split-list-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.2857em 0.5714em 0.5714em; /* 4px 8px 8px at 14px/em */
+}
+
+.ykphone-split-status {
     padding: 2.5em 1em;
     color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
     text-align: center;
 }
 
-.ykphone-activity-list {
+.ykphone-split-error {
+    color: var(--yk-red);
+}
+
+.ykphone-split-section-title {
+    padding: 0.8571em 0.5714em 0.2857em;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+}
+
+.ykphone-split-rows {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.ykphone-activity-row {
-    display: grid;
-    grid-template-columns: 2.5714em minmax(0, 1fr) max-content;
-    column-gap: 0.75em;
-    align-items: start;
-    padding: 0.5em 0.75em;
+/* One row: avatar, then a name line with the time at the right and a
+   one-line snippet under it; unread rows carry a bold name and the
+   red count (a dot on the Activity page). */
+.ykphone-split-row {
+    display: flex;
+    gap: 0.7143em; /* 10px at 14px/em */
+    align-items: flex-start;
+    padding: 0.5714em; /* 8px at 14px/em */
     border-radius: var(--yk-radius-sm);
     color: var(--color-text-default);
     text-decoration: none;
@@ -4575,58 +4724,339 @@ body.ykphone-keyboard-nav
         outline: 2px solid var(--color-outline-focus);
         outline-offset: -2px;
     }
+
+    &.active,
+    &.active:hover {
+        background-color: var(--yk-split-active-bg);
+
+        --yk-presence-ring: var(--yk-split-active-bg);
+    }
+
+    &.unread {
+        .ykphone-split-name,
+        .ykphone-split-activity-line {
+            font-weight: 900;
+            color: var(--color-text-default);
+        }
+
+        .ykphone-split-snippet {
+            color: var(--color-text-default);
+        }
+    }
 }
 
-.ykphone-activity-avatar {
+.ykphone-split-avatar-cell {
+    position: relative;
+    flex-shrink: 0;
     width: 2.5714em; /* 36px at 14px/em */
     height: 2.5714em;
+
+    --yk-presence-ring: var(--color-background);
+}
+
+.ykphone-split-avatar {
+    display: block;
+    width: 100%;
+    height: 100%;
     border-radius: var(--yk-radius-md);
     object-fit: cover;
 }
 
-.ykphone-activity-main {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1em;
-    min-width: 0;
+/* One pixel past the avatar's corner, as on the sidebar's rows. */
+.ykphone-split-avatar-cell .ykphone-split-presence {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
 }
 
-.ykphone-activity-meta {
+/* A group conversation: the first two members' avatars, stacked. */
+.ykphone-split-avatar-stack {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.ykphone-split-avatar-small {
+    width: 1.7143em; /* 24px at 14px/em */
+    height: 1.7143em;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+.ykphone-split-avatar-stack .ykphone-split-avatar-small {
+    position: absolute;
+
+    &:first-child {
+        top: 0;
+        left: 0;
+    }
+
+    &:last-child {
+        right: 0;
+        bottom: 0;
+        box-shadow: 0 0 0 2px var(--color-background);
+    }
+}
+
+.ykphone-split-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1429em; /* 2px at 14px/em */
+}
+
+.ykphone-split-meta {
     display: flex;
     align-items: baseline;
     gap: 0.5em;
+}
+
+.ykphone-split-name {
+    flex: 1;
     min-width: 0;
-}
-
-.ykphone-activity-sender {
     overflow: hidden;
     font-size: 1.0714em; /* 15px at 14px/em */
-    font-weight: 900;
+    line-height: 1.4;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.ykphone-activity-context {
+.ykphone-split-time {
     flex-shrink: 0;
-    overflow: hidden;
-    max-width: 50%;
-    font-size: 0.9286em; /* 13px at 14px/em */
     color: var(--yk-text-muted);
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.ykphone-activity-snippet {
-    overflow: hidden;
-    font-size: 1.0714em; /* 15px at 14px/em */
-    line-height: 1.46;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.ykphone-activity-time {
-    padding-top: 0.2em;
     font-size: 0.8571em; /* 12px at 14px/em */
-    color: var(--yk-text-muted);
     white-space: nowrap;
+}
+
+.ykphone-split-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.ykphone-split-snippet {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-split-count {
+    flex-shrink: 0;
+}
+
+/* Activity rows: "Othello mentioned you in #Verona" on the first line
+   and the message under it; unread ones carry a red dot. */
+.ykphone-split-activity-line {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-split-activity-row .ykphone-split-snippet {
+    color: var(--color-text-default);
+    font-size: 1.0714em; /* 15px at 14px/em */
+}
+
+.ykphone-split-dot {
+    flex-shrink: 0;
+    width: 0.5714em; /* 8px at 14px/em */
+    height: 0.5714em;
+    border-radius: 50%;
+    background-color: var(--yk-red);
+}
+
+/* Thread rows: the channel, the root (sender and two lines of it),
+   and "N replies · Last reply …". */
+.ykphone-split-thread-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2857em; /* 4px at 14px/em */
+}
+
+.ykphone-split-thread-channel {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+}
+
+.ykphone-split-thread-channel-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-split-thread-root {
+    display: flex;
+    gap: 0.5em;
+    align-items: flex-start;
+}
+
+.ykphone-split-thread-avatar {
+    flex-shrink: 0;
+    margin-top: 0.1429em;
+}
+
+.ykphone-split-thread-text {
+    flex: 1;
+    min-width: 0;
+
+    .ykphone-split-name {
+        display: block;
+    }
+}
+
+.ykphone-split-thread-snippet {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.4;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.ykphone-split-thread-meta {
+    display: flex;
+    gap: 0.35em;
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    white-space: nowrap;
+}
+
+/* The right column while nothing is selected: a placeholder shown in
+   place of the feed, like the inbox view. */
+#ykphone-split-empty {
+    display: none;
+    padding: var(--header-padding-bottom) 1em
+        var(--max-unmaximized-compose-height);
+}
+
+.ykphone-split-empty-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75em;
+    min-height: 50vh;
+    color: var(--yk-text-muted);
+    text-align: center;
+}
+
+.ykphone-split-empty-icon {
+    font-size: 2.5em;
+    opacity: 0.5;
+}
+
+.ykphone-split-empty-text {
+    margin: 0;
+    font-size: 1.0714em; /* 15px at 14px/em */
+}
+
+/* The message an Activity row opened is tinted until the pointer
+   moves over the feed (ykphone_threads_ui drops the class), so the
+   reader finds it where the feed scrolled to. */
+body.ykphone-split-highlight .message_row.selected_message {
+    background-color: var(--yk-pin-tint);
+}
+
+/* Back to the list, shown by the stacked layout only. */
+.ykphone-pane-header-back {
+    display: none;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 2.75em; /* 44px at 16px/em */
+    height: 2.75em;
+    margin-left: -0.75em;
+    border-radius: var(--yk-radius-sm);
+    color: var(--color-text-default);
+    font-size: 1.1429em; /* 16px at 14px/em */
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+        text-decoration: none;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
+@media (width >= 900px) {
+    body.ykphone-split-open {
+        /* The pane header's left corner is square against the list. */
+        #ykphone-pane-header::before {
+            border-top-left-radius: 0;
+        }
+
+        /* The fixed compose box is placed from the sidebar's width by
+           upstream; it moves over by the list as well. */
+        #compose-content {
+            margin-left: calc(
+                var(--left-sidebar-width) + var(--left-sidebar-padding-left) +
+                    var(--yk-split-list-width)
+            );
+        }
+
+        &.hide-left-sidebar #compose-content {
+            margin-left: calc(7px + var(--yk-split-list-width));
+        }
+    }
+}
+
+/* Below 900px the list is the whole pane, and a selection replaces it
+   with the conversation (the pane header's Back button returns). With
+   nothing selected the column's inner box, which holds the feed, the
+   placeholder and the compose box, is not shown at all; the current
+   view is then the placeholder, so no message list is on screen. */
+@media (width < 900px) {
+    body.ykphone-split-open {
+        .app-main .column-middle {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        #ykphone-split-list {
+            position: relative;
+            top: auto;
+        }
+
+        .ykphone-split-list-card {
+            border-right: none;
+            border-radius: var(--yk-radius-lg) var(--yk-radius-lg) 0 0;
+        }
+
+        /* Scoped to the pane: the navbar has a .column-middle-inner of
+           its own, which holds the sidebar toggle. */
+        &:not(.ykphone-split-selected) .app-main .column-middle-inner {
+            display: none;
+        }
+
+        &.ykphone-split-selected #ykphone-split-list {
+            display: none;
+        }
+    }
+
+    .ykphone-pane-header-back {
+        display: flex;
+    }
 }

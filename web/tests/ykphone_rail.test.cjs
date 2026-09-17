@@ -31,9 +31,11 @@ run_test("items", () => {
     const [home, dm, activity, files] = ykphone_rail.rail_items();
     assert.equal(home.label, "translated: Home");
     assert.equal(home.href, "#inbox");
-    assert.equal(dm.href, "#narrow/is/dm");
+    assert.equal(dm.href, "#ykphone/dms");
+    assert.equal(dm.icon, "ykphone-rail-dm");
+    assert.equal(dm.filled_icon, "ykphone-rail-dm-filled");
     assert.equal(activity.href, "#ykphone/activity");
-    assert.equal(activity.icon, "bell");
+    assert.equal(activity.icon, "ykphone-rail-bell");
     assert.equal(files.href, "#narrow/has/attachment");
     assert.equal(files.label, "translated: Files");
 
@@ -46,9 +48,11 @@ run_test("items", () => {
 run_test("active_item_id", ({override}) => {
     set_current_user(admin);
     assert.equal(ykphone_rail.active_item_id("#inbox"), "home");
-    assert.equal(ykphone_rail.active_item_id("#narrow/is/dm"), "dm");
-    // A direct message conversation belongs to the DM tab too.
-    assert.equal(ykphone_rail.active_item_id("#narrow/dm/7-user"), "dm");
+    assert.equal(ykphone_rail.active_item_id("#ykphone/dms"), "dm");
+    assert.equal(ykphone_rail.active_item_id("#ykphone/dms/7,9"), "dm");
+    // Upstream's direct message narrows are no longer the DM page.
+    assert.equal(ykphone_rail.active_item_id("#narrow/is/dm"), undefined);
+    assert.equal(ykphone_rail.active_item_id("#narrow/dm/7-user"), undefined);
     assert.equal(ykphone_rail.active_item_id("#ykphone/activity"), "activity");
     assert.equal(ykphone_rail.active_item_id("#narrow/has/attachment"), "files");
     // The mention narrow is no longer a rail view.
@@ -89,7 +93,7 @@ run_test("update_active_item", () => {
             .filter(([, $item]) => $item.hasClass("active"))
             .map(([id]) => id);
 
-    ykphone_rail.update_active_item("#narrow/is/dm");
+    ykphone_rail.update_active_item("#ykphone/dms");
     assert.deepEqual(active_ids(), ["dm"]);
     assert.equal(items.dm.attr("aria-current"), "page");
     assert.equal(items.home.attr("aria-current"), undefined);
@@ -107,7 +111,7 @@ run_test("mount", ({override, mock_template}) => {
     set_current_user(member);
     $.clear_all_elements();
     set_global("window", {
-        location: {hash: "#narrow/is/dm"},
+        location: {hash: "#ykphone/dms"},
         to_$: () => $("window-stub"),
     });
 
@@ -175,15 +179,29 @@ run_test("mount", ({override, mock_template}) => {
     const $home = $('#ykphone-rail .ykphone-rail-item[data-rail-item="home"]');
     const $threads_icon = $(".top_left_recent_view .zulip-icon-recent");
     $threads_icon.addClass("zulip-icon-recent");
+    const $threads_link = $(".top_left_recent_view .left-sidebar-navigation-label-container");
+    $threads_link.attr("href", "#recent");
 
     ykphone_rail.mount();
 
     assert.ok(rail_html.includes('data-rail-item="dm"'));
-    assert.ok(rail_html.includes("zulip-icon-bell"));
-    assert.ok(rail_html.includes("zulip-icon-file-text"));
-    // The sidebar's Threads row shares the thread pill's icon.
+    // Each item carries the outline glyph and its filled twin.
+    assert.ok(
+        rail_html.includes(
+            "zulip-icon-ykphone-rail-bell ykphone-rail-glyph ykphone-rail-glyph-outline",
+        ),
+    );
+    assert.ok(
+        rail_html.includes(
+            "zulip-icon-ykphone-rail-bell-filled ykphone-rail-glyph ykphone-rail-glyph-filled",
+        ),
+    );
+    assert.ok(rail_html.includes("zulip-icon-ykphone-rail-file "));
+    // The sidebar's Threads row shares the thread pill's icon and leads
+    // to the Threads page.
     assert.ok(!$threads_icon.hasClass("zulip-icon-recent"));
     assert.ok($threads_icon.hasClass("zulip-icon-threads"));
+    assert.equal($threads_link.attr("href"), "#ykphone/threads");
     assert.ok(!rail_html.includes('data-rail-item="admin"'));
     assert.equal(prepended.get("#left-sidebar-container"), $(rail_html)[0]);
     assert.ok(header_html.includes("옆커폰"));

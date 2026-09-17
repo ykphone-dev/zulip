@@ -128,6 +128,8 @@ js_rules = RuleList(
                 "web/src/message_helper.ts",
                 "web/src/server_message.ts",
                 "web/src/state_data.ts",
+                # Reads the raw server field of GET /messages responses.
+                "web/src/ykphone_activity.ts",
                 "web/tests/",
             },
             "exclude_pattern": "emails",

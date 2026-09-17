@@ -36,6 +36,7 @@ import * as stream_topic_history from "./stream_topic_history.ts";
 import type * as transmit from "./transmit.ts";
 import type {TopicLink} from "./types.ts";
 import * as util from "./util.ts";
+import * as ykphone_split_view from "./ykphone_split_view.ts";
 
 // Docs: https://zulip.readthedocs.io/en/latest/subsystems/sending-messages.html
 
@@ -448,6 +449,12 @@ export function update_topic_hash_to_contain_with_term(message: Message): void {
     const filter = message_lists.current?.data.filter;
 
     if (!filter?.has_exactly_channel_topic_operators()) {
+        return;
+    }
+    // A conversation shown on a split page (옆커폰) keeps the page's own
+    // URL; the filter gains no with: term either, so a topic move made
+    // meanwhile is not followed there (the page reloads its rows).
+    if (ykphone_split_view.is_open()) {
         return;
     }
 

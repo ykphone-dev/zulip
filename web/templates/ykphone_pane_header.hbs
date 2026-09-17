@@ -1,5 +1,10 @@
 {{! Header at the top of the message pane: the current channel, conversation or view. }}
 <div class="ykphone-pane-header-main">
+    {{#if split_back_url}}
+    <a class="ykphone-pane-header-back" href="{{split_back_url}}" aria-label="{{t 'Back' }}">
+        <i class="zulip-icon zulip-icon-chevron-left" aria-hidden="true"></i>
+    </a>
+    {{/if}}
     {{#if channel}}
     <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{t 'Channel menu' }}" data-tippy-placement="bottom" aria-haspopup="true">
         <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>

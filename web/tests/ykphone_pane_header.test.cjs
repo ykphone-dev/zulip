@@ -58,8 +58,12 @@ mock_esm("../src/stream_data", {
 const ui_util = mock_esm("../src/ui_util", {
     matches_viewport_state: () => true,
 });
-const ykphone_activity = mock_esm("../src/ykphone_activity", {
-    is_visible: () => false,
+const ykphone_split_view = mock_esm("../src/ykphone_split_view", {
+    get_route: () => undefined,
+    is_thread_shown: () => false,
+    page_title: (page) => `title:${page}`,
+    page_icon: (page) => `icon:${page}`,
+    route_hash: (route) => `#ykphone/${route.page}`,
 });
 // The header renders inside a scroll-preserving wrapper; the wrapper's
 // arithmetic is covered by ykphone_layout.test.cjs.
@@ -80,10 +84,11 @@ set_realm(make_realm());
 const ykphone_pane_header = zrequire("ykphone_pane_header");
 
 // A stand-in for Filter with the handful of methods the header reads.
-function fake_filter({terms, title, common = true, in_home = false, icon}) {
+function fake_filter({terms, title, common = true, in_home = false, icon, near = false}) {
     return {
         is_in_home: () => in_home,
         is_common_narrow: () => common,
+        is_conversation_view_with_near: () => near,
         get_title: () => title,
         add_icon_data: (context) => ({...context, ...icon}),
         has_operator: (operator) => terms.some((term) => term.operator === operator),
@@ -142,12 +147,24 @@ run_test("get_context views", ({override}) => {
     assert.equal(ykphone_pane_header.get_context(undefined).title, "translated: Combined feed");
     override(inbox_util, "is_visible", () => false);
 
-    override(ykphone_activity, "is_visible", () => true);
+    // A split page (DM, Activity, Threads) with nothing selected: the
+    // placeholder is the view, and the header names the page.
+    override(ykphone_split_view, "get_route", () => ({
+        page: "activity",
+        tab: "all",
+        selection: undefined,
+    }));
     assert.deepEqual(ykphone_pane_header.get_context(undefined), {
-        title: "translated: Activity",
-        zulip_icon: "bell",
+        title: "title:activity",
+        zulip_icon: "icon:activity",
     });
-    override(ykphone_activity, "is_visible", () => false);
+    // With a selection the header is the conversation's own.
+    override(ykphone_split_view, "get_route", () => ({page: "dms", tab: "all", selection: "7"}));
+    assert.equal(
+        ykphone_pane_header.get_context(fake_filter({terms: [], in_home: true})).title,
+        "translated: Combined feed",
+    );
+    override(ykphone_split_view, "get_route", () => undefined);
 
     // A search narrow has no navbar title upstream (the search bar
     // opens instead); the pane says what it is.
@@ -156,6 +173,40 @@ run_test("get_context views", ({override}) => {
         title: "translated: Search results",
         zulip_icon: "search",
     });
+    // A conversation scrolled to a message (an Activity row) keeps the
+    // conversation's header, tabs included for the general chat.
+    const near = fake_filter({
+        terms: [
+            {operator: "channel", operand: "3"},
+            {operator: "topic", operand: ""},
+            {operator: "near", operand: "42"},
+        ],
+        title: "Verona",
+        icon: {zulip_icon: "hashtag"},
+        common: false,
+        near: true,
+    });
+    const near_context = ykphone_pane_header.get_context(near);
+    assert.equal(near_context.title, "Verona");
+    assert.equal(near_context.channel.stream_id, verona.stream_id);
+    assert.equal(near_context.tabs.active, "messages");
+
+    // A thread shown on a split page is named as one, without the
+    // channel controls; the general chat is not a thread.
+    override(ykphone_split_view, "is_thread_shown", () => true);
+    const thread = fake_filter({
+        terms: [
+            {operator: "channel", operand: "3"},
+            {operator: "topic", operand: "Ship it"},
+        ],
+        title: "Verona",
+        icon: {zulip_icon: "hashtag"},
+    });
+    assert.deepEqual(ykphone_pane_header.get_context(thread), {
+        title: "translated: Thread · #Verona",
+        zulip_icon: "threads",
+    });
+    assert.equal(ykphone_pane_header.get_context(near).title, "Verona");
 
     // Zulip's starred messages are the fork's saved messages: the
     // sidebar row is named for the view ("Later"), the header for its
@@ -420,6 +471,15 @@ run_test("render before mount", ({override, mock_template}) => {
     assert.equal(rendered.data.title, "translated: Threads");
     assert.ok(rendered.html.includes("zulip-icon-threads"));
     assert.ok(!rendered.html.includes("ykphone-pane-header-tabs"));
+    assert.equal(rendered.data.split_back_url, undefined);
+    assert.ok(!rendered.html.includes("ykphone-pane-header-back"));
+
+    // On a split page with a selection the header carries the way back
+    // to the page's list (shown by the stacked layout).
+    override(ykphone_split_view, "get_route", () => ({page: "dms", tab: "all", selection: "7"}));
+    ykphone_pane_header.render();
+    assert.equal(rendered.data.split_back_url, "#ykphone/dms");
+    assert.ok(rendered.html.includes('class="ykphone-pane-header-back" href="#ykphone/dms"'));
 });
 
 run_test("spectators never fetch subscribers or pins", ({override, mock_template}) => {

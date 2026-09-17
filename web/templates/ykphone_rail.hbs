@@ -13,13 +13,20 @@
                   href="{{href}}"
                   data-rail-item="{{id}}"
                   >
-                    <i
-                      class="zulip-icon zulip-icon-{{icon}}"
-                      aria-hidden="true"
-                      ></i>
+                    {{! The tile holds the glyph (outline, or its filled twin while active) and the badge; the label sits under it. }}
+                    <span class="ykphone-rail-tile">
+                        <i
+                          class="zulip-icon zulip-icon-{{icon}} ykphone-rail-glyph ykphone-rail-glyph-outline"
+                          aria-hidden="true"
+                          ></i>
+                        <i
+                          class="zulip-icon zulip-icon-{{filled_icon}} ykphone-rail-glyph ykphone-rail-glyph-filled"
+                          aria-hidden="true"
+                          ></i>
+                        {{! Unread count, filled in by ykphone_unread_badges; hidden while empty. }}
+                        <span class="ykphone-rail-badge" aria-hidden="true"></span>
+                    </span>
                     <span class="ykphone-rail-label">{{label}}</span>
-                    {{! Unread count, filled in by ykphone_unread_badges; hidden while empty. }}
-                    <span class="ykphone-rail-badge" aria-hidden="true"></span>
                 </a>
             </li>
         {{/each}}

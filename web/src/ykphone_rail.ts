@@ -31,7 +31,9 @@ import {current_user, realm} from "./state_data.ts";
 export type RailItem = {
     id: string;
     href: string;
+    // The rail's own outline glyph, and its filled twin for the active item.
     icon: string;
+    filled_icon: string;
     label: string;
     // The item is shown as active while the hash starts with one of
     // these.
@@ -43,28 +45,32 @@ export function rail_items(): RailItem[] {
         {
             id: "home",
             href: "#inbox",
-            icon: "house",
+            icon: "ykphone-rail-house",
+            filled_icon: "ykphone-rail-house-filled",
             label: $t({defaultMessage: "Home"}),
             hash_prefixes: ["#inbox"],
         },
         {
             id: "dm",
-            href: "#narrow/is/dm",
-            icon: "message-square-text",
+            href: "#ykphone/dms",
+            icon: "ykphone-rail-dm",
+            filled_icon: "ykphone-rail-dm-filled",
             label: $t({defaultMessage: "DM"}),
-            hash_prefixes: ["#narrow/is/dm", "#narrow/dm/"],
+            hash_prefixes: ["#ykphone/dms"],
         },
         {
             id: "activity",
             href: "#ykphone/activity",
-            icon: "bell",
+            icon: "ykphone-rail-bell",
+            filled_icon: "ykphone-rail-bell-filled",
             label: $t({defaultMessage: "Activity"}),
             hash_prefixes: ["#ykphone/activity"],
         },
         {
             id: "files",
             href: "#narrow/has/attachment",
-            icon: "file-text",
+            icon: "ykphone-rail-file",
+            filled_icon: "ykphone-rail-file-filled",
             label: $t({defaultMessage: "Files"}),
             hash_prefixes: ["#narrow/has/attachment"],
         },
@@ -73,7 +79,8 @@ export function rail_items(): RailItem[] {
         items.push({
             id: "admin",
             href: "#organization",
-            icon: "gear",
+            icon: "ykphone-rail-gear",
+            filled_icon: "ykphone-rail-gear-filled",
             label: $t({defaultMessage: "Admin"}),
             hash_prefixes: ["#organization"],
         });
@@ -152,11 +159,16 @@ export function mount(): void {
     // hand; make sure a state saved before never leaves it condensed.
     left_sidebar_navigation_area.force_expand_views();
     // The Threads row (upstream's recent conversations) gets the same
-    // icon as the thread pill and the thread button. The row is
-    // rendered once with the sidebar, so the class is swapped here.
+    // icon as the thread pill and the thread button, and leads to the
+    // fork's Threads page. The row is rendered once with the sidebar,
+    // so both are swapped here.
     $(".top_left_recent_view .zulip-icon-recent")
         .removeClass("zulip-icon-recent")
         .addClass("zulip-icon-threads");
+    $(".top_left_recent_view .left-sidebar-navigation-label-container").attr(
+        "href",
+        "#ykphone/threads",
+    );
     // The header is placed inside the search block so that resize.ts,
     // which subtracts that block's height when sizing the channel
     // list, accounts for it without changes.

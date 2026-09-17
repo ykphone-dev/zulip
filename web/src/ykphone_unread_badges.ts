@@ -191,6 +191,14 @@ function set_rail_badge(item_id: string, count: number): void {
     }
 }
 
+// Listeners run after every refresh of the navigation counts (the
+// split pages redraw their rows' counts and dots from them).
+const counts_listeners: (() => void)[] = [];
+
+export function on_counts_updated(listener: () => void): void {
+    counts_listeners.push(listener);
+}
+
 export function update_navigation(): void {
     const topics_by_stream = unread_non_general_topics();
     load_thread_lists(topics_by_stream);
@@ -210,6 +218,9 @@ export function update_navigation(): void {
 
     set_rail_badge("dm", unread.get_unread_pm().total_count);
     set_rail_badge("activity", activity_unread_count(thread_reply_ids));
+    for (const listener of counts_listeners) {
+        listener();
+    }
 }
 
 export function refresh_all(): void {

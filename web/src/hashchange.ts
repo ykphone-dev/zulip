@@ -34,7 +34,7 @@ import * as ui_report from "./ui_report.ts";
 import * as user_group_edit from "./user_group_edit.ts";
 import * as user_profile from "./user_profile.ts";
 import {user_settings} from "./user_settings.ts";
-import * as ykphone_activity_ui from "./ykphone_activity_ui.ts";
+import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 
 // Read https://zulip.readthedocs.io/en/latest/subsystems/hashchange-system.html
 // or locally: docs/subsystems/hashchange-system.md
@@ -59,6 +59,7 @@ function show_all_message_view(narrow_opts?: message_view.ShowMessageViewOpts): 
     // Don't export this function outside of this module since
     // `change_hash` is false here which means it is should only
     // be called after hash is updated in the URL.
+    ykphone_split_view_ui.close();
     message_view.show([{operator: "in", operand: "home"}], {
         trigger: "hashchange",
         change_hash: false,
@@ -175,6 +176,9 @@ function do_hashchange_normal(from_reload: boolean, restore_selected_id: boolean
     switch (hash[0]) {
         case "#topics":
         case "#narrow": {
+            // A split page (옆커폰) never reaches here for its own
+            // narrows; any other narrow leaves it, even the one shown.
+            ykphone_split_view_ui.close();
             let terms;
             try {
                 // TODO: Show possible valid URLs to the user.
@@ -231,7 +235,7 @@ function do_hashchange_normal(from_reload: boolean, restore_selected_id: boolean
             inbox_ui.show();
             break;
         case "#ykphone":
-            if (!ykphone_activity_ui.show_for_hash(hash[1])) {
+            if (!ykphone_split_view_ui.show_for_hash(hash.slice(1))) {
                 show_home_view(narrow_opts);
             }
             break;

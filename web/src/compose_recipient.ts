@@ -32,6 +32,7 @@ import * as ui_util from "./ui_util.ts";
 import * as user_groups from "./user_groups.ts";
 import * as util from "./util.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_split_view from "./ykphone_split_view.ts";
 
 type MessageType = "stream" | "private";
 
@@ -561,6 +562,9 @@ export let update_compose_area_placeholder_text = (): void => {
             stream_id,
             topic: compose_state.topic(),
         });
+        if (ykphone_split_view.is_thread_shown() && compose_state.topic() !== "") {
+            placeholder = $t({defaultMessage: "Reply in thread…"});
+        }
     } else if (message_type === "private") {
         placeholder = compose_ui.compute_placeholder_text({
             message_type,

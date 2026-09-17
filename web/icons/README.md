@@ -57,3 +57,20 @@ user-circle-active.svg
 user-circle-deactivated.svg
 user-circle-idle.svg
 user-circle-offline.svg
+ykphone-rail-bell.svg
+ykphone-rail-bell-filled.svg
+ykphone-rail-dm.svg
+ykphone-rail-dm-filled.svg
+ykphone-rail-file.svg
+ykphone-rail-file-filled.svg
+ykphone-rail-gear.svg
+ykphone-rail-gear-filled.svg
+ykphone-rail-house.svg
+ykphone-rail-house-filled.svg
+
+The `ykphone-rail-*` icons are the 옆커폰 fork's rail set (home, direct
+messages, activity, files, admin), drawn in-house on a 24px grid with a
+1.75px round-capped stroke and soft corners, and traced to filled
+outlines for the icon font; the `-filled` variants are the same
+silhouettes filled. The rail renders both glyphs of an item and the
+theme shows the filled one while the item is active.

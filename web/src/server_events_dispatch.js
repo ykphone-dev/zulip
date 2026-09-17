@@ -105,6 +105,7 @@ import * as user_status from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 
 export function dispatch_normal_event(event) {
     const noop = function () {
@@ -270,10 +271,12 @@ export function dispatch_normal_event(event) {
                 case "add":
                     reactions.add_reaction(event);
                     emoji_frequency.update_emoji_frequency_on_add_reaction_event(event);
+                    ykphone_split_view_ui.on_reaction_change(event);
                     break;
                 case "remove":
                     reactions.remove_reaction(event);
                     emoji_frequency.update_emoji_frequency_on_remove_reaction_event(event);
+                    ykphone_split_view_ui.on_reaction_change(event);
                     break;
                 default:
                     blueslip.error("Unexpected event type reaction/" + event.op);

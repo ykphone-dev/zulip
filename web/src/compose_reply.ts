@@ -27,7 +27,7 @@ import * as stream_data from "./stream_data.ts";
 import * as sub_store from "./sub_store.ts";
 import * as topic_link_util from "./topic_link_util.ts";
 import * as unread_ops from "./unread_ops.ts";
-import * as ykphone_activity from "./ykphone_activity.ts";
+import * as ykphone_split_view from "./ykphone_split_view.ts";
 
 type QuoteMessageOpts = {
     message_id?: number;
@@ -83,11 +83,11 @@ export let respond_to_message = (opts: {
             return;
         }
         message = message_opts.message;
-    } else if (ykphone_activity.is_visible()) {
-        // The Activity view (옆커폰) has no message list either.
+    } else if (ykphone_split_view.is_placeholder_visible()) {
+        // A split page (옆커폰) with nothing selected has no message list either.
         compose_actions.start({
             message_type: "stream",
-            trigger: "activity_nofocus",
+            trigger: "split_view_nofocus",
             keep_composebox_empty: opts.keep_composebox_empty,
         });
         return;

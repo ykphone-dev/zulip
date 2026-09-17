@@ -1,0 +1,60 @@
+{{! Rows of the DM page: one per conversation, then people the search matched who have no conversation yet. }}
+{{#if has_rows}}
+<ul class="ykphone-split-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item">
+            <a class="ykphone-split-row ykphone-split-dm-row{{#if is_active}} active{{/if}}{{#if has_unread}} unread{{/if}}" href="{{url}}" data-user-ids-string="{{user_ids_string}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-avatar-cell">
+                    {{#if is_group}}
+                    <span class="ykphone-split-avatar-stack">
+                        {{#each avatar_urls}}
+                            <img class="ykphone-split-avatar-small" src="{{this}}" alt="" loading="lazy" />
+                        {{/each}}
+                    </span>
+                    {{else}}
+                    <img class="ykphone-split-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                    {{#if user_circle_class}}
+                    <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-split-presence" data-presence-indicator-user-id="{{dm_user_id}}"></span>
+                    {{/if}}
+                    {{/if}}
+                </span>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-split-meta">
+                        <span class="ykphone-split-name" title="{{recipients}}">{{recipients}}</span>
+                        <span class="ykphone-split-time">{{time_label}}</span>
+                    </span>
+                    <span class="ykphone-split-line">
+                        <span class="ykphone-split-snippet">{{snippet}}</span>
+                        {{#if has_unread}}
+                        <span class="ykphone-split-count">{{unread}}</span>
+                        {{/if}}
+                    </span>
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{/if}}
+{{#if has_people}}
+<div class="ykphone-split-section-title">{{t 'People' }}</div>
+<ul class="ykphone-split-rows">
+    {{#each people}}
+        <li class="ykphone-split-item">
+            <a class="ykphone-split-row ykphone-split-person-row" href="{{url}}" data-user-id="{{user_id}}">
+                <span class="ykphone-split-avatar-cell">
+                    <img class="ykphone-split-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                    {{#if user_circle_class}}
+                    <span class="zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle ykphone-split-presence" data-presence-indicator-user-id="{{user_id}}"></span>
+                    {{/if}}
+                </span>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-split-name" title="{{name}}">{{name}}</span>
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{/if}}
+{{#unless (or has_rows has_people)}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/unless}}

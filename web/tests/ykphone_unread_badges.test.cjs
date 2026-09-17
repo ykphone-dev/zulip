@@ -347,8 +347,14 @@ run_test("update_navigation", () => {
     add_unread(archived, "Ship it");
     unread_dm_count = 3;
     $('#ykphone-rail .ykphone-rail-item[data-rail-item="dm"] .ykphone-rail-label').text("DM");
+    // Listeners (the split pages' rows) run after every refresh.
+    let notified = 0;
+    ykphone_unread_badges.on_counts_updated(() => {
+        notified += 1;
+    });
 
     ykphone_unread_badges.update_navigation();
+    assert.equal(notified, 1);
     // Every channel with unread topics other than the general chat has
     // its thread list requested.
     assert.deepEqual(loaded_thread_lists, [verona, denmark]);
