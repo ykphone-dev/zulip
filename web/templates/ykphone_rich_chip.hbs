@@ -1,0 +1,15 @@
+{{! A chip in the rich composer: Markdown shown as what it stands for. }}
+<span class="ykphone-rich-chip {{class_name}}"{{#if title}} title="{{title}}"{{/if}}>
+    {{~#if image_url~}}
+        <img class="ykphone-rich-chip-image" src="{{image_url}}" alt="{{text}}" />
+    {{~/if~}}
+    {{~#if emoji_code~}}
+        <span class="emoji emoji-{{emoji_code}}" role="img" aria-label="{{text}}"></span>
+    {{~/if~}}
+    {{~#if icon~}}
+        <i class="zulip-icon zulip-icon-{{icon}} ykphone-rich-chip-icon" aria-hidden="true"></i>
+    {{~/if~}}
+    {{~#if text~}}
+        <span class="ykphone-rich-chip-text">{{text}}</span>
+    {{~/if~}}
+</span>

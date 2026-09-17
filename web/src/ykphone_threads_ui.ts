@@ -35,6 +35,7 @@ import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
+import * as ykphone_rich_compose from "./ykphone_rich_compose.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
@@ -119,6 +120,7 @@ export function initialize(): void {
     ykphone_layout.track_feed_bottom();
     ykphone_pane_header.mount();
     ykphone_compose.mount();
+    ykphone_rich_compose.mount();
     ykphone_compose_narrow.initialize();
     ykphone_pins_ui.initialize();
     ykphone_favorites_ui.initialize();

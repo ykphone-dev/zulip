@@ -1,0 +1,15 @@
+{{! A poll or to-do list in the rich composer, which the message will be. }}
+<div class="ykphone-rich-widget-card">
+    <i class="zulip-icon zulip-icon-{{icon}} ykphone-rich-widget-icon" aria-hidden="true"></i>
+    <div class="ykphone-rich-widget-body">
+        <div class="ykphone-rich-widget-kind">{{kind_label}}</div>
+        <div class="ykphone-rich-widget-title">{{title}}</div>
+        {{#if has_items}}
+        <ul class="ykphone-rich-widget-items">
+            {{#each items}}
+            <li>{{this}}</li>
+            {{/each}}
+        </ul>
+        {{/if}}
+    </div>
+</div>

@@ -77,6 +77,7 @@ import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 
 function do_narrow_action(
@@ -407,7 +408,8 @@ export let processing_text = (): boolean => {
         $focused_elt.is("textarea") ||
         $focused_elt.parents(".pill-container").length > 0 ||
         $focused_elt.attr("id") === "compose-send-button" ||
-        $focused_elt.parents(".dropdown-list-container").length > 0
+        $focused_elt.parents(".dropdown-list-container").length > 0 ||
+        ykphone_rich_hooks.has_focus()
     );
 };
 

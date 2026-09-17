@@ -39,6 +39,7 @@ import {toggle_user_group_info_popover} from "./user_group_popover.ts";
 import * as user_groups from "./user_groups.ts";
 import type {UserGroup} from "./user_groups.ts";
 import * as util from "./util.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 let user_acknowledged_stream_wildcard = false;
 let upload_in_progress = false;
@@ -1238,6 +1239,13 @@ export let validate = (scheduling_message: boolean, show_banner = true): boolean
             disabled_send_tooltip_message_html = get_message_too_long_for_compose_error();
         }
         blueslip.debug("Invalid compose state: Message too long");
+        is_validating_compose_box = false;
+        return false;
+    }
+
+    const rich_error = ykphone_rich_hooks.send_error(show_banner);
+    if (rich_error !== undefined) {
+        disabled_send_tooltip_message_html = rich_error;
         is_validating_compose_box = false;
         return false;
     }

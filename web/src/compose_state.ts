@@ -3,6 +3,7 @@ import $ from "jquery";
 import * as compose_pm_pill from "./compose_pm_pill.ts";
 import * as stream_data from "./stream_data.ts";
 import * as sub_store from "./sub_store.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 let message_type: "stream" | "private" | undefined;
 let recipient_edited_manually = false;
@@ -211,7 +212,7 @@ export function focus_in_empty_compose(
     }
 
     const focused_element_id = document.activeElement?.id;
-    if (focused_element_id === "compose-textarea") {
+    if (focused_element_id === "compose-textarea" || ykphone_rich_hooks.has_focus()) {
         // Focus will be in the compose textarea after sending a
         // message; this is the most common situation.
         return true;

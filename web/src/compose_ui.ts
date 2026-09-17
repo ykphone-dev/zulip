@@ -34,6 +34,7 @@ import * as stream_data from "./stream_data.ts";
 import * as user_status from "./user_status.ts";
 import * as util from "./util.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 
 export const DEFAULT_COMPOSE_PLACEHOLDER = $t({defaultMessage: "Compose your message here"});
 
@@ -125,6 +126,16 @@ export let insert_and_scroll_into_view = (
     replace_all = false,
     replace_all_without_undo_support = false,
 ): void => {
+    if (
+        ykphone_rich_hooks.insert_text(
+            $textarea[0],
+            content,
+            replace_all,
+            replace_all_without_undo_support,
+        )
+    ) {
+        return;
+    }
     if (replace_all_without_undo_support) {
         // setFieldText is very slow and noticeable when inserting 10k+
         // characters of text like from a drafted response,
@@ -364,6 +375,10 @@ export let replace_syntax = (
     $textarea = $<HTMLTextAreaElement>("textarea#compose-textarea"),
     ignore_caret = false,
 ): boolean => {
+    const rich_result = ykphone_rich_hooks.replace_syntax($textarea[0], old_syntax, new_syntax);
+    if (rich_result !== undefined) {
+        return rich_result;
+    }
     // The following couple lines are needed to later restore the initial
     // logical position of the cursor after the replacement
     const prev_caret = $textarea.caret();
@@ -812,6 +827,9 @@ export let format_text = (
     type: string,
     inserted_content = "",
 ): void => {
+    if (ykphone_rich_hooks.format_text($textarea[0], type, inserted_content)) {
+        return;
+    }
     const italic_syntax = "*";
     const bold_syntax = "**";
     const bold_and_italic_syntax = "***";

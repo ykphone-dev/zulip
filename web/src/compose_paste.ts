@@ -13,8 +13,8 @@ import * as stream_data from "./stream_data.ts";
 import * as topic_link_util from "./topic_link_util.ts";
 import * as util from "./util.ts";
 
-const MINIMUM_PASTE_SIZE_FOR_FILE_TREATMENT = 2000;
-const MINIMUM_PASTE_SIZE_TO_AVOID_DIRECT_PASTE = 5000;
+export const MINIMUM_PASTE_SIZE_FOR_FILE_TREATMENT = 2000;
+export const MINIMUM_PASTE_SIZE_TO_AVOID_DIRECT_PASTE = 5000;
 
 declare global {
     // eslint-disable-next-line @typescript-eslint/consistent-type-definitions

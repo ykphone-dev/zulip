@@ -1,0 +1,19 @@
+{{! The rich composer's form for adding or changing a link. }}
+<form class="ykphone-rich-link-form">
+    {{#if show_text}}
+    <label class="ykphone-rich-link-label">
+        <span>{{t "Text" }}</span>
+        <input type="text" class="modal_text_input ykphone-rich-link-text" value="{{text}}" autocomplete="off" />
+    </label>
+    {{/if}}
+    <label class="ykphone-rich-link-label">
+        <span>{{t "Link" }}</span>
+        <input type="text" class="modal_text_input ykphone-rich-link-url" value="{{href}}" placeholder="https://" autocomplete="off" />
+    </label>
+    <div class="ykphone-rich-link-actions">
+        {{#if href}}
+        <button type="button" class="action-button action-button-text-neutral ykphone-rich-link-remove"><span class="action-button-label">{{t "Remove link" }}</span></button>
+        {{/if}}
+        <button type="submit" class="action-button action-button-solid-brand ykphone-rich-link-save"><span class="action-button-label">{{t "Save" }}</span></button>
+    </div>
+</form>

@@ -2912,6 +2912,378 @@ body.ykphone-pins-open #ykphone-pins-panel {
     }
 }
 
+/* ---- Rich composer ---- */
+
+/* The compose textarea stays for upstream, which reads and writes its
+   Markdown, measures it and focuses it (focus moves on to the editor).
+   It covers the message box invisibly, so what upstream measures is the
+   box's height, and never takes clicks. */
+#compose.ykphone-rich-compose {
+    #message-content-container {
+        position: relative;
+    }
+
+    #compose-textarea {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        width: 100%;
+        height: 100% !important;
+        opacity: 0;
+        pointer-events: none;
+        overflow: hidden !important;
+    }
+
+    .messagebox:has(.ykphone-rich-focused) {
+        border-color: var(--yk-text-muted);
+    }
+
+    /* Preview mode shows the rendered message instead. */
+    &.preview_mode .ykphone-rich-editor {
+        display: none;
+    }
+}
+
+/* The editor takes the textarea's place and looks like it: the same
+   area, padding, colours and height limit (upstream sets max-height on
+   the textarea; the editor mirrors it). */
+.ykphone-rich-editor {
+    grid-area: message-content;
+    min-width: 0;
+    max-height: 22em;
+    margin-right: calc(var(--composebox-buttons-width) * -1);
+    padding-right: var(--composebox-buttons-width);
+    overflow-y: auto;
+    background-color: var(--color-compose-message-content-background);
+    color: var(--color-text-default);
+    scrollbar-width: thin;
+    scrollbar-color: hsl(0deg 0% 50%) transparent;
+
+    &.textarea-over-limit {
+        background-color: var(
+            --color-compose-message-content-background-over-limit
+        );
+    }
+
+    &.textarea-approaching-limit {
+        background-color: var(
+            --color-compose-message-content-background-approaching-limit
+        );
+    }
+
+    &.rtl {
+        direction: rtl;
+    }
+}
+
+#compose.compose-fullscreen,
+#compose.compose-intermediate {
+    .ykphone-rich-editor {
+        max-height: none !important;
+        height: 100%;
+    }
+}
+
+.ykphone-rich-content {
+    /* The textarea's box: 5px above, 12px at the left like the fork's
+       textarea, and room for one line at least. */
+    min-height: calc(var(--base-line-height-unitless) * 1em + 5px);
+    padding: 5px 5px 5px 0.8571em; /* 12px at 14px/em */
+    outline: 0;
+    font-size: 1em;
+    line-height: var(--base-line-height-unitless);
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: normal;
+    caret-color: var(--color-text-default);
+
+    /* Blocks sit as closely as the message will show them. */
+    & > p:first-child,
+    & > ul:first-child,
+    & > ol:first-child {
+        padding-top: 0;
+    }
+
+    & p {
+        margin: 0;
+    }
+
+    & > * + p,
+    & blockquote > * + p,
+    & .ykphone-rich-spoiler-content > * + p {
+        margin-top: var(--markdown-interelement-space-px);
+    }
+
+    & ul,
+    & ol,
+    & blockquote,
+    & h1,
+    & h2,
+    & h3,
+    & h4,
+    & h5,
+    & h6 {
+        margin-top: 0;
+        margin-bottom: var(--markdown-interelement-space-px);
+    }
+
+    & li > p {
+        margin: 0;
+    }
+
+    /* The placeholder, and a spoiler's header placeholder. */
+    & .ykphone-rich-empty::before {
+        content: attr(data-placeholder);
+        float: left;
+        height: 0;
+        color: var(--color-text-placeholder, var(--yk-text-muted));
+        pointer-events: none;
+    }
+
+    & .ProseMirror-selectednode {
+        outline: 2px solid var(--color-outline-focus);
+        border-radius: 3px;
+    }
+
+    & a {
+        color: var(--yk-link);
+        text-decoration: underline;
+        cursor: text;
+    }
+
+    & code {
+        white-space: pre-wrap;
+    }
+
+    & .ykphone-rich-math-inline {
+        padding: 0 3px;
+        border-radius: 3px;
+        background-color: var(--yk-composer-bg);
+        font-family: "KaTeX_Math", "Times New Roman", serif;
+        font-style: italic;
+    }
+}
+
+/* Chips: Markdown shown as what it will be. */
+.ykphone-rich-chip {
+    white-space: nowrap;
+    user-select: all;
+
+    & a {
+        cursor: default;
+        pointer-events: none;
+    }
+}
+
+.ykphone-rich-upload,
+.ykphone-rich-call {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin: 0 1px;
+    padding: 0 6px;
+    vertical-align: baseline;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--yk-composer-bg);
+    color: var(--yk-text);
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.5;
+
+    .ykphone-rich-chip-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ykphone-rich-chip-icon {
+        flex-shrink: 0;
+        color: var(--yk-text-muted);
+    }
+}
+
+.ykphone-rich-upload.uploading .ykphone-rich-chip-icon {
+    animation: ykphone-rich-spin 1s linear infinite;
+}
+
+@keyframes ykphone-rich-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ykphone-rich-upload.image {
+    padding: 2px;
+
+    .ykphone-rich-chip-image {
+        display: block;
+        max-width: 8em;
+        max-height: 4em;
+        border-radius: 4px;
+        object-fit: cover;
+    }
+
+    .ykphone-rich-chip-text {
+        display: none;
+    }
+}
+
+.ykphone-rich-opaque-block {
+    margin-bottom: var(--markdown-interelement-space-px);
+    padding: 4px 8px;
+    border-left: 3px solid var(--yk-hairline);
+    border-radius: 2px;
+    cursor: default;
+    user-select: none;
+
+    & .rendered_markdown > :last-child {
+        margin-bottom: 0;
+    }
+}
+
+.ykphone-rich-widget-card {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+
+    .ykphone-rich-widget-icon {
+        margin-top: 2px;
+        color: var(--yk-text-muted);
+    }
+
+    .ykphone-rich-widget-kind {
+        color: var(--yk-text-muted);
+        font-size: 0.8571em; /* 12px at 14px/em */
+    }
+
+    .ykphone-rich-widget-title {
+        font-weight: 600;
+    }
+
+    .ykphone-rich-widget-items {
+        margin: 2px 0 0;
+        padding-inline-start: 1.2em;
+    }
+}
+
+.ykphone-rich-code-block {
+    position: relative;
+    margin-bottom: var(--markdown-interelement-space-px);
+
+    & pre {
+        margin: 0;
+        padding: 6px 8px;
+        border: 1px solid var(--yk-hairline);
+        border-radius: var(--yk-radius-sm);
+        background-color: var(--yk-composer-bg);
+        white-space: pre-wrap;
+        font-size: 0.9286em; /* 13px at 14px/em */
+    }
+
+    & code {
+        padding: 0;
+        border: 0;
+        background: none;
+    }
+
+    .ykphone-rich-code-label {
+        color: var(--yk-text-muted);
+        font-size: 0.7857em; /* 11px at 14px/em */
+        line-height: 1.5;
+        user-select: none;
+    }
+}
+
+.ykphone-rich-spoiler {
+    margin-bottom: var(--markdown-interelement-space-px);
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+
+    .ykphone-rich-spoiler-label {
+        padding: 2px 8px 0;
+        color: var(--yk-text-muted);
+        font-size: 0.7857em; /* 11px at 14px/em */
+        user-select: none;
+    }
+
+    .ykphone-rich-spoiler-header {
+        padding: 0 8px 4px;
+        border-bottom: 1px solid var(--yk-hairline);
+        font-weight: 600;
+    }
+
+    .ykphone-rich-spoiler-content {
+        padding: 4px 8px;
+    }
+}
+
+/* The bubble over the link the cursor is in: Slack shows the address
+   with a way to open, change or remove it. It never takes the cursor,
+   so clicking a link stays a way to type in it. */
+.ykphone-rich-link-bubble {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: min(24em, 80vw);
+    padding: 3px 6px;
+    font-size: 0.8571em; /* 12px at 14px/em */
+
+    .ykphone-rich-link-bubble-url {
+        overflow: hidden;
+        max-width: 11em;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        color: var(--yk-ink-muted);
+    }
+
+    .ykphone-rich-link-bubble-button {
+        padding: 2px 5px;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        color: var(--yk-link);
+        font-size: inherit;
+        line-height: 1.4;
+        cursor: pointer;
+
+        &:hover {
+            background: var(--yk-row-hover);
+        }
+    }
+}
+
+.ykphone-rich-link-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(20em, 80vw);
+    padding: 10px;
+
+    .ykphone-rich-link-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        color: var(--yk-text-muted);
+    }
+
+    .ykphone-rich-link-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+}
+
+.ykphone-rich-typeahead-anchor,
+.ykphone-rich-link-anchor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+}
+
 /* ---- Forwarding and quote cards ---- */
 
 /* Slack shows a quoted or forwarded message as the message itself: a
@@ -3733,6 +4105,12 @@ body.ykphone-keyboard-nav
 
 /* ---- Settings, channel and group settings, modals: Slack skin ---- */
 
+/* The fork hides topics; the personal settings panel for following
+   and muting topics would only confuse. */
+#settings_overlay_container .sidebar-item[data-section="topics"] {
+    display: none;
+}
+
 /* The item layout is upstream's; only the surface changes. Scoped to
    the overlay containers so nothing reaches the message feed. */
 #settings_overlay_container,
@@ -3959,9 +4337,3 @@ body.ykphone-keyboard-nav
     color: var(--yk-text-muted);
     white-space: nowrap;
 }
-/* The fork hides topics; the personal settings panel for following
-   and muting topics would only confuse. */
-#settings_overlay_container .sidebar-item[data-section="topics"] {
-    display: none;
-}
-

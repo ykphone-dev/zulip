@@ -327,6 +327,8 @@ EXEMPT_FILES = make_set(
         "web/src/ykphone_favorites_ui.ts",
         "web/src/ykphone_forward_ui.ts",
         "web/src/ykphone_pins_ui.ts",
+        "web/src/ykphone_rich_compose.ts",
+        "web/src/ykphone_rich_typeahead.ts",
         "web/src/ykphone_threads_ui.ts",
         "web/src/zcommand.ts",
         "web/src/zform.ts",
