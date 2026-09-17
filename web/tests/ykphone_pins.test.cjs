@@ -134,6 +134,16 @@ run_test("load and pin line", ({override}) => {
     requests[3].success({pins: [pin_dict(10, {pinned_by_user_id: 8})]});
     assert.deepEqual(changes[2], [verona_id, []]);
     assert.equal(ykphone_pins.pin_count(verona_id), 1);
+
+    // Pins made in the same second: the newer message first.
+    ykphone_pins.load_stream_pins(verona_id, true);
+    requests[4].success({
+        pins: [pin_dict(12, {date_pinned: 5}), pin_dict(13, {date_pinned: 5})],
+    });
+    assert.deepEqual(
+        ykphone_pins.pins_for_stream(verona_id).map((pin) => pin.message_id),
+        [13, 12],
+    );
 });
 
 run_test("pin and unpin", ({override}) => {

@@ -133,6 +133,7 @@ export function intro_context(filter: Filter | undefined): IntroContext | undefi
 
 export function hide_intro(): void {
     $("#ykphone-conversation-intro").hide();
+    $("body").removeClass("ykphone-intro-shown");
 }
 
 // Called from message_feed_top_notices once upstream knows whether
@@ -159,6 +160,10 @@ export function update_intro(msg_list: MessageList): void {
             rendered_markdown.update_elements($intro.find(".rendered_markdown"));
         }
         $intro.show();
+        // The intro is the empty state of a conversation with no
+        // messages yet; the theme hides upstream's "no messages" notice
+        // under it.
+        $("body").addClass("ykphone-intro-shown");
     });
 }
 

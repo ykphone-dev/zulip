@@ -163,7 +163,7 @@ export function get_actions_popover_content_context(message_id: number): ActionP
 
     if (is_content_editable) {
         editability_menu_item = $t({defaultMessage: "Edit message"});
-    } else {
+    } else if (ykphone_flags.VIEW_SOURCE_MENU_ITEM_ENABLED) {
         view_source_menu_item = $t({defaultMessage: "View original message"});
     }
 
@@ -252,7 +252,8 @@ export function get_actions_popover_content_context(message_id: number): ActionP
         should_display_mark_as_unread,
         should_display_remind_me_option,
         view_source_menu_item,
-        should_display_collapse,
+        should_display_collapse:
+            should_display_collapse && ykphone_flags.COLLAPSE_MESSAGE_MENU_ITEM_ENABLED,
         should_display_uncollapse,
         should_display_add_reaction_option,
         conversation_time_url,

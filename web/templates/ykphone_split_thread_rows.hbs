@@ -23,6 +23,7 @@
                         <span class="ykphone-split-thread-snippet">{{snippet}}</span>
                     </span>
                 </span>
+                {{#if reply_label}}
                 <span class="ykphone-split-thread-meta">
                     <span>{{reply_label}}</span>
                     {{#if last_reply_label}}
@@ -30,6 +31,7 @@
                     <span>{{last_reply_label}}</span>
                     {{/if}}
                 </span>
+                {{/if}}
             </a>
         </li>
     {{/each}}

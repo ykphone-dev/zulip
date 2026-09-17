@@ -169,6 +169,9 @@ run_test("handle_narrow_activated", ({override}) => {
     ykphone_compose_narrow.handle_narrow_activated({trigger: "hotkey", force_close: true});
     assert.equal(starts[5].message_type, "private");
     assert.equal(starts[5].defer_focus, false);
+    // A narrow without a trigger is not keyboard navigation.
+    ykphone_compose_narrow.handle_narrow_activated({force_close: false});
+    assert.equal(starts[6].defer_focus, true);
 });
 
 run_test("reopen after cancel", ({override}) => {

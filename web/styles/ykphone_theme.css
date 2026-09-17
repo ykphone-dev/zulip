@@ -4047,17 +4047,6 @@ body.ykphone-pins-open #ykphone-pins-panel {
 
 /* ---- Popovers, tooltips, modals, buttons ---- */
 
-/* "m" no longer opens the move-message dialog (the fork has no
-   topics to move a message between) and "Y" no longer opens a
-   channel's list of topics, so the keyboard-shortcuts reference stops
-   advertising them. Upstream hides the neighbouring edit row from
-   ui_init the same way; these rows are plain reference text with no
-   focus or menu semantics, so the theme can do it. */
-#move-message-hotkey-help,
-#list-of-topics-hotkey-help {
-    display: none;
-}
-
 .tippy-box[data-theme="popover-menu"],
 .tippy-box[data-theme="dropdown-widget"],
 .tippy-box[data-theme="light-border"] {
@@ -4251,6 +4240,13 @@ body.ykphone-conversation .top-messages-logo {
 
 .ykphone-conversation-intro {
     padding: 2.5em 1.5em 1em;
+}
+
+/* A conversation with no messages yet reads as its intro alone, as in
+   Slack; upstream's "no messages here" notice under it would be a
+   second empty state. Views without an intro keep the notice. */
+body.ykphone-intro-shown .empty_feed_notice_main {
+    display: none;
 }
 
 .ykphone-intro-tile {
@@ -4763,6 +4759,20 @@ body.ykphone-keyboard-nav
    and muting topics would only confuse. */
 #settings_overlay_container .sidebar-item[data-section="topics"] {
     display: none;
+}
+
+/* Preferences that choose between Zulip's topic views: the home view
+   (Inbox, Recent conversations, Combined feed), where a click on a
+   channel lands (the fork always opens its general chat), unread counts
+   for channels and topics, and folders in the Inbox. Hidden in the
+   personal preferences and in the organization's defaults for users. */
+#settings_overlay_container {
+    .input-group:has(> .setting_web_home_view),
+    .input-group:has(> .setting_web_channel_default_view),
+    .input-group:has(> .setting_web_stream_unreads_count_display_policy),
+    .settings-checkbox-wrapper:has(.web_inbox_show_channel_folders) {
+        display: none;
+    }
 }
 
 /* The item layout is upstream's; only the surface changes. Scoped to

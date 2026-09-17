@@ -76,6 +76,7 @@
                         </span>
                     </td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr>
                     <td class="definition">{{t 'Next unread topic' }}</td>
                     <td><span class="hotkey"><kbd>N</kbd></span></td>
@@ -84,6 +85,7 @@
                     <td class="definition">{{t 'Next unread followed topic' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>N</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Next unread DM conversation' }}</td>
                     <td><span class="hotkey"><kbd>P</kbd></span></td>
@@ -256,22 +258,27 @@
                     <td class="definition">{{t 'Go to topic or DM conversation' }}</td>
                     <td><span class="hotkey"><kbd>S</kbd></span></td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr>
                     <td class="definition">{{t 'Go to channel feed from topic view' }}</td>
                     <td><span class="hotkey"><kbd>S</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Go to direct message feed' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>P</kbd></span></td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr id="list-of-topics-hotkey-help">
                     <td class="definition">{{t 'Go to list of topics for the current channel' }}</td>
                     <td><span class="hotkey"><kbd>Y</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Zoom to message in conversation context' }}</td>
                     <td><span class="hotkey"><kbd>Z</kbd></span></td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr>
                     <td class="definition">{{t 'Go to next unread topic' }}</td>
                     <td><span class="hotkey"><kbd>N</kbd></span></td>
@@ -280,6 +287,7 @@
                     <td class="definition">{{t 'Go to next unread followed topic' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>N</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Go to next unread direct message' }}</td>
                     <td><span class="hotkey"><kbd>P</kbd></span></td>
@@ -296,6 +304,7 @@
                         </span>
                     </td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr>
                     <td class="definition">{{t 'Go to inbox' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>I</kbd></span></td>
@@ -308,6 +317,7 @@
                     <td class="definition">{{t 'Go to combined feed' }}</td>
                     <td><span class="hotkey"><kbd>A</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Go to mentions' }}</td>
                     <td><span class="hotkey"><kbd>Ctrl</kbd> + <kbd>@</kbd></span></td>
@@ -349,10 +359,12 @@
                         </span>
                     </td>
                 </tr>
+                {{#if ykphone_quote_message_enabled}}
                 <tr>
                     <td class="definition">{{t 'Quote message' }}</td>
                     <td><span class="hotkey"><kbd>></kbd></span></td>
                 </tr>
+                {{/if}}
                 <tr>
                     <td class="definition">{{t 'Forward message' }}</td>
                     <td><span class="hotkey"><kbd>&lt;</kbd></span></td> <!-- &lt; is the HTML entity for < -->
@@ -431,10 +443,12 @@
                     <td class="definition">{{t 'Show images in thread' }}</td>
                     <td><span class="hotkey"><kbd>V</kbd></span></td>
                 </tr>
+                {{#if ykphone_move_message_enabled}}
                 <tr id="move-message-hotkey-help">
                     <td class="definition">{{t 'Move messages or topic' }}</td>
                     <td><span class="hotkey"><kbd>M</kbd></span></td>
                 </tr>
+                {{/if}}
                 <tr>
                     <td class="definition">{{t 'View edit and move history' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>H</kbd></span></td>
@@ -469,16 +483,19 @@
                     <td class="definition">{{t 'Collapse/show selected message' }}</td>
                     <td><span class="hotkey"><kbd>-</kbd></span></td>
                 </tr>
+                {{#unless ykphone_topics_hidden}}
                 <tr>
                     <td class="definition">{{t 'Toggle topic mute' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>M</kbd></span></td>
                 </tr>
+                {{/unless}}
                 <tr>
                     <td class="definition">{{t 'Copy link to message' }}</td>
                     <td><span class="hotkey"><kbd>L</kbd></span></td>
                 </tr>
             </table>
         </div>
+        {{#unless ykphone_topics_hidden}}
         <div>
             <table class="hotkeys_table table table-striped table-bordered">
                 <thead>
@@ -496,6 +513,7 @@
                 </tr>
             </table>
         </div>
+        {{/unless}}
         <div>
             <table class="hotkeys_table table table-striped table-bordered">
                 <thead>

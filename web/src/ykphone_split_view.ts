@@ -671,10 +671,14 @@ export function thread_row_contexts(current: SplitRoute, rows: ThreadRow[]): Thr
                     : people.small_avatar_url_for_person(sender),
             sender_name: row.root_sender_full_name,
             snippet: row.root_snippet,
-            reply_label: $t(
-                {defaultMessage: "{count, plural, one {# reply} other {# replies}}"},
-                {count: row.reply_count},
-            ),
+            // A topic nobody has replied in yet shows no count.
+            reply_label:
+                row.reply_count === 0
+                    ? ""
+                    : $t(
+                          {defaultMessage: "{count, plural, one {# reply} other {# replies}}"},
+                          {count: row.reply_count},
+                      ),
             last_reply_label:
                 row.last_reply_timestamp === null
                     ? ""

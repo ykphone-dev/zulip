@@ -19,6 +19,9 @@ import * as scheduled_messages from "./scheduled_messages.ts";
 import {parse_html} from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_schedule_presets from "./ykphone_schedule_presets.ts";
+import * as ykphone_schedule_presets_ui from "./ykphone_schedule_presets_ui.ts";
 
 export const SCHEDULING_MODAL_UPDATE_INTERVAL_IN_MILLISECONDS = 60 * 1000;
 const ENTER_SENDS_SELECTION_DELAY = 600;
@@ -58,7 +61,9 @@ export function open_schedule_message_menu(
         onShow(instance) {
             // Only show send later options that are possible today.
             const date = new Date();
-            const filtered_send_opts = scheduled_messages.get_filtered_send_opts(date);
+            const filtered_send_opts = ykphone_flags.SLACK_SCHEDULE_PRESETS_ENABLED
+                ? ykphone_schedule_presets.popover_context(date, remind_message_id !== undefined)
+                : scheduled_messages.get_filtered_send_opts(date);
             instance.setContent(
                 parse_html(
                     render_schedule_message_popover({
@@ -148,7 +153,9 @@ export function open_schedule_message_menu(
                 "click",
                 ".send_later_today, .send_later_tomorrow, .send_later_monday",
                 function (this: HTMLElement, e) {
-                    const send_at_time = set_compose_box_schedule(this);
+                    const send_at_time =
+                        ykphone_schedule_presets.relative_send_at_seconds(this.id, new Date()) ??
+                        set_compose_box_schedule(this);
                     message_schedule_callback(send_at_time);
                     e.preventDefault();
                     e.stopPropagation();
@@ -318,7 +325,9 @@ export function should_update_send_later_options(date: Date): boolean {
 
 export function update_send_later_options(): void {
     const now = new Date();
-    if (should_update_send_later_options(now)) {
+    if (ykphone_flags.SLACK_SCHEDULE_PRESETS_ENABLED) {
+        ykphone_schedule_presets_ui.refresh_open_menu(now);
+    } else if (should_update_send_later_options(now)) {
         const filtered_send_opts = scheduled_messages.get_filtered_send_opts(now);
         $("#send-later-options").replaceWith(
             $(render_schedule_message_popover(filtered_send_opts)),

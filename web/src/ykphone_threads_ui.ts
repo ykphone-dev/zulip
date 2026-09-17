@@ -27,7 +27,6 @@ import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
-import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_forward from "./ykphone_forward.ts";
 import * as ykphone_history from "./ykphone_history.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
@@ -116,7 +115,6 @@ function add_mount_points(): void {
 }
 
 export function initialize(): void {
-    ykphone_flags.set_channels_open_in_general_chat(true);
     add_mount_points();
     ykphone_rail.mount();
     ykphone_unread_badges.initialize();

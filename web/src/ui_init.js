@@ -178,6 +178,7 @@ import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as watchdog from "./watchdog.ts";
 import * as widgets from "./widgets.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_threads_ui from "./ykphone_threads_ui.ts";
 
@@ -740,6 +741,9 @@ export async function initialize_everything(state_data) {
         },
     });
 
+    // The 옆커폰 fork's topics-hidden flag, before the page's first view
+    // renders the window title, the shortcuts reference and the rest.
+    ykphone_flags.set_channels_open_in_general_chat(true);
     // All overlays, and also activity_ui, must be initialized before hashchange.ts
     hashchange.initialize();
 

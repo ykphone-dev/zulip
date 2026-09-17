@@ -28,6 +28,7 @@ import {$t} from "./i18n.ts";
 import * as scroll_util from "./scroll_util.ts";
 import * as util from "./util.ts";
 import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
+import * as ykphone_typeahead_filter from "./ykphone_typeahead_filter.ts";
 
 // Just the parts of the composer the menu needs.
 export type TypeaheadHost = {
@@ -110,7 +111,9 @@ function typeahead_text(
     // around the cursor are; a newline stands in for them, and is taken
     // out again when a suggestion is chosen.
     const after = BREAK + markdown.slice(caret);
-    const topic = TOPIC_AFTER_CHANNEL_RE.exec(before);
+    const topic = ykphone_typeahead_filter.offers_topic_links()
+        ? TOPIC_AFTER_CHANNEL_RE.exec(before)
+        : null;
     if (topic !== null) {
         const {name, topic: typed} = topic.groups!;
         const rewritten = before.slice(0, topic.index) + `#**${name}>${typed}`;
@@ -128,6 +131,9 @@ function typeahead_text(
 }
 
 function wanted(item: TypeaheadSuggestion): boolean {
+    if (!ykphone_typeahead_filter.offers_suggestion(item)) {
+        return false;
+    }
     if (item.type === "slash" && ["poll", "todo"].includes(item.name)) {
         return host!.widgets;
     }

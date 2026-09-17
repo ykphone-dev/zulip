@@ -8,6 +8,7 @@ import * as hash_util from "./hash_util.ts";
 import {$t} from "./i18n.ts";
 import * as inbox_util from "./inbox_util.ts";
 import * as narrow_state from "./narrow_state.ts";
+import * as narrow_title from "./narrow_title.ts";
 import {page_params} from "./page_params.ts";
 import * as peer_data from "./peer_data.ts";
 import * as recent_view_util from "./recent_view_util.ts";
@@ -234,5 +235,7 @@ export function maybe_rerender_title_area_for_stream(modified_stream_id: number)
 
     if (current_stream_id === modified_stream_id) {
         render_title_area();
+        // The window title names the channel too (a rename).
+        narrow_title.update_narrow_title(narrow_state.filter());
     }
 }

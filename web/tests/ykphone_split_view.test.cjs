@@ -623,7 +623,13 @@ run_test("thread rows", (helpers) => {
             last_reply_timestamp: null,
             last_activity_timestamp: 1_700_000_002,
         }),
-        thread(3, {root_sender_id: 999, root_sender_full_name: "Ghost", stream_id: 4}),
+        thread(3, {
+            root_sender_id: 999,
+            root_sender_full_name: "Ghost",
+            stream_id: 4,
+            reply_count: 0,
+            last_reply_timestamp: null,
+        }),
         thread(4, {last_activity_timestamp: 1_700_000_104}),
         // The same second as thread 4: the newer root comes first.
         thread(5, {last_activity_timestamp: 1_700_000_104}),
@@ -661,6 +667,9 @@ run_test("thread rows", (helpers) => {
     assert.equal(one.last_reply_label, `translated: Last reply relative:${1_700_000_101}`);
     assert.equal(two.reply_label, "translated: 1 reply");
     assert.equal(two.last_reply_label, "");
+    // A topic without replies shows no count.
+    assert.equal(three.reply_label, "");
+    assert.equal(three.last_reply_label, "");
     // An unknown channel or sender still makes a row.
     assert.equal(three.channel_name, "");
     assert.equal(three.avatar_url, "/avatar/999");

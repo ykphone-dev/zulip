@@ -19,6 +19,7 @@ import * as stream_settings_ui from "./stream_settings_ui.ts";
 import * as ui_util from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 function do_change_show_channel_folders_left_sidebar(instance: tippy.Instance): void {
     const show_channel_folders = user_settings.web_left_sidebar_show_channel_folders;
@@ -144,7 +145,8 @@ export function initialize(): void {
             onShow(instance) {
                 const show_channel_folders = user_settings.web_left_sidebar_show_channel_folders;
                 const show_collapse_expand_all_options = true;
-                const show_channel_display_options = true;
+                // Both choices are about topics, which the fork hides.
+                const show_channel_display_options = !ykphone_flags.channels_open_in_general_chat();
                 // Assuming that the instance can be shown, track and
                 // prep the instance for showing
                 popover_menus.popover_instances.show_folders_sidebar = instance;

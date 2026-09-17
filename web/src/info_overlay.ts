@@ -21,6 +21,7 @@ import * as rendered_markdown from "./rendered_markdown.ts";
 import * as scroll_util from "./scroll_util.ts";
 import {current_user} from "./state_data.ts";
 import {user_settings} from "./user_settings.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 // Make it explicit that our toggler is undefined until
 // set_up_toggler is called.
@@ -252,7 +253,13 @@ export function set_up_toggler(): void {
     );
     $(".informational-overlays .overlay-body").append($search_operators);
 
-    const $keyboard_shortcuts = $(render_keyboard_shortcut());
+    const $keyboard_shortcuts = $(
+        render_keyboard_shortcut({
+            ykphone_topics_hidden: ykphone_flags.channels_open_in_general_chat(),
+            ykphone_quote_message_enabled: ykphone_flags.QUOTE_MESSAGE_ENABLED,
+            ykphone_move_message_enabled: ykphone_flags.MOVE_MESSAGE_ENABLED,
+        }),
+    );
     $(".informational-overlays .overlay-body").append($keyboard_shortcuts);
 
     const opts = {

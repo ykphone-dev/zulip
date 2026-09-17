@@ -21,6 +21,9 @@ import {$t} from "./i18n.ts";
 import * as keydown_util from "./keydown_util.ts";
 import * as left_sidebar_navigation_area from "./left_sidebar_navigation_area.ts";
 import type {Message} from "./message_store.ts";
+import * as message_view_header from "./message_view_header.ts";
+import * as narrow_state from "./narrow_state.ts";
+import * as narrow_title from "./narrow_title.ts";
 import {page_params} from "./page_params.ts";
 import * as spectators from "./spectators.ts";
 import type {NarrowTerm} from "./state_data.ts";
@@ -302,6 +305,12 @@ function show_placeholder(stale: boolean): void {
         }),
     );
     if (ykphone_split_view.is_placeholder_visible()) {
+        // views_util.show does nothing for a view already on screen,
+        // so a switch between two pages that both show the placeholder
+        // (Activity → Threads) refreshes what names the page here.
+        highlight_sidebar();
+        narrow_title.update_narrow_title(narrow_state.filter());
+        message_view_header.render_title_area();
         return;
     }
     hide_other_views_callback?.();

@@ -332,6 +332,7 @@ EXEMPT_FILES = make_set(
         "web/src/ykphone_rich_surfaces.ts",
         "web/src/ykphone_rich_typeahead.ts",
         "web/src/ykphone_rich_views.ts",
+        "web/src/ykphone_schedule_presets_ui.ts",
         "web/src/ykphone_split_view_ui.ts",
         "web/src/ykphone_threads_ui.ts",
         "web/src/zcommand.ts",

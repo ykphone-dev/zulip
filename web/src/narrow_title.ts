@@ -11,6 +11,7 @@ import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as unread from "./unread.ts";
 import type {FullUnreadCountsData} from "./unread.ts";
+import * as ykphone_narrow_title from "./ykphone_narrow_title.ts";
 import * as ykphone_split_view from "./ykphone_split_view.ts";
 
 export let unread_count = 0;
@@ -36,6 +37,11 @@ export function compute_narrow_title(filter?: Filter): string {
     if (filter_title === undefined) {
         // Default result for uncommon narrow/search views.
         return $t({defaultMessage: "Search results"});
+    }
+
+    const ykphone_title = ykphone_narrow_title.channel_title(filter);
+    if (ykphone_title !== undefined) {
+        return ykphone_title;
     }
 
     if (filter.has_operator("channel")) {
@@ -78,8 +84,7 @@ export function redraw_title(): void {
         narrow_title +
         " - " +
         realm.realm_name +
-        " - " +
-        "Zulip";
+        ykphone_narrow_title.title_suffix();
 
     document.title = new_title;
 }

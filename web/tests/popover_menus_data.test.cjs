@@ -20,6 +20,7 @@ const user_groups = zrequire("user_groups");
 const {MessageListData} = zrequire("message_list_data");
 const {set_current_user, set_realm} = zrequire("state_data");
 const settings_config = zrequire("settings_config");
+const ykphone_flags = zrequire("ykphone_flags");
 
 const noop = function () {};
 
@@ -191,8 +192,18 @@ function test(label, f) {
     });
 }
 
+// The 옆커폰 fork leaves "Collapse message" and "View original message"
+// out of the menu (ykphone_flags); the upstream tests below switch them
+// back on to test upstream's rules, and "fork menu items" tests the
+// fork's.
+function with_upstream_menu_items(override_rewire) {
+    override_rewire(ykphone_flags, "COLLAPSE_MESSAGE_MENU_ITEM_ENABLED", true);
+    override_rewire(ykphone_flags, "VIEW_SOURCE_MENU_ITEM_ENABLED", true);
+}
+
 // Test functions
-test("my_message_all_actions", ({override}) => {
+test("my_message_all_actions", ({override, override_rewire}) => {
+    with_upstream_menu_items(override_rewire);
     // Set page parameters.
     set_page_params_no_edit_restrictions({override});
     override(realm, "realm_can_delete_any_message_group", everyone.id);
@@ -250,7 +261,8 @@ test("my_message_all_actions", ({override}) => {
     assert.equal(response.should_display_quote_message, true);
 });
 
-test("not_my_message_view_actions", ({override}) => {
+test("not_my_message_view_actions", ({override, override_rewire}) => {
+    with_upstream_menu_items(override_rewire);
     set_page_params_no_edit_restrictions({override});
     // Get message that is only viewable
     override(realm, "realm_can_delete_any_message_group", everyone.id);
@@ -289,7 +301,8 @@ test("not_my_message_view_actions", ({override}) => {
     assert.equal(response.move_message_menu_item, undefined);
 });
 
-test("not_my_message_view_source_and_move", ({override}) => {
+test("not_my_message_view_source_and_move", ({override, override_rewire}) => {
+    with_upstream_menu_items(override_rewire);
     set_page_params_no_edit_restrictions({override});
     override(realm, "realm_can_delete_any_message_group", everyone.id);
     override(realm, "realm_can_move_messages_between_topics_group", everyone.id);
@@ -331,6 +344,43 @@ test("not_my_message_view_source_and_move", ({override}) => {
     assert.equal(response.editability_menu_item, undefined);
     // See the note above: the fork never offers "Move messages".
     assert.equal(response.move_message_menu_item, undefined);
+});
+
+test("fork menu items", ({override}) => {
+    set_page_params_no_edit_restrictions({override});
+    override(realm, "realm_can_delete_any_message_group", everyone.id);
+    override(current_user, "user_id", me.user_id);
+    const list = init_message_list();
+    message_lists.set_current(list);
+
+    // Somebody else's message, which upstream offers to collapse and
+    // to show the source of.
+    const message = {
+        id: 1,
+        sender_id: mike.user_id,
+        is_hidden: false,
+        sent_by_me: false,
+        locally_echoed: false,
+        is_stream: true,
+        stream_id: 1,
+        type: "stream",
+        unread: false,
+        collapsed: false,
+        topic: "New topic",
+    };
+    add_message_with_view(list, [message, {...message, id: 2, collapsed: true}]);
+
+    let response = popover_menus_data.get_actions_popover_content_context(1);
+    assert.equal(response.view_source_menu_item, undefined);
+    assert.equal(response.editability_menu_item, undefined);
+    assert.equal(response.should_display_collapse, false);
+    assert.equal(response.should_display_uncollapse, false);
+
+    // A message collapsed before (or with the "-" key) can still be
+    // expanded from the menu.
+    response = popover_menus_data.get_actions_popover_content_context(2);
+    assert.equal(response.should_display_collapse, false);
+    assert.equal(response.should_display_uncollapse, true);
 });
 
 // Helper to create a minimal message object with a given timestamp.

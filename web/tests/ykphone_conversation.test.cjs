@@ -189,6 +189,7 @@ run_test("update_intro", ({override, mock_template}) => {
     assert.equal(rendered.channel.name, "Verona");
     assert.equal($intro.html(), "<intro>");
     assert.ok($intro.visible());
+    assert.ok($("body").hasClass("ykphone-intro-shown"));
     assert.equal(updated.length, 1);
     assert.equal(updated[0][0], $markdown[0]);
     // Shown without moving the conversation already on screen.
@@ -199,6 +200,7 @@ run_test("update_intro", ({override, mock_template}) => {
     found_oldest = false;
     ykphone_conversation.update_intro(msg_list);
     assert.ok(!$intro.visible());
+    assert.ok(!$("body").hasClass("ykphone-intro-shown"));
     found_oldest = true;
     history_limited = true;
     ykphone_conversation.update_intro(msg_list);
@@ -220,6 +222,8 @@ run_test("update_intro", ({override, mock_template}) => {
     assert.ok($intro.visible());
     assert.equal(updated.length, 0);
 
+    assert.ok($("body").hasClass("ykphone-intro-shown"));
     ykphone_conversation.hide_intro();
     assert.ok(!$intro.visible());
+    assert.ok(!$("body").hasClass("ykphone-intro-shown"));
 });
