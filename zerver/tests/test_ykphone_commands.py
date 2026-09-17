@@ -60,6 +60,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
     def realm_default_avatar_source(self) -> str:
         return Realm.objects.get(string_id="zulip").default_avatar_source
 
+    def realm_link_previews(self) -> bool:
+        return Realm.objects.get(string_id="zulip").inline_url_embed_preview
+
     def test_realm_default(self) -> None:
         hamlet = self.example_user("hamlet")
         self.assertFalse(self.realm_default())
@@ -69,6 +72,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             self.realm_default_icon_count(), UserProfile.DESKTOP_ICON_COUNT_DISPLAY_MESSAGES
         )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_JDENTICON)
+        self.assertFalse(self.realm_link_previews())
         self.assertFalse(hamlet.enter_sends)
 
         output = self.run_command("--realm=zulip")
@@ -80,6 +84,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             self.realm_default_icon_count(), UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION
         )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_GRAVATAR)
+        self.assertTrue(self.realm_link_previews())
         # Existing users are untouched without --existing-users.
         hamlet.refresh_from_db()
         self.assertFalse(hamlet.enter_sends)

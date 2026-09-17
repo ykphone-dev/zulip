@@ -20,8 +20,8 @@ Sets the organization's defaults so that new users send with Enter
 (Shift+Enter inserts a newline), read at a compact font size, see a
 count rather than a list of names on an emoji reaction, see only
 direct messages and mentions in the unread count of the browser tab
-and app icon, and get the neutral default profile picture instead of
-a generated pattern.
+and app icon, get the neutral default profile picture instead of a
+generated pattern, and see a preview card under links, as in Slack.
 With --existing-users the settings are also applied to every active
 human user of the organization, and the generated pattern pictures
 those users still have are replaced by the default one."""
@@ -65,6 +65,9 @@ those users still have are replaced by the default one."""
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_GRAVATAR, acting_user=None
         )
+        # Zulip's organizations start with link previews off; Slack shows
+        # them for every link.
+        do_set_realm_property(realm, "inline_url_embed_preview", True, acting_user=None)
         self.stdout.write(f"Applied the Slack defaults for new users of {realm.string_id}.")
 
         if options["existing_users"]:
