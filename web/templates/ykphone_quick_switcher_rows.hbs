@@ -1,0 +1,27 @@
+{{! The quick switcher's results; the first is active until the keys or the pointer move. }}
+{{#each items}}
+    <li
+      id="ykphone-quick-switcher-option-{{@index}}"
+      class="ykphone-quick-switcher-option{{#if @first}} active{{/if}}"
+      role="option"
+      aria-selected="{{#if @first}}true{{else}}false{{/if}}"
+      data-index="{{@index}}"
+      data-hash="{{hash}}"
+      data-page="{{page}}"
+      >
+        {{#if avatar_url}}
+            <img class="ykphone-place-avatar" src="{{avatar_url}}" alt="" />
+        {{else}}
+            <i class="zulip-icon zulip-icon-{{icon}} ykphone-place-icon" aria-hidden="true"></i>
+        {{/if}}
+        <span class="ykphone-place-title">{{title}}</span>
+        {{#if context}}
+            <span class="ykphone-place-context">{{context}}</span>
+        {{/if}}
+        {{#if kind_label}}
+            <span class="ykphone-quick-switcher-kind">{{kind_label}}</span>
+        {{/if}}
+    </li>
+{{else}}
+    <li class="ykphone-quick-switcher-empty" role="presentation">{{t "No results." }}</li>
+{{/each}}

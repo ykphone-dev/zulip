@@ -76,6 +76,7 @@ import * as util from "./util.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
+import * as ykphone_hotkeys from "./ykphone_hotkeys.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
@@ -398,7 +399,7 @@ export function get_keydown_hotkey(e: JQuery.KeyDownEvent): Hotkey | Hotkey[] | 
         key = "Cmd+" + key;
     }
 
-    return KEYDOWN_MAPPINGS[key];
+    return KEYDOWN_MAPPINGS[key] ?? ykphone_hotkeys.keydown_hotkey(key);
 }
 
 export let processing_text = (): boolean => {
@@ -473,6 +474,10 @@ function process_escape_key(e: JQuery.KeyDownEvent): boolean {
 
     if (navbar_menus.any_focused()) {
         navbar_menus.blur_focused();
+        return true;
+    }
+
+    if (ykphone_hotkeys.process_escape_key(e)) {
         return true;
     }
 
@@ -895,6 +900,10 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
     // the "user status" modal can show the emoji picker.
     if (emoji_picker.is_open()) {
         return emoji_picker.navigate(event_name);
+    }
+
+    if (ykphone_hotkeys.process_hotkey(e, event_name)) {
+        return true;
     }
 
     // modals.any_active() and modals.active_modal() both query the dom to

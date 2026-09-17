@@ -21,7 +21,6 @@ import render_ykphone_navbar_history from "../templates/ykphone_navbar_history.h
 import render_ykphone_rail from "../templates/ykphone_rail.hbs";
 import render_ykphone_sidebar_header from "../templates/ykphone_sidebar_header.hbs";
 
-import * as browser_history from "./browser_history.ts";
 import * as buddy_data from "./buddy_data.ts";
 import {$t} from "./i18n.ts";
 import * as left_sidebar_navigation_area from "./left_sidebar_navigation_area.ts";
@@ -44,11 +43,22 @@ export function rail_items(): RailItem[] {
     const items: RailItem[] = [
         {
             id: "home",
-            href: "#inbox",
+            // Home is the last conversation (ykphone_home); a plain
+            // click is handled in ykphone_threads_ui, and the empty
+            // URL a new tab opens resolves to the same place.
+            href: "#",
             icon: "ykphone-rail-house",
             filled_icon: "ykphone-rail-house-filled",
             label: $t({defaultMessage: "Home"}),
-            hash_prefixes: ["#inbox"],
+            // Every conversation belongs to Home, as in Slack, and so
+            // does upstream's Inbox, which is reachable by its URL.
+            hash_prefixes: [
+                "#narrow/channel/",
+                "#narrow/stream/",
+                "#narrow/dm/",
+                "#narrow/pm-with/",
+                "#inbox",
+            ],
         },
         {
             id: "dm",
@@ -89,12 +99,13 @@ export function rail_items(): RailItem[] {
 }
 
 export function active_item_id(hash: string): string | undefined {
-    // The logo links to "#", which the app resolves to the home view.
-    const effective_hash =
-        hash === "" || hash === "#" ? browser_history.get_home_view_hash() : hash;
-    return rail_items().find((item) =>
-        item.hash_prefixes.some((prefix) => effective_hash.startsWith(prefix)),
-    )?.id;
+    // The logo and the Home item link to "#", which the app resolves
+    // to Home.
+    if (hash === "" || hash === "#") {
+        return "home";
+    }
+    return rail_items().find((item) => item.hash_prefixes.some((prefix) => hash.startsWith(prefix)))
+        ?.id;
 }
 
 export function update_active_item(hash: string): void {

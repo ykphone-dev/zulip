@@ -1,0 +1,32 @@
+{{! The navbar's History dropdown (the 옆커폰 fork): recently visited conversations and pages, newest first. }}
+<div class="popover-menu ykphone-history-menu" data-simplebar data-simplebar-tab-index="-1">
+    <div class="ykphone-history-menu-heading" aria-hidden="true">{{t "History" }}</div>
+    <ul role="menu" class="popover-menu-list" aria-label="{{t 'History' }}">
+        {{#each items}}
+            <li role="none" class="link-item popover-menu-list-item">
+                <a
+                  role="menuitem"
+                  href="{{hash}}"
+                  class="popover-menu-link navigate-link-on-enter ykphone-history-menu-item{{#if is_current}} ykphone-history-menu-current{{/if}}"
+                  tabindex="0"
+                  {{#if is_current}}aria-current="page"{{/if}}
+                  >
+                    {{#if avatar_url}}
+                        <img class="ykphone-place-avatar" src="{{avatar_url}}" alt="" />
+                    {{else}}
+                        <i class="popover-menu-icon zulip-icon zulip-icon-{{icon}} ykphone-place-icon" aria-hidden="true"></i>
+                    {{/if}}
+                    <span class="popover-menu-label ykphone-history-menu-label">
+                        <span class="ykphone-place-title">{{title}}</span>
+                        {{#if context}}
+                            <span class="ykphone-place-context">{{context}}</span>
+                        {{/if}}
+                    </span>
+                    <span class="ykphone-history-menu-time">{{time_label}}</span>
+                </a>
+            </li>
+        {{else}}
+            <li role="none" class="ykphone-history-menu-empty">{{t "No history yet." }}</li>
+        {{/each}}
+    </ul>
+</div>

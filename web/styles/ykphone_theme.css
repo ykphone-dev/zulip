@@ -3255,32 +3255,41 @@ body.ykphone-pins-open #ykphone-pins-panel {
     border-radius: var(--yk-radius-sm);
 }
 
-/* Upstream hides one hover-toolbar button below this width so that the
-   ⋮ menu offers "Add emoji reaction" instead (popover_menus_data reads
-   the button's computed display). It picks the button by counting from
-   the end (:nth-last-child(3)), which the fork's always-present
-   reaction button and its thread button throw off — it was hiding the
-   thread button and leaving reactions unreachable on a touch screen,
-   where there is no hover. Name the button instead. */
+/* Upstream hides one hover-toolbar button below this width, picked by
+   counting from the end (:nth-last-child(3)), so that the ⋮ menu
+   offers "Add emoji reaction" instead (popover_menus_data reads the
+   reaction button's computed display). The fork's toolbar keeps every
+   button in the split pages' narrower conversation column; on a
+   phone-sized window it keeps only the emoji picker and the ⋮ menu. */
 @container message-lists (width < $cq_sm_min) {
-    .messagebox-content .message_controls {
+    .messagebox-content
+        .message_controls
         .message_control_button:nth-last-child(3) {
-            display: block;
-        }
-
-        .reaction_button {
-            display: none;
-        }
+        display: flex;
     }
 }
 
 @media (width < $sm_min), ((width >= $md_min) and (width < $mc_min)) {
-    .without-container-query-support .messagebox-content .message_controls {
+    .without-container-query-support
+        .messagebox-content
+        .message_controls
         .message_control_button:nth-last-child(3) {
-            display: block;
-        }
+        display: flex;
+    }
+}
 
-        .reaction_button {
+@media (width < $sm_min) {
+    /* Weighs more than either rule above (six classes against five), so
+       that the button which happens to be third from the end is hidden
+       here too, with or without container query support. */
+    .message_row
+        .messagebox-content
+        .message_controls.no-select
+        .message_control_button {
+        &.ykphone-quick-reaction,
+        &.ykphone-thread-button,
+        &.ykphone-forward-button,
+        &.star_container {
             display: none;
         }
     }
@@ -5836,4 +5845,219 @@ body.ykphone-split-highlight .message_row.selected_message {
     .ykphone-theme-swatch-check {
         visibility: visible;
     }
+}
+
+/* ---- Hover toolbar: one-click reactions ---- */
+
+/* The emoji sit in the same 26px hit area as the icons beside them,
+   at the icons' 16px size. */
+.message_controls .ykphone-quick-reaction {
+    .ykphone-quick-reaction-emoji {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.1563em 0.1875em; /* 2.5px 3px at 16px/em, as the icons */
+        border-radius: 4px;
+        cursor: pointer;
+
+        &:focus {
+            outline: 0;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-outline-focus);
+        }
+
+        &:active .emoji {
+            transform: scale(0.92);
+        }
+    }
+
+    .emoji {
+        width: 1.1429em; /* 16px at 14px/em */
+        height: 1.1429em;
+        /* Upstream's base .emoji is position: relative for messages. */
+        position: static;
+    }
+
+    .emoji_alt_code {
+        font-size: 0.8571em; /* 12px at 14px/em */
+        color: var(--color-message-action-visible);
+        white-space: nowrap;
+    }
+}
+
+/* ---- Navbar History dropdown ---- */
+
+.ykphone-history-menu {
+    min-width: 17.1429em; /* 240px at 14px/em */
+    max-width: 22.8571em; /* 320px at 14px/em */
+    max-height: min(32em, calc(100vh - 5em));
+
+    .ykphone-history-menu-heading {
+        padding: 0.5em 0.8em 0.25em;
+        font-size: 0.9286em; /* 13px at 14px/em */
+        font-weight: 700;
+        color: var(--yk-text-muted);
+    }
+
+    .ykphone-history-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5714em; /* 8px at 14px/em */
+    }
+
+    .ykphone-history-menu-current {
+        background-color: var(--yk-row-hover);
+    }
+
+    .ykphone-history-menu-label {
+        display: flex;
+        align-items: baseline;
+        gap: 0.4em;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .ykphone-history-menu-time {
+        flex-shrink: 0;
+        margin-left: 0.5em;
+        font-size: 0.8571em; /* 12px at 14px/em */
+        color: var(--yk-text-muted);
+        white-space: nowrap;
+    }
+
+    .ykphone-history-menu-empty {
+        padding: 0.5em 0.8em 0.75em;
+        color: var(--yk-text-muted);
+    }
+}
+
+/* A place's avatar, icon, name and context, as the History dropdown and
+   the quick switcher list them. */
+.ykphone-place-avatar {
+    flex-shrink: 0;
+    width: 1.4286em; /* 20px at 14px/em */
+    height: 1.4286em;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+.ykphone-place-icon {
+    flex-shrink: 0;
+    width: 1.4286em; /* 20px at 14px/em */
+    text-align: center;
+}
+
+.ykphone-place-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ykphone-place-context {
+    flex-shrink: 0;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-text-muted);
+}
+
+/* ---- Quick switcher (⌘K) ---- */
+
+/* Slack's "Jump to…" sits in the upper part of the window rather than
+   in its centre, so the list grows downwards as results arrive. */
+.ykphone-quick-switcher-overlay {
+    align-items: flex-start;
+    padding-top: min(12vh, 7.1429em); /* 100px at 14px/em */
+}
+
+.modal__container.ykphone-quick-switcher {
+    width: 42.8571em; /* 600px at 14px/em */
+    max-height: min(32.1429em, 76vh); /* 450px at 14px/em */
+    border-radius: var(--yk-radius-lg);
+    box-shadow: var(--yk-shadow-popover);
+}
+
+.ykphone-quick-switcher-search {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5714em; /* 8px at 14px/em */
+    padding: 0 1.1429em; /* 16px at 14px/em */
+    border-bottom: 1px solid var(--yk-hairline);
+    color: var(--yk-text-muted);
+
+    .zulip-icon {
+        font-size: 1.1429em; /* 16px at 14px/em */
+    }
+}
+
+/* Weighs more than the modal skin's input rule above, which the build
+   gives an id's weight (.micromodal:not(#does-not-exist) input). */
+#ykphone-quick-switcher
+    .ykphone-quick-switcher-search
+    input.ykphone-quick-switcher-input[type="text"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 3em; /* 48px at 16px/em */
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    box-shadow: none;
+    background: transparent;
+    color: var(--yk-text);
+    font-size: 1.1429em; /* 16px at 14px/em */
+
+    &::placeholder {
+        color: var(--yk-text-muted);
+    }
+}
+
+.ykphone-quick-switcher-results {
+    flex: 1 1 auto;
+    margin: 0;
+    padding: 0.4286em 0; /* 6px at 14px/em */
+    overflow-y: auto;
+    list-style: none;
+}
+
+.ykphone-quick-switcher-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em; /* 8px at 14px/em */
+    min-height: 2.2857em; /* 32px at 14px/em */
+    margin: 0 0.4286em; /* 6px at 14px/em */
+    padding: 0 0.7143em; /* 10px at 14px/em */
+    border-radius: var(--yk-radius-sm);
+    color: var(--yk-text);
+    cursor: pointer;
+
+    &.active {
+        background-color: var(--yk-blue-selected);
+        color: hsl(0deg 0% 100%);
+
+        .ykphone-place-context,
+        .ykphone-quick-switcher-kind {
+            color: hsl(0deg 0% 100% / 80%);
+        }
+    }
+}
+
+.ykphone-quick-switcher-kind {
+    flex-shrink: 0;
+    margin-left: auto;
+    padding-left: 0.5em;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    color: var(--yk-text-muted);
+    white-space: nowrap;
+}
+
+.ykphone-quick-switcher-empty {
+    padding: 0.8571em 1.1429em; /* 12px 16px at 14px/em */
+    color: var(--yk-text-muted);
 }

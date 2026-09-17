@@ -29,6 +29,9 @@ import * as spectators from "./spectators.ts";
 import type {NarrowTerm} from "./state_data.ts";
 import * as views_util from "./views_util.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
+import * as ykphone_places from "./ykphone_places.ts";
+import * as ykphone_quick_switcher from "./ykphone_quick_switcher.ts";
+import * as ykphone_recents from "./ykphone_recents.ts";
 import * as ykphone_split_view from "./ykphone_split_view.ts";
 import type {SplitRoute} from "./ykphone_split_view.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -403,6 +406,8 @@ export function show_for_hash(parts: string[]): boolean {
     update_body_classes();
     switch (ykphone_split_view.plan_show(previous, route)) {
         case "page":
+            ykphone_recents.note_visit(ykphone_places.page_place(route.page));
+            ykphone_quick_switcher.invalidate();
             search = "";
             ykphone_split_view.note_shown_selection(undefined);
             ykphone_split_view.clear_activity_items();

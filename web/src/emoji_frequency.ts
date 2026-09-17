@@ -10,6 +10,7 @@ import {current_user} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as typeahead from "./typeahead.ts";
 import * as user_topics from "./user_topics.ts";
+import * as ykphone_message_toolbar from "./ykphone_message_toolbar.ts";
 
 // Returns true if the reaction is from:
 // - A muted sender.
@@ -34,6 +35,9 @@ function should_ignore_reaction(
 }
 
 export function update_frequently_used_emojis_list(): void {
+    // The 옆커폰 hover toolbar's one-click reactions are drawn from the
+    // same data and are kept until it changes.
+    ykphone_message_toolbar.clear_cache();
     const emojis = emoji_frequency_data.preferred_emoji_list();
     typeahead.set_frequently_used_emojis(emojis);
     emoji_picker.rebuild_catalog();

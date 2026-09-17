@@ -91,6 +91,16 @@ const sidebar_ui = mock_esm("../src/sidebar_ui");
 const stream_settings_ui = mock_esm("../src/stream_settings_ui");
 const user_status_ui = mock_esm("../src/user_status_ui");
 const ykphone_forward_ui = mock_esm("../src/ykphone_forward_ui");
+// The fork's own hotkeys are tested in ykphone_hotkeys.test.cjs; here
+// they stand aside, as they do without the fork's layout.
+const ykphone_hotkeys = mock_esm("../src/ykphone_hotkeys", {
+    keydown_hotkey: (key) =>
+        key === "Ctrl+Shift+M"
+            ? {name: "ykphone_open_activity", message_view_only: false}
+            : undefined,
+    process_hotkey: () => false,
+    process_escape_key: () => false,
+});
 
 mock_esm("../src/recent_view_ui", {
     is_in_focus: () => false,
@@ -385,6 +395,22 @@ function test_normal_typing() {
     assert_unmapped("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     assert_unmapped('~!@#$%^*()_+{}:"<>');
 }
+
+test_while_not_editing_text("the fork's hotkeys", ({override}) => {
+    // Key combinations upstream leaves unmapped come from the fork's
+    // table, and every hotkey is offered to the fork first.
+    const seen = [];
+    override(ykphone_hotkeys, "process_hotkey", (_e, name) => {
+        seen.push(name);
+        return name === "ykphone_open_activity";
+    });
+    assert.ok(hotkey.process_keydown({key: "M", shiftKey: true, ctrlKey: true}));
+    stubbing(search, "initiate_search", (stub) => {
+        assert.ok(hotkey.process_keydown({key: "k", ctrlKey: true}));
+        assert.equal(stub.num_calls, 1);
+    });
+    assert.deepEqual(seen, ["ykphone_open_activity", "search_with_k"]);
+});
 
 run_test("unmapped keys return false easily", () => {
     // Unmapped keys should immediately return false, without

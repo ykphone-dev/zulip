@@ -1,12 +1,31 @@
-{{!-- The 옆커폰 fork shows every message the same hover toolbar, as
-Slack does: editing lives in the ⋮ menu (and on the "e" hotkey)
-so that one's own messages do not get a wider toolbar whose left
-edge sits a slot further left, and moving a message is gone with
-the topics it exists for. --}}
+{{!-- The 옆커폰 fork shows every message Slack's hover toolbar, the
+same on everyone's messages: one-click reactions, the emoji picker,
+reply in thread (channels), forward, save and the ⋮ menu last.
+Editing lives in the ⋮ menu (and on the "e" hotkey), and moving a
+message is gone with the topics it exists for. --}}
 {{#unless is_archived}}
+    {{#each ykphone_quick_reactions}}
+        {{! A message still being sent has no id to react to; its slot keeps the toolbar's width, as the forward and save slots do. }}
+        <div class="ykphone-quick-reaction message_control_button hidden-for-spectators" data-emoji-name="{{emoji_name}}" data-tippy-content=":{{emoji_name}}:">
+            {{#unless ../msg/locally_echoed}}
+            <div class="ykphone-quick-reaction-emoji trigger-click-on-enter" role="button" tabindex="0" aria-label="{{label}}">
+                {{#if emoji_alt_code}}
+                    <span class="emoji_alt_code">:{{emoji_name}}:</span>
+                {{else if is_realm_emoji}}
+                    <img src="{{url}}" class="emoji" alt="" />
+                {{else}}
+                    <div class="emoji emoji-{{emoji_code}}"></div>
+                {{/if}}
+            </div>
+            {{/unless}}
+        </div>
+    {{/each}}
     <div class="reaction_button message_control_button" data-tooltip-template-id="add-emoji-tooltip-template">
         <div class="emoji-message-control-button-container">
+            {{#unless msg/locally_echoed}}
+            {{! Upstream never showed this button on one's own messages, and every message still being sent is one's own. }}
             <i class="message-controls-icon zulip-icon zulip-icon-smile" aria-label="{{t 'Add emoji reaction' }} (:)" role="button" aria-haspopup="true" tabindex="0"></i>
+            {{/unless}}
         </div>
     </div>
 {{/unless}}
@@ -17,12 +36,18 @@ the topics it exists for. --}}
 </div>
 {{/if}}
 
-<div class="actions_hover message_control_button" data-tooltip-template-id="message-actions-tooltip-template" >
-    <i class="message-controls-icon message-actions-menu-button zulip-icon zulip-icon-more-vertical-spread" role="button" aria-haspopup="true" tabindex="0" aria-label="{{t 'Message actions' }}"></i>
+<div class="ykphone-forward-button message_control_button hidden-for-spectators" data-tippy-content="{{t 'Forward message' }}">
+    {{#unless msg/locally_echoed}}
+    <i class="message-controls-icon zulip-icon zulip-icon-forward-message trigger-click-on-enter" role="button" tabindex="0" aria-label="{{t 'Forward message' }}"></i>
+    {{/unless}}
 </div>
 
 <div class="star_container message_control_button {{#if msg/starred}}{{else}}empty-star{{/if}}" data-tooltip-template-id="{{#if msg/starred}}unstar{{else}}star{{/if}}-message-tooltip-template">
     {{#unless msg/locally_echoed}}
     <i role="button" tabindex="0" class="message-controls-icon star zulip-icon {{#if msg/starred}}zulip-icon-bookmark-filled{{else}}zulip-icon-bookmark{{/if}}"></i>
     {{/unless}}
+</div>
+
+<div class="actions_hover message_control_button" data-tooltip-template-id="message-actions-tooltip-template" >
+    <i class="message-controls-icon message-actions-menu-button zulip-icon zulip-icon-more-vertical-spread" role="button" aria-haspopup="true" tabindex="0" aria-label="{{t 'Message actions' }}"></i>
 </div>

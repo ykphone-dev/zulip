@@ -12,6 +12,8 @@
 import $ from "jquery";
 import assert from "minimalistic-assert";
 
+import render_ykphone_history_menu from "../templates/ykphone_history_menu.hbs";
+
 import * as compose_actions from "./compose_actions.ts";
 import * as compose_banner from "./compose_banner.ts";
 import * as hashchange from "./hashchange.ts";
@@ -19,21 +21,27 @@ import {$t} from "./i18n.ts";
 import * as lightbox from "./lightbox.ts";
 import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
+import * as popover_menus from "./popover_menus.ts";
+import * as reactions from "./reactions.ts";
 import * as rows from "./rows.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as stream_popover from "./stream_popover.ts";
+import {parse_html} from "./ui_util.ts";
 import * as ykphone_channel_create_ui from "./ykphone_channel_create_ui.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
 import * as ykphone_forward from "./ykphone_forward.ts";
+import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
 import * as ykphone_history from "./ykphone_history.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
+import * as ykphone_message_toolbar from "./ykphone_message_toolbar.ts";
 import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
+import * as ykphone_places from "./ykphone_places.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_rich_compose from "./ykphone_rich_compose.ts";
 import * as ykphone_rich_surfaces from "./ykphone_rich_surfaces.ts";
@@ -166,6 +174,30 @@ export function initialize(): void {
     });
 
     ykphone_history.initialize();
+    popover_menus.register_popover_menu(".ykphone-navbar-history-menu", {
+        theme: "popover-menu",
+        placement: "bottom-start",
+        offset: popover_menus.NAVBAR_POPOVER_OFFSET,
+        popperOptions: {strategy: "fixed"},
+        onMount(instance) {
+            popover_menus.popover_instances.ykphone_history = instance;
+        },
+        onShow(instance) {
+            instance.setContent(
+                parse_html(
+                    render_ykphone_history_menu({
+                        items: ykphone_history.menu_items(ykphone_places.current_view_place()),
+                    }),
+                ),
+            );
+            $(instance.reference).addClass("active-navbar-menu");
+        },
+        onHidden(instance) {
+            $(instance.reference).removeClass("active-navbar-menu");
+            instance.destroy();
+            popover_menus.popover_instances.ykphone_history = null;
+        },
+    });
     $("body").on("click", ".ykphone-navbar-back", () => {
         ykphone_history.go_back();
     });
@@ -223,6 +255,16 @@ export function initialize(): void {
         hashchange.set_hash_to_home_view();
     });
 
+    // Home is the last conversation (ykphone_home), not a URL of its
+    // own; modified clicks open the empty URL, which resolves to it.
+    $("body").on("click", '#ykphone-rail .ykphone-rail-item[data-rail-item="home"]', (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+            return;
+        }
+        e.preventDefault();
+        hashchange.set_hash_to_home_view();
+    });
+
     // Like the compose bar's "Start new conversation" button, this
     // opens an empty channel composer rather than a reply to the
     // current conversation.
@@ -242,6 +284,33 @@ export function initialize(): void {
         e.preventDefault();
         const $row = rows.get_closest_row($(this));
         open_thread_for_message(rows.id($row));
+    });
+
+    $("#main_div").on("click", ".ykphone-quick-reaction", function (this: HTMLElement, e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const message = message_store.get(rows.id(rows.get_closest_row($(this))));
+        const emoji_name = $(this).attr("data-emoji-name");
+        assert(emoji_name !== undefined);
+        // A message still being sent has no id the server knows.
+        if (message === undefined || message.locally_echoed === true) {
+            return;
+        }
+        // Adds the reaction, or takes it back if it is already the
+        // user's, as a click on the reaction itself does.
+        reactions.toggle_emoji_reaction(message, emoji_name);
+        // The user's own emoji order may have changed.
+        ykphone_message_toolbar.clear_cache();
+    });
+
+    $("#main_div").on("click", ".ykphone-forward-button", function (this: HTMLElement, e) {
+        e.stopPropagation();
+        e.preventDefault();
+        const message_id = rows.id(rows.get_closest_row($(this)));
+        // A message still being sent has no id to link to yet.
+        if (message_store.get(message_id)?.locally_echoed !== true) {
+            ykphone_forward_ui.start(message_id);
+        }
     });
 
     $("#main_div").on("click", ".ykphone-thread-pill", function (this: HTMLElement, e) {

@@ -34,6 +34,7 @@ import * as ui_report from "./ui_report.ts";
 import * as user_group_edit from "./user_group_edit.ts";
 import * as user_profile from "./user_profile.ts";
 import {user_settings} from "./user_settings.ts";
+import * as ykphone_home from "./ykphone_home.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 
 // Read https://zulip.readthedocs.io/en/latest/subsystems/hashchange-system.html
@@ -85,6 +86,9 @@ function get_settings_tab(section: string): string | undefined {
 }
 
 export function set_hash_to_home_view(triggered_by_escape_key = false): void {
+    if (ykphone_home.go_home(browser_history.go_to_location)) {
+        return;
+    }
     if (browser_history.is_current_hash_home_view()) {
         return;
     }
@@ -116,6 +120,9 @@ function show_home_view(narrow_opts?: message_view.ShowMessageViewOpts): void {
     // This function should only be called from the hashchange
     // handlers, as it does not set the hash to "".
     //
+    if (ykphone_home.show_home_view(message_view.show, narrow_opts)) {
+        return;
+    }
     // We only allow the primary recommended options for home views
     // rendered without a hash.
     switch (user_settings.web_home_view) {
@@ -431,7 +438,7 @@ function do_hashchange_overlay(old_hash: string | undefined): void {
     // NORMAL FLOW: basically, launch the overlay:
 
     if (!coming_from_overlay) {
-        browser_history.set_hash_before_overlay(old_hash);
+        browser_history.set_hash_before_overlay(old_hash ?? ykphone_home.home_hash());
     }
 
     if (base === "channels") {

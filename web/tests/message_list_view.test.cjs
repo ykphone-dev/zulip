@@ -23,6 +23,9 @@ mock_esm("../src/timerender", {
 mock_esm("../src/ykphone_time", {
     hour_and_minute: (timestamp) => `gutter ${timestamp}`,
 });
+mock_esm("../src/ykphone_message_toolbar", {
+    quick_reactions: () => [],
+});
 mock_esm("../src/people", {
     sender_is_bot: () => false,
     sender_is_guest: () => false,

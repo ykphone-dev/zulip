@@ -8,9 +8,6 @@ const {mock_esm, set_global, zrequire} = require("./lib/namespace.cjs");
 const {run_test} = require("./lib/test.cjs");
 const $ = require("./lib/zjquery.cjs");
 
-const browser_history = mock_esm("../src/browser_history", {
-    get_home_view_hash: () => "#inbox",
-});
 const left_sidebar_navigation_area = mock_esm("../src/left_sidebar_navigation_area");
 
 const {set_current_user, set_realm} = zrequire("state_data");
@@ -30,7 +27,8 @@ run_test("items", () => {
     assert.deepEqual(item_ids(), ["home", "dm", "activity", "files"]);
     const [home, dm, activity, files] = ykphone_rail.rail_items();
     assert.equal(home.label, "translated: Home");
-    assert.equal(home.href, "#inbox");
+    // Home is the last conversation, resolved from the empty URL.
+    assert.equal(home.href, "#");
     assert.equal(dm.href, "#ykphone/dms");
     assert.equal(dm.icon, "ykphone-rail-dm");
     assert.equal(dm.filled_icon, "ykphone-rail-dm-filled");
@@ -45,14 +43,18 @@ run_test("items", () => {
     assert.equal(ykphone_rail.rail_items()[4].href, "#organization");
 });
 
-run_test("active_item_id", ({override}) => {
+run_test("active_item_id", () => {
     set_current_user(admin);
+    // Every conversation is in Home, as is upstream's Inbox.
     assert.equal(ykphone_rail.active_item_id("#inbox"), "home");
+    assert.equal(ykphone_rail.active_item_id("#narrow/channel/3-Verona/topic/"), "home");
+    assert.equal(ykphone_rail.active_item_id("#narrow/stream/3-Verona"), "home");
+    assert.equal(ykphone_rail.active_item_id("#narrow/dm/7-user"), "home");
+    assert.equal(ykphone_rail.active_item_id("#narrow/pm-with/7-user"), "home");
     assert.equal(ykphone_rail.active_item_id("#ykphone/dms"), "dm");
     assert.equal(ykphone_rail.active_item_id("#ykphone/dms/7,9"), "dm");
-    // Upstream's direct message narrows are no longer the DM page.
+    // Upstream's direct message feed is not the DM page.
     assert.equal(ykphone_rail.active_item_id("#narrow/is/dm"), undefined);
-    assert.equal(ykphone_rail.active_item_id("#narrow/dm/7-user"), undefined);
     assert.equal(ykphone_rail.active_item_id("#ykphone/activity"), "activity");
     assert.equal(ykphone_rail.active_item_id("#narrow/has/attachment"), "files");
     // The mention narrow is no longer a rail view.
@@ -60,13 +62,10 @@ run_test("active_item_id", ({override}) => {
     // Overlays are matched by prefix, so any settings section counts.
     assert.equal(ykphone_rail.active_item_id("#organization/users"), "admin");
     assert.equal(ykphone_rail.active_item_id("#recent"), undefined);
-    assert.equal(ykphone_rail.active_item_id("#narrow/channel/3-Verona"), undefined);
 
-    // The empty hash means the home view, whatever it is set to.
+    // The empty hash means Home.
     assert.equal(ykphone_rail.active_item_id(""), "home");
     assert.equal(ykphone_rail.active_item_id("#"), "home");
-    override(browser_history, "get_home_view_hash", () => "#recent");
-    assert.equal(ykphone_rail.active_item_id(""), undefined);
 
     // Without the admin item nothing is active on the admin pages.
     set_current_user(member);
@@ -220,7 +219,9 @@ run_test("mount", ({override, mock_template}) => {
     assert.equal(navbar_left_child, $(history_html)[0]);
     assert.ok(history_html.includes("ykphone-navbar-back"));
     assert.ok(history_html.includes("ykphone-navbar-forward"));
-    assert.ok(history_html.includes('href="#recent"'));
+    // The clock opens the History dropdown rather than a view.
+    assert.ok(history_html.includes("ykphone-navbar-history-menu"));
+    assert.ok(!history_html.includes('href="#recent"'));
     assert.equal($("#search_query").attr("data-placeholder-text"), "translated: Search 옆커폰");
     assert.ok($dm.hasClass("active"));
 
@@ -232,9 +233,14 @@ run_test("mount", ({override, mock_template}) => {
     ykphone_rail.handle_narrow_activated();
     assert.ok($dm.hasClass("active"));
 
-    // Escaping: the organization name is rendered as text.
+    // Escaping: the organization name is rendered as text. (This
+    // realm has presence turned off, so the rail's avatar has no dot.)
     $.clear_all_elements();
-    set_realm(make_realm({realm_name: "<b>x</b>"}));
+    set_realm(make_realm({realm_name: "<b>x</b>", realm_presence_disabled: true}));
+    mock_template("ykphone_rail.hbs", false, (data) => {
+        assert.equal(data.user_circle_class, undefined);
+        return "<nav></nav>";
+    });
     mock_template("ykphone_sidebar_header.hbs", true, (_data, html) => {
         assert.ok(html.includes("&lt;b&gt;x&lt;/b&gt;"));
         return html;

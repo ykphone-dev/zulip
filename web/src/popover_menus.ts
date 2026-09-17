@@ -39,7 +39,8 @@ type PopoverName =
     | "show_folders_sidebar"
     | "show_folders_inbox"
     | "folder_actions"
-    | "send_later_options";
+    | "send_later_options"
+    | "ykphone_history";
 
 export const popover_instances: Record<PopoverName, tippy.Instance | null> = {
     compose_control_buttons: null,
@@ -66,6 +67,7 @@ export const popover_instances: Record<PopoverName, tippy.Instance | null> = {
     show_folders_inbox: null,
     folder_actions: null,
     send_later_options: null,
+    ykphone_history: null,
 };
 
 // Font size in em for popover derived from popover font size being

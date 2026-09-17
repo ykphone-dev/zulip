@@ -586,7 +586,7 @@ const thread_row_schema = z.object({
     root_timestamp: z.number(),
     last_activity_timestamp: z.number(),
 });
-const threads_response_schema = z.object({threads: z.array(thread_row_schema)});
+export const threads_response_schema = z.object({threads: z.array(thread_row_schema)});
 
 export type ThreadRow = z.infer<typeof thread_row_schema>;
 

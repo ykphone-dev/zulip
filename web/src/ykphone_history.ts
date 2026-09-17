@@ -1,5 +1,5 @@
-// In-app history for the navbar's back and forward buttons
-// (ykphone_navbar_history).
+// In-app history for the navbar's back and forward buttons and its
+// History dropdown (ykphone_navbar_history).
 //
 // Slack's arrows only move within the app; a plain history.back() at
 // the first in-app entry would leave for the login page or wherever
@@ -9,9 +9,17 @@
 // browser's own back button from a new navigation and so may
 // over-count, but never under-counts.
 //
+// The dropdown is Slack's clock: the places visited most recently
+// (ykphone_recents), with how long ago.
+//
 // The DOM event wiring lives in ykphone_threads_ui.ts.
 
 import $ from "jquery";
+
+import * as timerender from "./timerender.ts";
+import * as ykphone_places from "./ykphone_places.ts";
+import type {Place, PlaceView} from "./ykphone_places.ts";
+import * as ykphone_recents from "./ykphone_recents.ts";
 
 let back_depth = 0;
 let forward_depth = 0;
@@ -91,6 +99,28 @@ export function initialize(): void {
         $(window).on("hashchange", handle_hashchange);
     }
     update_buttons();
+}
+
+export type HistoryMenuItem = PlaceView & {
+    time_label: string;
+    is_current: boolean;
+};
+
+export function menu_items(current: Place | undefined): HistoryMenuItem[] {
+    const current_key = current === undefined ? undefined : ykphone_places.place_key(current);
+    return ykphone_recents.recent_entries().flatMap(({place, visited_at}) => {
+        const view = ykphone_places.describe(place);
+        if (view === undefined) {
+            return [];
+        }
+        return [
+            {
+                ...view,
+                time_label: timerender.relative_time_string_from_date(new Date(visited_at)),
+                is_current: view.key === current_key,
+            },
+        ];
+    });
 }
 
 export function clear_for_testing(): void {

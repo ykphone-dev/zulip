@@ -90,6 +90,16 @@
                     <td class="definition">{{t 'Next unread DM conversation' }}</td>
                     <td><span class="hotkey"><kbd>P</kbd></span></td>
                 </tr>
+                {{#if ykphone_topics_hidden}}
+                <tr>
+                    <td class="definition">{{t 'Jump to…' }}</td>
+                    <td><span class="hotkey"><kbd>Ctrl</kbd> + <kbd>K</kbd></span></td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Initiate a search' }}</td>
+                    <td><span class="hotkey"><kbd>/</kbd></span></td>
+                </tr>
+                {{else}}
                 <tr>
                     <td class="definition">{{t 'Initiate a search' }}</td>
                     <td>
@@ -102,6 +112,7 @@
                         </span>
                     </td>
                 </tr>
+                {{/if}}
                 <tr>
                     <td class="definition">{{t 'Set status' }}</td>
                     <td><span class="hotkey"><kbd>Shift</kbd> + <kbd>Y</kbd></span></td>
@@ -132,6 +143,16 @@
                         <th colspan="2">{{t 'Search' }}</th>
                     </tr>
                 </thead>
+                {{#if ykphone_topics_hidden}}
+                <tr>
+                    <td class="definition">{{t 'Jump to…' }}</td>
+                    <td><span class="hotkey"><kbd>Ctrl</kbd> + <kbd>K</kbd></span></td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Initiate a search' }}</td>
+                    <td><span class="hotkey"><kbd>/</kbd></span></td>
+                </tr>
+                {{else}}
                 <tr>
                     <td class="definition">{{t 'Initiate a search' }}</td>
                     <td>
@@ -144,6 +165,7 @@
                         </span>
                     </td>
                 </tr>
+                {{/if}}
                 <tr>
                     <td class="definition">{{t 'Filter left sidebar' }}</td>
                     <td><span class="hotkey"><kbd>Q</kbd></span></td>
@@ -254,6 +276,59 @@
                     <td class="definition">{{t 'Go forward through viewing history' }}</td>
                     <td><span class="hotkey"><kbd data-mac-key="⌘">Alt</kbd> + <kbd class="arrow-key">→</kbd></span></td>
                 </tr>
+                {{#if ykphone_topics_hidden}}
+                <tr>
+                    <td class="definition">{{t 'Next unread conversation' }}</td>
+                    <td><span class="hotkey"><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd class="arrow-key">↓</kbd></span></td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Previous unread conversation' }}</td>
+                    <td><span class="hotkey"><kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd class="arrow-key">↑</kbd></span></td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Mark the current conversation as read' }}</td>
+                    <td><span class="hotkey"><kbd>Esc</kbd></span></td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Go to direct messages' }}</td>
+                    <td>
+                        <span class="hotkey">
+                            {{#tr}}
+                                <z-kbd-1></z-kbd-1> or <z-kbd-2></z-kbd-2> then <z-kbd-3></z-kbd-3>
+                                {{#*inline "z-kbd-1"}}<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>K</kbd>{{/inline}}
+                                {{#*inline "z-kbd-2"}}<kbd>G</kbd>{{/inline}}
+                                {{#*inline "z-kbd-3"}}<kbd>D</kbd>{{/inline}}
+                            {{/tr}}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Go to activity' }}</td>
+                    <td>
+                        <span class="hotkey">
+                            {{#tr}}
+                                <z-kbd-1></z-kbd-1> or <z-kbd-2></z-kbd-2> then <z-kbd-3></z-kbd-3>
+                                {{#*inline "z-kbd-1"}}<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>M</kbd>{{/inline}}
+                                {{#*inline "z-kbd-2"}}<kbd>G</kbd>{{/inline}}
+                                {{#*inline "z-kbd-3"}}<kbd>A</kbd>{{/inline}}
+                            {{/tr}}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="definition">{{t 'Go to threads' }}</td>
+                    <td>
+                        <span class="hotkey">
+                            {{#tr}}
+                                <z-kbd-1></z-kbd-1> or <z-kbd-2></z-kbd-2> then <z-kbd-3></z-kbd-3>
+                                {{#*inline "z-kbd-1"}}<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>T</kbd>{{/inline}}
+                                {{#*inline "z-kbd-2"}}<kbd>G</kbd>{{/inline}}
+                                {{#*inline "z-kbd-3"}}<kbd>T</kbd>{{/inline}}
+                            {{/tr}}
+                        </span>
+                    </td>
+                </tr>
+                {{/if}}
                 <tr>
                     <td class="definition">{{t 'Go to topic or DM conversation' }}</td>
                     <td><span class="hotkey"><kbd>S</kbd></span></td>
@@ -425,7 +500,19 @@
                 </thead>
                 <tr>
                     <td class="definition">{{t 'Edit your last message' }}</td>
-                    <td><span class="hotkey"><kbd class="arrow-key">←</kbd></span></td>
+                    <td>
+                        {{#if ykphone_topics_hidden}}
+                        <span class="hotkey">
+                            {{#tr}}
+                                <z-kbd-1></z-kbd-1> or <z-kbd-2></z-kbd-2>
+                                {{#*inline "z-kbd-1"}}<kbd class="arrow-key">↑</kbd>{{/inline}}
+                                {{#*inline "z-kbd-2"}}<kbd class="arrow-key">←</kbd>{{/inline}}
+                            {{/tr}}
+                        </span>
+                        {{else}}
+                        <span class="hotkey"><kbd class="arrow-key">←</kbd></span>
+                        {{/if}}
+                    </td>
                 </tr>
                 <tr id="edit-message-hotkey-help">
                     <td class="definition">{{t 'Edit selected message or view source' }}</td>

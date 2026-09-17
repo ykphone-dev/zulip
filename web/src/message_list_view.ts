@@ -52,6 +52,7 @@ import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
+import * as ykphone_message_toolbar from "./ykphone_message_toolbar.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_rich_hooks from "./ykphone_rich_hooks.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -90,6 +91,7 @@ export type MessageContainer = {
     want_subscription_status_divider: boolean;
     ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
     ykphone_can_thread?: boolean;
+    ykphone_quick_reactions?: ykphone_message_toolbar.QuickReaction[];
     ykphone_pin?: ykphone_pins.PinLineContext | undefined;
 };
 
@@ -621,6 +623,7 @@ export class MessageListView {
         widget_edited: boolean;
         ykphone_thread?: ykphone_threads.ThreadPillContext | undefined;
         ykphone_can_thread?: boolean;
+        ykphone_quick_reactions?: ykphone_message_toolbar.QuickReaction[];
         ykphone_pin?: ykphone_pins.PinLineContext | undefined;
     } {
         const is_typing = typing_data.is_message_editing(message.id);
@@ -722,6 +725,7 @@ export class MessageListView {
             ...this._get_message_edited_and_moved_vars(message),
             ykphone_thread: ykphone_threads.get_pill_context_for_message(message),
             ykphone_can_thread: ykphone_threads.can_thread(message),
+            ykphone_quick_reactions: ykphone_message_toolbar.quick_reactions(),
             ykphone_pin: ykphone_pins.get_pin_line_context(message),
         };
     }

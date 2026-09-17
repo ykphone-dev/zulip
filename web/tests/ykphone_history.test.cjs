@@ -2,9 +2,24 @@
 
 const assert = require("node:assert/strict");
 
-const {set_global, zrequire} = require("./lib/namespace.cjs");
+const {mock_esm, set_global, zrequire} = require("./lib/namespace.cjs");
 const {run_test} = require("./lib/test.cjs");
 const $ = require("./lib/zjquery.cjs");
+
+let recent_entries = [];
+mock_esm("../src/timerender", {
+    relative_time_string_from_date: (date) => `at ${date.getTime()}`,
+});
+mock_esm("../src/ykphone_places", {
+    describe: (place) =>
+        place.stream_id === 42
+            ? undefined
+            : {key: `channel:${place.stream_id}`, title: `channel ${place.stream_id}`},
+    place_key: (place) => `channel:${place.stream_id}`,
+});
+mock_esm("../src/ykphone_recents", {
+    recent_entries: () => recent_entries,
+});
 
 const ykphone_history = zrequire("ykphone_history");
 
@@ -117,4 +132,21 @@ run_test("navigation api", () => {
     navigation.currentEntry = null;
     listener();
     assert.deepEqual(button_state(), {back: false, forward: false});
+});
+
+run_test("menu_items", () => {
+    recent_entries = [
+        {place: {kind: "channel", stream_id: 3}, visited_at: 3000},
+        // A channel that is gone is left out.
+        {place: {kind: "channel", stream_id: 42}, visited_at: 2000},
+        {place: {kind: "channel", stream_id: 4}, visited_at: 1000},
+    ];
+    assert.deepEqual(ykphone_history.menu_items({kind: "channel", stream_id: 4}), [
+        {key: "channel:3", title: "channel 3", time_label: "at 3000", is_current: false},
+        {key: "channel:4", title: "channel 4", time_label: "at 1000", is_current: true},
+    ]);
+    assert.deepEqual(
+        ykphone_history.menu_items(undefined).map((item) => item.is_current),
+        [false, false],
+    );
 });

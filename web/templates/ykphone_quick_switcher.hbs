@@ -1,0 +1,23 @@
+{{! Slack's ⌘K "Jump to…" switcher (the 옆커폰 fork); the rows come from ykphone_quick_switcher_rows. }}
+<div class="micromodal" id="ykphone-quick-switcher" aria-hidden="true">
+    <div class="modal__overlay ykphone-quick-switcher-overlay" tabindex="-1">
+        <div class="modal__container ykphone-quick-switcher" role="dialog" aria-modal="true" aria-label="{{t 'Jump to…' }}">
+            <div class="ykphone-quick-switcher-search">
+                <i class="zulip-icon zulip-icon-search" aria-hidden="true"></i>
+                <input
+                  type="text"
+                  class="ykphone-quick-switcher-input"
+                  placeholder="{{t 'Jump to…' }}"
+                  aria-label="{{t 'Jump to…' }}"
+                  autocomplete="off"
+                  spellcheck="false"
+                  role="combobox"
+                  aria-expanded="true"
+                  aria-autocomplete="list"
+                  aria-controls="ykphone-quick-switcher-results"
+                  />
+            </div>
+            <ul id="ykphone-quick-switcher-results" class="ykphone-quick-switcher-results" role="listbox" aria-label="{{t 'Jump to…' }}"></ul>
+        </div>
+    </div>
+</div>
