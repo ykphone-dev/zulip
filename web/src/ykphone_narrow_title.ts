@@ -8,11 +8,32 @@ import {$t} from "./i18n.ts";
 import * as stream_data from "./stream_data.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 
+// The Files view: both "has:attachment" narrows are Slack's file list
+// in this fork (ykphone_files_ui), not a search, and a channel's own
+// tab says which channel it is. undefined for every other narrow, so
+// that a search inside a channel is still "Search results".
+export function files_title(filter: Filter): string | undefined {
+    if (!ykphone_flags.channels_open_in_general_chat()) {
+        return undefined;
+    }
+    const terms = filter.sorted_term_types().join(" ");
+    if (terms === "has-attachment") {
+        return $t({defaultMessage: "Files"});
+    }
+    if (terms !== "channel has-attachment") {
+        return undefined;
+    }
+    const sub = stream_data.get_sub_by_id_string(filter.terms_with_operator("channel")[0]!.operand);
+    return sub === undefined
+        ? undefined
+        : $t({defaultMessage: "Files · {channel}"}, {channel: `#${sub.name}`});
+}
+
 // The title of a channel narrow: a thread when it names a topic, the
 // channel otherwise (its general chat, the whole channel, its starred
 // messages). undefined keeps upstream's title for channels the user
-// cannot see; searches inside a channel (its Files tab) never get here,
-// as upstream titles them "Search results" first.
+// cannot see; a narrow upstream could not name at all does not get
+// here, so a search inside a channel keeps "Search results".
 export function channel_title(filter: Filter): string | undefined {
     if (!ykphone_flags.channels_open_in_general_chat() || !filter.has_operator("channel")) {
         return undefined;

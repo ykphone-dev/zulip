@@ -1,4 +1,4 @@
-// DOM side of the split-pane pages (DM, Activity, Threads) for the
+// DOM side of the split-pane pages (DM, Activity, Threads, search) for the
 // 옆커폰 web UI: the list column at the left of the middle pane, the
 // placeholder shown on the right while nothing is selected (through
 // views_util, like the inbox), and the narrows activated for a
@@ -10,6 +10,10 @@
 import $ from "jquery";
 
 import render_ykphone_activity_rows from "../templates/ykphone_activity_rows.hbs";
+import render_ykphone_file_rows from "../templates/ykphone_file_rows.hbs";
+import render_ykphone_search_header from "../templates/ykphone_search_header.hbs";
+import render_ykphone_search_message_rows from "../templates/ykphone_search_message_rows.hbs";
+import render_ykphone_search_place_rows from "../templates/ykphone_search_place_rows.hbs";
 import render_ykphone_split_dm_rows from "../templates/ykphone_split_dm_rows.hbs";
 import render_ykphone_split_empty from "../templates/ykphone_split_empty.hbs";
 import render_ykphone_split_thread_rows from "../templates/ykphone_split_thread_rows.hbs";
@@ -29,9 +33,12 @@ import * as spectators from "./spectators.ts";
 import type {NarrowTerm} from "./state_data.ts";
 import * as views_util from "./views_util.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
+import * as ykphone_files from "./ykphone_files.ts";
 import * as ykphone_places from "./ykphone_places.ts";
 import * as ykphone_quick_switcher from "./ykphone_quick_switcher.ts";
 import * as ykphone_recents from "./ykphone_recents.ts";
+import * as ykphone_search from "./ykphone_search.ts";
+import * as ykphone_search_suggestions from "./ykphone_search_suggestions.ts";
 import * as ykphone_split_view from "./ykphone_split_view.ts";
 import type {SplitRoute} from "./ykphone_split_view.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -50,6 +57,9 @@ let show_narrow_callback: ((terms: NarrowTerm[], opts: ShowNarrowOpts) => void) 
 let list_status: ListStatus = "ready";
 let search = "";
 let reload_timer: ReturnType<typeof setTimeout> | undefined;
+// The filter bar control to put the keyboard back on once the search
+// page has been drawn again.
+let pending_focus: string | undefined;
 let stacked_query: MediaQueryList | undefined;
 
 function $list(): JQuery {
@@ -71,11 +81,99 @@ function render_shell(route: SplitRoute): void {
         render_ykphone_split_view({
             title: ykphone_split_view.page_title(route.page),
             is_dms: route.page === "dms",
+            is_search: route.page === "search",
+            query_label:
+                route.query === undefined || route.query === ""
+                    ? $t({defaultMessage: "No search terms"})
+                    : ykphone_search_suggestions.search_label(route.query),
             // Zulip's strict {{#if}} takes no arrays, hence the flag.
             has_tabs: route.page === "activity",
             tabs: route.page === "activity" ? ykphone_split_view.activity_tab_links(route) : [],
         }),
     );
+    if (route.page === "search") {
+        render_search_header(route);
+    }
+}
+
+// The search page's tabs (with their counts) and its filter bar; drawn
+// again whenever the results, a filter or the sort change, without
+// touching the rows below.
+function render_search_header(route: SplitRoute): void {
+    const facets = ykphone_search.facet_messages(route.query ?? "");
+    const filters: {name: string; label: string; options: ykphone_files.FilterOption[]}[] = [];
+    if (route.tab === "files") {
+        // The rows the tab shows before its own facets: a 종류 the
+        // date range has emptied is not offered.
+        const rows = ykphone_split_view.search_file_rows(route, {facets: false});
+        const file_filters = ykphone_search.get_file_filters();
+        filters.push(
+            {
+                name: "kind",
+                label: $t({defaultMessage: "File type"}),
+                options: ykphone_files.kind_options(rows, file_filters),
+            },
+            {
+                name: "file-sender",
+                label: $t({defaultMessage: "Shared by"}),
+                options: ykphone_files.sender_options(rows, file_filters),
+            },
+            {
+                name: "file-channel",
+                label: $t({defaultMessage: "Channel"}),
+                options: ykphone_files.channel_options(rows, file_filters),
+            },
+        );
+    } else if (route.tab === "messages") {
+        filters.push(
+            {
+                name: "sender",
+                label: $t({defaultMessage: "Sent by"}),
+                options: ykphone_search.message_sender_options(facets, route.query ?? ""),
+            },
+            {
+                name: "channel",
+                label: $t({defaultMessage: "Channel"}),
+                options: ykphone_search.message_channel_options(facets, route.query ?? ""),
+            },
+        );
+    }
+    const has_message_filters = route.tab === "messages" || route.tab === "files";
+    if (has_message_filters) {
+        filters.push(
+            {
+                name: "date",
+                label: $t({defaultMessage: "Date"}),
+                options: ykphone_search.date_options(route.range ?? "any"),
+            },
+            {
+                name: "sort",
+                label: $t({defaultMessage: "Sort"}),
+                options: ykphone_search.sort_options(route.sort ?? "newest"),
+            },
+        );
+    }
+    $list()
+        .find(".ykphone-search-header")
+        .html(
+            render_ykphone_search_header({
+                tabs: ykphone_split_view.search_tab_links(route),
+                has_filters: filters.length > 0,
+                filters,
+                has_attachment_toggle: route.tab === "messages",
+                has_attachment: ykphone_search.has_operand(route.query ?? "", "has", "attachment"),
+            }),
+        );
+    // A control that redrew itself keeps the keyboard, including one
+    // whose change rewrote the query and drew the whole page again.
+    // The bar is drawn more than once while a search runs, so the
+    // control is put back on every one of them and forgotten when the
+    // results land.
+    if (pending_focus !== undefined) {
+        $list()
+            .find(`[data-ykphone-filter="${CSS.escape(pending_focus)}"]`)
+            .trigger("focus");
+    }
 }
 
 // eslint-disable-next-line @typescript-eslint/consistent-return -- the switch covers every page
@@ -114,11 +212,80 @@ function rows_html(route: SplitRoute): string {
                 rows: ykphone_split_view.thread_row_contexts(route, rows),
             });
         }
+        case "search":
+            return search_rows_html(route);
     }
+}
+
+function search_rows_html(route: SplitRoute): string {
+    const words = ykphone_search.search_words(route.query ?? "");
+    const hash_for = (selection: string): string => ykphone_split_view.route_hash(route, selection);
+    // A query the page could not run says so; it did not search and
+    // find nothing.
+    const empty_label = ykphone_search.is_query_invalid()
+        ? $t({defaultMessage: "That search could not be understood."})
+        : route.query === undefined || route.query === ""
+          ? $t({defaultMessage: "Type in the search bar to search."})
+          : $t({defaultMessage: "No results."});
+    const words_label = $t({defaultMessage: "Channels and people are found by words."});
+    switch (route.tab) {
+        case "files": {
+            const rows = ykphone_split_view.search_file_rows(route);
+            return render_ykphone_file_rows({
+                loading: ykphone_search.is_loading(),
+                error: ykphone_search.has_failed(),
+                has_rows: rows.length > 0,
+                empty_label,
+                rows: ykphone_files.row_contexts(rows, {
+                    hash_for: (row) => hash_for(row.message_id.toString()),
+                    words,
+                    selection: route.selection,
+                }),
+            });
+        }
+        case "channels":
+            return place_rows_html(
+                ykphone_search.channel_rows(words, {selection: route.selection, hash_for}),
+                words.length === 0 ? words_label : $t({defaultMessage: "No channels match."}),
+            );
+        case "people":
+            return place_rows_html(
+                ykphone_search.people_rows(words, {selection: route.selection, hash_for}),
+                words.length === 0 ? words_label : $t({defaultMessage: "No people match."}),
+            );
+        default: {
+            const messages = ykphone_split_view.search_messages(route);
+            return render_ykphone_search_message_rows({
+                loading: ykphone_search.is_loading(),
+                error: ykphone_search.has_failed(),
+                error_label: $t({defaultMessage: "Could not run that search."}),
+                has_rows: messages.length > 0,
+                empty_label,
+                rows: ykphone_search.message_rows(messages, {
+                    selection: route.selection,
+                    hash_for,
+                }),
+            });
+        }
+    }
+}
+
+function place_rows_html(rows: ykphone_search.PlaceRowContext[], empty_label: string): string {
+    return render_ykphone_search_place_rows({
+        has_rows: rows.length > 0,
+        rows,
+        empty_label,
+    });
 }
 
 // The row's identity across renders: the link's data attribute.
 function row_key(row: Element): string | undefined {
+    // A file row carries its own key: its first link is the file, not
+    // the row, and the same file can be in two messages.
+    const own = row.getAttribute("data-row-key");
+    if (own !== null) {
+        return own;
+    }
     const link = row.querySelector("a");
     return link?.getAttribute("href") ?? undefined;
 }
@@ -206,9 +373,22 @@ function render_rows(): void {
     }
 }
 
+// The Activity page's own tab; SplitTab also covers the search page's.
+function activity_tab(route: SplitRoute): ykphone_activity.ActivityTab {
+    return ykphone_activity.TABS.find((tab) => tab === route.tab) ?? "all";
+}
+
 function is_current(route: SplitRoute): boolean {
     const current = ykphone_split_view.get_route();
-    return current?.page === route.page && current.tab === route.tab;
+    if (current?.page !== route.page) {
+        return false;
+    }
+    // The search page's tabs share one fetch, so a tab switch does not
+    // make a response that is on the way stale; a new query does.
+    if (route.page === "search") {
+        return current.query === route.query;
+    }
+    return current.tab === route.tab;
 }
 
 // Fetches the page's rows; a silent reload (new messages) keeps the
@@ -245,7 +425,7 @@ function load_rows(opts: {silent: boolean}): void {
             });
             break;
         case "activity":
-            ykphone_activity.load(route.tab, {
+            ykphone_activity.load(activity_tab(route), {
                 on_loaded(items) {
                     if (is_current(route)) {
                         ykphone_split_view.set_activity_items(items);
@@ -257,6 +437,26 @@ function load_rows(opts: {silent: boolean}): void {
             break;
         case "threads":
             ykphone_split_view.load_my_threads({on_loaded, on_error});
+            break;
+        case "search":
+            // The search module keeps its own loading and error state
+            // (two requests: the messages and the files of one query).
+            ykphone_search.load(
+                route.query ?? "",
+                {sort: route.sort ?? "newest", range: route.range ?? "any"},
+                () => {
+                    const current = ykphone_split_view.get_route();
+                    if (current === undefined || !is_current(route)) {
+                        return;
+                    }
+                    render_search_header(current);
+                    render_rows();
+                    apply_route();
+                    pending_focus = undefined;
+                },
+            );
+            render_search_header(route);
+            render_rows();
             break;
     }
 }
@@ -388,6 +588,90 @@ function apply_route(): void {
     }
 }
 
+// ---- The search page's filter bar ----
+
+// A filter that Zulip has an operator for rewrites the query, so the
+// page's URL always says what is being searched; the date range and
+// the file facets, which have no operator, are applied to the results
+// the search brought back.
+function handle_search_filter(route: SplitRoute, name: string, value: string): void {
+    const query = route.query ?? "";
+    const operand = value === "" ? undefined : value;
+    // The control keeps the keyboard across the redraw the change
+    // causes, whether that redraw is this page's or a new one's.
+    pending_focus = name;
+    const go_to = (opts: {
+        query?: string;
+        sort?: ykphone_search.SortOrder;
+        range?: ykphone_search.DateRange;
+    }): void => {
+        browser_history.go_to_location(
+            ykphone_split_view.page_hash("search", {
+                tab: route.tab,
+                query: opts.query ?? query,
+                sort: opts.sort ?? route.sort,
+                range: opts.range ?? route.range,
+            }),
+        );
+    };
+    switch (name) {
+        case "sender":
+            go_to({query: ykphone_search.query_with_operator(query, "sender", operand)});
+            return;
+        case "channel":
+            go_to({query: ykphone_search.query_with_operator(query, "channel", operand)});
+            return;
+        case "attachment":
+            go_to({
+                query: ykphone_search.query_with_has_attachment(
+                    query,
+                    !ykphone_search.has_operand(query, "has", "attachment"),
+                ),
+            });
+            return;
+        case "sort":
+            // The order and the date range belong in the URL, so a
+            // reload and Back show what the page showed.
+            go_to({sort: value === "oldest" ? "oldest" : "newest"});
+            return;
+        case "date":
+            if (ykphone_search.is_date_range(value)) {
+                go_to({range: value});
+            }
+            return;
+        case "kind": {
+            const filters = ykphone_search.get_file_filters();
+            ykphone_search.set_file_filters({
+                ...filters,
+                kind: ykphone_files.is_file_kind(value) ? value : "any",
+            });
+            break;
+        }
+        case "file-sender": {
+            const filters = ykphone_search.get_file_filters();
+            ykphone_search.set_file_filters({
+                ...filters,
+                sender_id: operand === undefined ? undefined : Number(operand),
+            });
+            break;
+        }
+        case "file-channel": {
+            const filters = ykphone_search.get_file_filters();
+            ykphone_search.set_file_filters({
+                ...filters,
+                stream_id: operand === undefined ? undefined : Number(operand),
+            });
+            break;
+        }
+        default:
+            pending_focus = undefined;
+            return;
+    }
+    render_search_header(route);
+    render_rows();
+    pending_focus = undefined;
+}
+
 // ---- Entry points ----
 
 // The components of the hash after "#ykphone"; false when they name
@@ -406,7 +690,16 @@ export function show_for_hash(parts: string[]): boolean {
     update_body_classes();
     switch (ykphone_split_view.plan_show(previous, route)) {
         case "page":
-            ykphone_recents.note_visit(ykphone_places.page_place(route.page));
+            if (route.page === "search") {
+                // The file facets name one result set; the sort and
+                // the date range are in the route.
+                ykphone_search.reset_facets();
+                if (previous?.page !== "search") {
+                    pending_focus = undefined;
+                }
+            } else {
+                ykphone_recents.note_visit(ykphone_places.page_place(route.page));
+            }
             ykphone_quick_switcher.invalidate();
             search = "";
             ykphone_split_view.note_shown_selection(undefined);
@@ -416,6 +709,13 @@ export function show_for_hash(parts: string[]): boolean {
             load_rows({silent: false});
             break;
         case "tab":
+            if (route.page === "search") {
+                // Every tab of a search is answered by the one fetch
+                // the page already made.
+                render_search_header(route);
+                render_rows();
+                break;
+            }
             render_shell(route);
             load_rows({silent: false});
             break;
@@ -542,6 +842,26 @@ export function initialize({
     // focus handoff scrolls the feed away from the selected message.
     $("body").on("click", ".ykphone-activity-tab", (e) => {
         e.stopPropagation();
+    });
+    $("body").on(
+        "change",
+        ".ykphone-search-header .ykphone-filter-select",
+        function (this: HTMLElement) {
+            const route = ykphone_split_view.get_route();
+            const name = $(this).attr("data-ykphone-filter");
+            if (route?.page !== "search" || name === undefined) {
+                return;
+            }
+            handle_search_filter(route, name, String($(this).val() ?? ""));
+        },
+    );
+    $("body").on("click", ".ykphone-search-header .ykphone-filter-toggle", (e) => {
+        const route = ykphone_split_view.get_route();
+        if (route?.page !== "search") {
+            return;
+        }
+        e.stopPropagation();
+        handle_search_filter(route, "attachment", "");
     });
     $("body").on("input", ".ykphone-split-search-input", function (this: HTMLElement) {
         search = String($(this).val() ?? "");

@@ -20,6 +20,7 @@ import type {NarrowCanonicalTerm, NarrowTerm} from "./state_data.ts";
 import {current_user} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import * as timerender from "./timerender.ts";
+import * as ykphone_highlight from "./ykphone_highlight.ts";
 
 export type ActivitySource = "mentions" | "threads" | "reactions" | "dm";
 export type ActivityTab = "all" | ActivitySource;
@@ -64,34 +65,10 @@ export function tab_label(tab: ActivityTab): string {
     return labels[tab];
 }
 
-const named_entities: Record<string, string> = {
-    amp: "&",
-    lt: "<",
-    gt: ">",
-    quot: '"',
-    apos: "'",
-    nbsp: " ",
-};
-
 // The rendered HTML of a message as one line of text, the way Slack
 // previews a message in its Activity rows.
 export function plain_text_snippet(html: string): string {
-    const text = html
-        // Block boundaries and line breaks become spaces so words
-        // from neighbouring paragraphs do not run together.
-        .replaceAll(/<br\s*\/?>|<\/(?:p|div|li|h[1-6]|blockquote|pre|tr|td|th)>/gi, " ")
-        .replaceAll(/<[^>]*>/g, "")
-        .replaceAll(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (entity: string, code: string): string => {
-            if (code.startsWith("#x") || code.startsWith("#X")) {
-                return String.fromCodePoint(Number.parseInt(code.slice(2), 16));
-            }
-            if (code.startsWith("#")) {
-                return String.fromCodePoint(Number.parseInt(code.slice(1), 10));
-            }
-            return named_entities[code.toLowerCase()] ?? entity;
-        })
-        .replaceAll(/\s+/g, " ")
-        .trim();
+    const text = ykphone_highlight.plain_text(html).trim();
     if (text === "" && /<(?:img|a)\b/i.test(html)) {
         return $t({defaultMessage: "(attached file)"});
     }

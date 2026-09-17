@@ -40,6 +40,20 @@ export function rewire_VIEW_SOURCE_MENU_ITEM_ENABLED(value: boolean): void {
     VIEW_SOURCE_MENU_ITEM_ENABLED = value;
 }
 
+// Zulip search operators Slack's search has no equivalent for
+// (channels:, id:, near:, with:, is:unread, has:reaction). Nothing is
+// removed from the fork: typing one still works, and so do the
+// #narrow hashes and the empty-narrow banner's links. Only the search
+// dropdown, which is how Zulip teaches its operators, offers Slack's
+// own modifiers alone. Setting this to false brings every one of
+// their rows back in one edit.
+export let SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY = true;
+
+// For the tests of the rows behind the flag.
+export function rewire_SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY(value: boolean): void {
+    SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY = value;
+}
+
 // Scheduling a message or a reminder offers Slack's presets
 // (ykphone_schedule_presets) instead of upstream's times of day; the
 // open menu is drawn again when the day changes rather than at

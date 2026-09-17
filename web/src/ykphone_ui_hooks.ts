@@ -6,6 +6,7 @@ import type {NarrowActivateOpts} from "./compose_actions.ts";
 import * as narrow_state from "./narrow_state.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
+import * as ykphone_files_ui from "./ykphone_files_ui.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
 import * as ykphone_quick_switcher from "./ykphone_quick_switcher.ts";
 import * as ykphone_rail from "./ykphone_rail.ts";
@@ -23,6 +24,7 @@ export function handle_narrow_activated(opts: NarrowActivateOpts): void {
     ykphone_pins_ui.handle_narrow_activated();
     ykphone_rail.handle_narrow_activated();
     ykphone_conversation.handle_narrow_activated();
+    ykphone_files_ui.handle_narrow_activated();
     ykphone_compose_narrow.handle_narrow_activated(opts);
     ykphone_split_view_ui.handle_narrow_activated();
     ykphone_unread_banner.handle_narrow_activated();

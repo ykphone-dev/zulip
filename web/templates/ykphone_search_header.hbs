@@ -1,0 +1,18 @@
+{{! The tabs and the filter bar of the search results page (ykphone_split_view_ui). }}
+<nav class="ykphone-activity-tabs ykphone-search-tabs" aria-label="{{t 'Search results' }}">
+    {{#each tabs}}
+        <a class="ykphone-activity-tab{{#if active}} active{{/if}}" href="{{url}}" {{#if active}}aria-current="page"{{/if}}>{{label}}<span class="ykphone-search-count">{{count}}</span></a>
+    {{/each}}
+</nav>
+{{#if has_filters}}
+<div class="ykphone-filter-bar">
+    {{#each filters}}
+        {{> ykphone_filter_select this }}
+    {{/each}}
+    {{#if has_attachment_toggle}}
+    <button type="button" class="ykphone-filter-toggle{{#if has_attachment}} active{{/if}}" data-ykphone-filter="attachment" {{#if has_attachment}}aria-pressed="true"{{else}}aria-pressed="false"{{/if}}>
+        <i class="zulip-icon zulip-icon-attachment" aria-hidden="true"></i>{{t 'Has file' }}
+    </button>
+    {{/if}}
+</div>
+{{/if}}

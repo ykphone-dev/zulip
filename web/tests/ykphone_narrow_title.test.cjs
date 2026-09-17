@@ -55,6 +55,44 @@ run_test("channel_title", () => {
     ykphone_flags.set_channels_open_in_general_chat(false);
 });
 
+run_test("files_title", () => {
+    const files_title = (terms) => ykphone_narrow_title.files_title(new Filter(terms));
+    const all_files = [{operator: "has", operand: "attachment"}];
+    const channel_files = [
+        {operator: "channel", operand: "11"},
+        {operator: "has", operand: "attachment"},
+    ];
+
+    ykphone_flags.set_channels_open_in_general_chat(false);
+    assert.equal(files_title(all_files), undefined);
+
+    // The fork draws Slack's file list for these two narrows, so they
+    // are named for it rather than "Search results"; a channel's own
+    // tab says which channel it is.
+    ykphone_flags.set_channels_open_in_general_chat(true);
+    assert.equal(files_title(all_files), "translated: Files");
+    assert.equal(files_title(channel_files), "translated: Files · #devel");
+    assert.equal(files_title([{operator: "channel", operand: "99"}, ...all_files]), undefined);
+
+    // Every other narrow keeps upstream's title, including a search
+    // inside a channel, which is still "Search results".
+    for (const terms of [
+        [{operator: "channel", operand: "11"}],
+        [
+            {operator: "channel", operand: "11"},
+            {operator: "search", operand: "예산"},
+        ],
+        [{operator: "is", operand: "starred"}],
+        [
+            {operator: "channel", operand: "11"},
+            {operator: "has", operand: "link"},
+        ],
+    ]) {
+        assert.equal(files_title(terms), undefined, JSON.stringify(terms));
+    }
+    ykphone_flags.set_channels_open_in_general_chat(false);
+});
+
 run_test("title_suffix", () => {
     ykphone_flags.set_channels_open_in_general_chat(false);
     assert.equal(ykphone_narrow_title.title_suffix(), " - Zulip");

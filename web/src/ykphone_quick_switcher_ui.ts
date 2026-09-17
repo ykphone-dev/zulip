@@ -71,7 +71,9 @@ function render_results(): void {
     const items = ykphone_quick_switcher.results(query, ykphone_places.current_view_place());
     $modal()
         .find(".ykphone-quick-switcher-results")
-        .html(render_ykphone_quick_switcher_rows({items}))
+        // Zulip's template parser has no {{else}} branch for {{#each}}, so
+        // the empty case is an {{#unless}} beside the loop.
+        .html(render_ykphone_quick_switcher_rows({items, has_items: items.length > 0}))
         .scrollTop(0);
     const $input = $modal().find(".ykphone-quick-switcher-input");
     if (items.length === 0) {

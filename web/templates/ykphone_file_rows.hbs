@@ -1,0 +1,36 @@
+{{! The fork's file list (ykphone_files): the rail's Files view, a channel's Files tab and the search page's Files tab all render these rows. A file's name is whatever a poster wrote, so it is rendered as runs of plain text, never as markup. }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{t 'Could not load files.' }}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows ykphone-file-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item ykphone-file-item{{#if is_active}} active{{/if}}" data-row-key="{{key}}">
+            {{#if has_preview}}
+            <a class="ykphone-file-preview" href="{{file_url}}" aria-label="{{name}}">
+                <img class="ykphone-file-thumbnail" src="{{thumbnail_url}}" alt="" loading="lazy" />
+            </a>
+            {{else}}
+            <span class="ykphone-file-icon-cell">
+                <i class="zulip-icon zulip-icon-{{icon}} ykphone-file-icon" aria-hidden="true"></i>
+            </span>
+            {{/if}}
+            <a class="ykphone-split-row ykphone-file-row" href="{{url}}" data-message-id="{{message_id}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-file-name">{{> ykphone_highlighted_text name_runs }}</span>
+                    <span class="ykphone-file-meta">
+                        <span>{{sender_name}}</span>
+                        <span class="ykphone-file-meta-separator" aria-hidden="true">·</span>
+                        <span>{{context_label}}</span>
+                        <span class="ykphone-file-meta-separator" aria-hidden="true">·</span>
+                        <span>{{date_label}}</span>
+                    </span>
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/if}}

@@ -178,6 +178,7 @@ import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as watchdog from "./watchdog.ts";
 import * as widgets from "./widgets.ts";
+import * as ykphone_files_ui from "./ykphone_files_ui.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_threads_ui from "./ykphone_threads_ui.ts";
@@ -569,12 +570,14 @@ export async function initialize_everything(state_data) {
         },
         hide_other_views() {
             inbox_ui.hide();
+            ykphone_files_ui.hide();
             ykphone_split_view_ui.close();
         },
     });
     inbox_ui.initialize({
         hide_other_views() {
             recent_view_ui.hide();
+            ykphone_files_ui.hide();
             ykphone_split_view_ui.close();
         },
     });
@@ -582,6 +585,7 @@ export async function initialize_everything(state_data) {
         hide_other_views() {
             inbox_ui.hide();
             recent_view_ui.hide();
+            ykphone_files_ui.hide();
         },
         show_narrow: message_view.show,
     });

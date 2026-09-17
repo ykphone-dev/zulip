@@ -1,0 +1,26 @@
+{{! Channel and people results of the search page. }}
+{{#if has_rows}}
+<ul class="ykphone-split-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item">
+            <a class="ykphone-split-row ykphone-search-place{{#if is_active}} active{{/if}}" href="{{url}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-avatar-cell">
+                    {{#if avatar_url}}
+                    <img class="ykphone-split-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                    {{else}}
+                    <i class="zulip-icon zulip-icon-{{icon}} ykphone-search-place-icon" aria-hidden="true"></i>
+                    {{/if}}
+                </span>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-split-name">{{> ykphone_highlighted_text label }}</span>
+                    {{#if description}}
+                    <span class="ykphone-split-snippet">{{description}}</span>
+                    {{/if}}
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/if}}

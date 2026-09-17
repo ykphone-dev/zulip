@@ -1,0 +1,2 @@
+{{! Text with the searched words marked (ykphone_highlight): the runs are plain text, so every character is escaped by Handlebars. Kept on one line so no template whitespace lands between the runs. }}
+{{#each this}}{{#if matched}}<span class="ykphone-search-highlight">{{text}}</span>{{else}}{{text}}{{/if}}{{/each~}}

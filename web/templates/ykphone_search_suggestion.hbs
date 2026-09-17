@@ -1,0 +1,13 @@
+{{! One row of the fork's Slack-style search dropdown (ykphone_search_suggestions); rendered inside upstream's typeahead item. }}
+{{#if section_label}}<span class="ykphone-search-section" aria-hidden="true">{{section_label}}</span>{{/if}}
+<span class="ykphone-search-suggestion">
+    {{#if avatar_url}}
+    <img class="ykphone-search-suggestion-avatar" src="{{avatar_url}}" alt="" />
+    {{else if icon}}
+    <i class="zulip-icon zulip-icon-{{icon}} ykphone-search-suggestion-icon" aria-hidden="true"></i>
+    {{/if}}
+    <span class="ykphone-search-suggestion-label">{{label}}</span>
+    {{#if description}}
+    <span class="ykphone-search-suggestion-description">{{description}}</span>
+    {{/if}}
+</span>

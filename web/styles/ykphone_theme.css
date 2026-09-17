@@ -112,6 +112,11 @@
     --yk-link: light-dark(var(--yk-blue-link), hsl(204deg 90% 66%));
     /* The selected row of a split page's list (DM, Activity, Threads). */
     --yk-split-active-bg: light-dark(hsl(206deg 60% 94%), hsl(206deg 30% 20%));
+    /* Slack's yellow behind the words a search matched. */
+    --yk-search-highlight-bg: light-dark(
+        hsl(48deg 100% 76%),
+        hsl(48deg 50% 28%)
+    );
     /* 380px at 14px; the list column of the split pages. */
     --yk-split-list-width: calc(27.1429 * var(--base-font-size-px));
     /* Tints of the shell's strongest text colour, so that they lighten
@@ -6706,5 +6711,389 @@ body.ykphone-split-highlight .message_row.selected_message {
     ) {
     .popover-menu-list {
         display: none;
+    }
+}
+
+/* ---- Search dropdown ---- */
+
+/* Slack groups the search dropdown: the searches you ran before, the
+   channels and the people whose names match, and the filters. The rows
+   are upstream's typeahead items (ykphone_search_ui renders them), so
+   the keyboard, the selection and the pills are upstream's; only the
+   inside of a row and its heading are the fork's. */
+#searchbox_form .typeahead-item-link {
+    display: block;
+}
+
+.ykphone-search-section {
+    display: block;
+    margin: 0.5em -0.75em 0.25em;
+    padding: 0.4em 0.75em 0.15em;
+    border-top: 1px solid var(--yk-hairline);
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    /* A click anywhere in the row still picks the row below the
+       heading; the heading itself is not a target of its own. */
+    pointer-events: none;
+}
+
+/* The first section has nothing above it to be divided from. */
+.typeahead-item:first-child .ykphone-search-section {
+    margin-top: 0;
+    border-top: none;
+}
+
+.ykphone-search-suggestion {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em; /* 8px at 14px/em */
+    min-width: 0;
+}
+
+.ykphone-search-suggestion-icon {
+    flex-shrink: 0;
+    width: 1.1429em; /* 16px at 14px/em */
+    color: var(--yk-text-muted);
+    text-align: center;
+}
+
+.ykphone-search-suggestion-avatar {
+    flex-shrink: 0;
+    width: 1.2857em; /* 18px at 14px/em */
+    height: 1.2857em;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+.ykphone-search-suggestion-label {
+    flex-shrink: 0;
+    max-width: 60%;
+    overflow: hidden;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-search-suggestion-description {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* ---- Search results page ---- */
+
+/* The query the page is showing, above its tabs. */
+.ykphone-search-query {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5714em 1.1429em; /* 8px 16px at 14px/em */
+    border-bottom: 1px solid var(--yk-hairline);
+    color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
+}
+
+.ykphone-search-query-icon {
+    flex-shrink: 0;
+}
+
+.ykphone-search-query-text {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-text-default);
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-search-header {
+    flex-shrink: 0;
+}
+
+.ykphone-search-tabs {
+    /* The filter bar under it carries the line. */
+    border-bottom: none;
+    padding-bottom: 0.25em;
+}
+
+.ykphone-search-count {
+    margin-left: 0.4em;
+    opacity: 0.7;
+    font-weight: 400;
+}
+
+/* Slack's filter bar: one control per filter, wrapping on a narrow
+   column. Zulip has a search operator for the sender, the channel and
+   the file filter, so those rewrite the page's query (and its URL);
+   the date range and the file facets, which have no operator, are
+   applied to the results the search brought back. */
+.ykphone-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0 0.8571em 0.5714em; /* 0 12px 8px at 14px/em */
+    border-bottom: 1px solid var(--yk-hairline);
+}
+
+.ykphone-filter-select {
+    max-width: 10em;
+    padding: 0.2em 0.4em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--color-background);
+    color: var(--color-text-default);
+    font: inherit;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
+}
+
+.ykphone-filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.3em 0.6em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--color-background);
+    color: var(--color-text-default);
+    font: inherit;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
+
+    &.active {
+        border-color: var(--yk-blue-selected);
+        background-color: var(--yk-blue-selected);
+        color: hsl(0deg 0% 100%);
+    }
+}
+
+.ykphone-filter-count {
+    margin-left: auto;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+}
+
+/* A result row: the sender and the time, where the message is, and the
+   matched words in their line. */
+.ykphone-search-context {
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-search-snippet {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--color-text-default);
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.4;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.ykphone-search-highlight {
+    border-radius: 2px;
+    background-color: var(--yk-search-highlight-bg);
+    color: var(--color-text-default);
+    font-weight: 700;
+}
+
+.ykphone-search-place-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--yk-radius-md);
+    background-color: var(--yk-row-hover);
+    color: var(--yk-text-muted);
+}
+
+/* ---- Files view ---- */
+
+/* The rail's Files item and a channel's Files tab are "has:attachment"
+   narrows; the fork draws Slack's file list in the pane instead of the
+   feed of messages that happen to carry a file (ykphone_files_ui). The
+   pane header, its tabs and the hash are upstream's, unchanged. */
+body.ykphone-files-view #message_feed_container {
+    display: none;
+}
+
+#ykphone-files-view {
+    display: none;
+    padding: var(--header-padding-bottom) 0
+        var(--max-unmaximized-compose-height);
+}
+
+body.ykphone-files-view #ykphone-files-view {
+    display: block;
+}
+
+/* The thumbnail is a link of its own (it opens the file in the
+   lightbox), so the list item is the row and the rest of it is the
+   link to the message. */
+.ykphone-file-item {
+    display: flex;
+    gap: 0.8571em; /* 12px at 14px/em */
+    align-items: center;
+    padding-left: 0.5714em; /* 8px at 14px/em */
+    border-radius: var(--yk-radius-sm);
+
+    &:hover,
+    &:focus-within {
+        background-color: var(--yk-row-hover);
+    }
+
+    &.active {
+        background-color: var(--yk-split-active-bg);
+    }
+}
+
+.ykphone-file-preview {
+    flex-shrink: 0;
+    display: block;
+    width: 2.8571em; /* 40px at 14px/em */
+    height: 2.8571em;
+    overflow: hidden;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--yk-row-hover);
+    cursor: zoom-in;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
+}
+
+.ykphone-files-pane {
+    max-width: 60em;
+    margin: 0 auto;
+    padding: 0 1em;
+}
+
+/* Level with the feed's own sticky headers, under the pane header
+   the way the "new messages" bar is. */
+.ykphone-files-bar {
+    position: sticky;
+    top: calc(
+        var(--yk-navbar-bottom) + var(--yk-frame-gap) +
+            var(--yk-pane-header-height)
+    );
+    z-index: 3;
+    padding: 0.5714em 0;
+    background-color: var(--color-background);
+}
+
+.ykphone-files-body {
+    padding-bottom: 1em;
+}
+
+/* One file: its thumbnail or a type icon, the name, and who shared it
+   where and when. */
+.ykphone-file-row {
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 0.8571em; /* 12px at 14px/em */
+    padding-left: 0;
+
+    /* The list item carries the hover and the selection. */
+    &:hover,
+    &.active,
+    &.active:hover {
+        background-color: transparent;
+    }
+}
+
+.ykphone-file-icon-cell {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8571em; /* 40px at 14px/em */
+    height: 2.8571em;
+    overflow: hidden;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--yk-row-hover);
+    color: var(--yk-text-muted);
+}
+
+.ykphone-file-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ykphone-file-name {
+    overflow: hidden;
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-file-meta {
+    display: flex;
+    gap: 0.4em;
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    white-space: nowrap;
+
+    > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.ykphone-file-meta-separator {
+    flex-shrink: 0;
+}
+
+/* In the search page's narrow list column the meta line wraps instead
+   of being cut to nothing. */
+.ykphone-split-list-card .ykphone-file-meta {
+    flex-wrap: wrap;
+    white-space: normal;
+}
+
+@media (width < 600px) {
+    .ykphone-files-pane {
+        padding: 0 0.5em;
+    }
+
+    .ykphone-filter-select {
+        max-width: 7em;
     }
 }

@@ -32,6 +32,14 @@ export function compute_narrow_title(filter?: Filter): string {
         return $t({defaultMessage: "Inbox"});
     }
 
+    // The Files view is the fork's own view of a narrow upstream can
+    // only call a search, so it is named before the fallback; every
+    // other unnamed narrow is still "Search results".
+    const ykphone_files_title = ykphone_narrow_title.files_title(filter);
+    if (ykphone_files_title !== undefined) {
+        return ykphone_files_title;
+    }
+
     const filter_title = filter.get_title();
 
     if (filter_title === undefined) {

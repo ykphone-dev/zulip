@@ -1,0 +1,28 @@
+{{! Message results of the search page, or its loading, empty and error states. }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{error_label}}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item">
+            <a class="ykphone-split-row ykphone-search-result{{#if is_active}} active{{/if}}" href="{{url}}" data-message-id="{{message_id}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-avatar-cell">
+                    <img class="ykphone-split-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                </span>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-split-meta">
+                        <span class="ykphone-split-name">{{sender_name}}</span>
+                        <span class="ykphone-split-time">{{time_label}}</span>
+                    </span>
+                    <span class="ykphone-search-context">{{context_label}}</span>
+                    <span class="ykphone-search-snippet">{{> ykphone_highlighted_text snippet }}</span>
+                </span>
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/if}}

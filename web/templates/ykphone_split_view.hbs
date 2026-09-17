@@ -1,8 +1,15 @@
-{{! The list column of the DM, Activity and Threads pages (ykphone_split_view_ui); the rows are rendered separately into the body. }}
+{{! The list column of the DM, Activity, Threads and search pages (ykphone_split_view_ui); the rows and the search header are rendered separately into their containers. }}
 <div class="ykphone-split-list-card">
     <div class="ykphone-split-list-header">
         <h2 class="ykphone-split-list-title">{{title}}</h2>
     </div>
+    {{#if is_search}}
+    <div class="ykphone-search-query">
+        <i class="zulip-icon zulip-icon-search ykphone-search-query-icon" aria-hidden="true"></i>
+        <span class="ykphone-search-query-text">{{query_label}}</span>
+    </div>
+    <div class="ykphone-search-header"></div>
+    {{/if}}
     {{#if is_dms}}
     <div class="ykphone-split-search">
         <i class="zulip-icon zulip-icon-search ykphone-split-search-icon" aria-hidden="true"></i>

@@ -161,6 +161,11 @@ run_test("current_view_place", ({override}) => {
     // A split page is the place even with a conversation beside it.
     override(ykphone_split_view, "get_route", () => ({page: "dms", selection: "7"}));
     assert.deepEqual(ykphone_places.current_view_place(), {kind: "page", page: "dms"});
+
+    // A search results page is not a place to return to: its results
+    // go stale, and Home should not land on an old query.
+    override(ykphone_split_view, "get_route", () => ({page: "search", query: "예산"}));
+    assert.equal(ykphone_places.current_view_place(), undefined);
 });
 
 run_test("describe conversations", () => {

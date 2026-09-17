@@ -60,7 +60,10 @@ mock_esm("../src/people", {
             .join(", "),
     is_active_user_or_system_bot: (user_id) => users.get(user_id)?.is_active === true,
     is_active_user: (user_id) => users.get(user_id)?.is_active === true,
-    is_valid_user_ids: (user_ids) => user_ids.every((user_id) => users.has(user_id)),
+    is_valid_user_id: (user_id) => users.has(Number(user_id)),
+    is_valid_user_ids: (user_ids) => user_ids.every((user_id) => users.has(Number(user_id))),
+    get_realm_active_human_users: () =>
+        [...users.values()].filter((user) => user.is_active && !user.is_bot),
     get_people_for_search_bar: (query) =>
         [...users.values()].filter((user) => user.full_name.toLowerCase().includes(query)),
 });
@@ -73,11 +76,23 @@ mock_esm("../src/pm_conversations", {
         get: () => conversations,
     },
 });
+const verona_sub = {
+    stream_id: verona_id,
+    name: "Verona",
+    description: "",
+    invite_only: false,
+    is_web_public: false,
+    is_archived: false,
+    subscribed: true,
+};
 mock_esm("../src/stream_data", {
-    get_sub_by_id: (stream_id) => (stream_id === verona_id ? {name: "Verona"} : undefined),
+    get_sub_by_id: (stream_id) => (stream_id === verona_id ? verona_sub : undefined),
+    get_sub_by_id_string: (id_string) => (Number(id_string) === verona_id ? verona_sub : undefined),
+    get_unsorted_subs: () => [verona_sub],
 });
 mock_esm("../src/timerender", {
     relative_time_string_from_date: (date) => `relative:${date.getTime() / 1000}`,
+    get_localized_date_or_time_for_format: (date) => `date:${date.getTime() / 1000}`,
 });
 mock_esm("../src/unread", {
     get_unread_message_ids: (ids) => ids.filter((id) => unread_ids.has(id)),
@@ -92,6 +107,7 @@ mock_esm("../src/ykphone_threads", {
 
 const {set_current_user, set_realm} = zrequire("state_data");
 const message_store = zrequire("message_store");
+const ykphone_search = zrequire("ykphone_search");
 const ykphone_split_view = zrequire("ykphone_split_view");
 
 set_current_user(me);
@@ -100,6 +116,7 @@ set_realm(realm);
 
 function reset() {
     ykphone_split_view.clear_for_testing();
+    ykphone_search.clear_for_testing();
     conversations = [];
     unread_ids = new Set();
     unread_by_dm = new Map();
@@ -921,4 +938,353 @@ run_test("plan_show and resolve_route", (helpers) => {
     assert.ok(!ykphone_split_view.is_thread_shown());
     ykphone_split_view.note_shown_selection(undefined);
     assert.ok(!ykphone_split_view.is_narrow_shown_for(threads("1")));
+});
+
+// ---- The search results page ----
+
+function search_route(opts = {}) {
+    return {
+        page: "search",
+        tab: opts.tab ?? "messages",
+        selection: opts.selection,
+        query: opts.query ?? "예산",
+        sort: opts.sort ?? "newest",
+        range: opts.range ?? "any",
+    };
+}
+
+// Runs a search and answers both of its requests.
+function run_search(helpers, query, {messages = [], files = [], complete = true} = {}) {
+    const requests = capture_requests(helpers);
+    ykphone_search.load(query, {sort: "newest", range: "any"}, () => {
+        // The DOM side draws the rows; nothing to do here.
+    });
+    requests[0].success({messages, found_oldest: complete, found_newest: complete});
+    requests[1].success({messages: files, found_oldest: complete, found_newest: complete});
+}
+
+run_test("the search page's route", () => {
+    reset();
+    // #ykphone/search/<query>[/<tab>[/<sort>-<range>[/<result>]]]
+    assert.deepEqual(ykphone_split_view.parse_hash(["search", "%EC%98%88%EC%82%B0"]), {
+        page: "search",
+        tab: "messages",
+        selection: undefined,
+        query: "예산",
+        sort: "newest",
+        range: "any",
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["search", "channel%3A3+예산", "files", "30"]), {
+        page: "search",
+        tab: "files",
+        selection: "30",
+        query: "channel:3 예산",
+        sort: "newest",
+        range: "any",
+    });
+    // The view choices travel with the query, so a reload and Back
+    // show what the page showed.
+    assert.deepEqual(
+        ykphone_split_view.parse_hash(["search", "예산", "messages", "oldest-week", "30"]),
+        {
+            page: "search",
+            tab: "messages",
+            selection: "30",
+            query: "예산",
+            sort: "oldest",
+            range: "week",
+        },
+    );
+    // A tab nobody knows falls back to the messages; so does a view
+    // segment nobody knows, which is then the selection.
+    assert.equal(ykphone_split_view.parse_hash(["search", "예산", "nope"]).tab, "messages");
+    assert.equal(
+        ykphone_split_view.parse_hash(["search", "예산", "messages", "oldest-never"]).selection,
+        "oldest-never",
+    );
+    assert.equal(ykphone_split_view.parse_hash(["search"]).query, "");
+
+    assert.equal(
+        ykphone_split_view.page_hash("search", {query: "channel:3 예산"}),
+        "#ykphone/search/channel%3A3+%EC%98%88%EC%82%B0",
+    );
+    assert.equal(
+        ykphone_split_view.page_hash("search", {query: "예산", tab: "files"}),
+        "#ykphone/search/%EC%98%88%EC%82%B0/files",
+    );
+    // The default choices are left out of the hash; a chosen one
+    // brings the segment, and a selection always does.
+    assert.equal(
+        ykphone_split_view.page_hash("search", {query: "예산", range: "week"}),
+        "#ykphone/search/%EC%98%88%EC%82%B0/messages/newest-week",
+    );
+    assert.equal(
+        ykphone_split_view.route_hash(search_route({tab: "files"}), "30"),
+        "#ykphone/search/%EC%98%88%EC%82%B0/files/newest-any/30",
+    );
+    assert.equal(
+        ykphone_split_view.route_hash(search_route({sort: "oldest", range: "month"}), undefined),
+        "#ykphone/search/%EC%98%88%EC%82%B0/messages/oldest-month",
+    );
+    assert.equal(ykphone_split_view.page_hash("search"), "#ykphone/search/");
+    assert.equal(
+        ykphone_split_view.page_hash("search", {query: "예산", selection: "30"}),
+        "#ykphone/search/%EC%98%88%EC%82%B0/messages/newest-any/30",
+    );
+    assert.equal(ykphone_split_view.page_title("search"), "translated: Search results");
+    assert.equal(ykphone_split_view.page_icon("search"), "search");
+
+    // A new query, and an order that reads the other end of the
+    // history, are new pages; another tab and another date range are
+    // answered by the results the page already has.
+    assert.equal(
+        ykphone_split_view.plan_show(search_route(), search_route({query: "보고"})),
+        "page",
+    );
+    assert.equal(
+        ykphone_split_view.plan_show(search_route(), search_route({sort: "oldest"})),
+        "page",
+    );
+    assert.equal(
+        ykphone_split_view.plan_show(search_route(), search_route({range: "week"})),
+        "tab",
+    );
+    assert.equal(ykphone_split_view.plan_show(search_route(), search_route({tab: "files"})), "tab");
+    assert.equal(
+        ykphone_split_view.plan_show(search_route(), search_route({selection: "30"})),
+        "rows",
+    );
+
+    // A search is a snapshot: messages that arrive while it is open do
+    // not change what was searched for.
+    ykphone_split_view.set_route(search_route());
+    assert.equal(ykphone_split_view.refresh_for_messages([stored_message(30)]), undefined);
+    // A result in a thread is a thread on the right.
+    ykphone_split_view.set_route(search_route({selection: "30"}));
+    assert.ok(ykphone_split_view.is_thread_shown());
+});
+
+run_test("the search page's rows and counts", (helpers) => {
+    reset();
+    const route = search_route({query: "예산"});
+    ykphone_split_view.set_route(route);
+
+    // Before the search answers there are no rows and every count is
+    // empty; the placeholder waits rather than calling the selection
+    // stale.
+    assert.deepEqual(
+        ykphone_split_view.search_tab_links(route).map((tab) => tab.count),
+        ["0", "0", "0", "0"],
+    );
+    // A page opened with no query at all.
+    const blank = {page: "search", tab: "messages", selection: undefined, query: undefined};
+    assert.deepEqual(ykphone_split_view.search_messages(blank), []);
+    assert.deepEqual(ykphone_split_view.search_file_rows(blank), []);
+    assert.deepEqual(
+        ykphone_split_view.search_tab_links(blank).map((tab) => tab.count),
+        ["0", "0", "0", "0"],
+    );
+    assert.deepEqual(ykphone_split_view.search_messages(route), []);
+    assert.deepEqual(ykphone_split_view.search_file_rows(route), []);
+    assert.deepEqual(
+        ykphone_split_view.resolve_route(search_route({selection: "30"}), {stacked: false}),
+        {type: "placeholder", stale: false},
+    );
+
+    const now = Date.now() / 1000;
+    run_search(helpers, "예산", {
+        messages: [
+            raw_message(30, {timestamp: now - 60}),
+            raw_message(31, {timestamp: now - 60 * 60 * 24 * 40}),
+        ],
+        files: [
+            raw_message(32, {
+                timestamp: now - 120,
+                content: '<p><a href="/user_uploads/2/ab/notes.txt">notes.txt</a></p>',
+            }),
+        ],
+        complete: true,
+    });
+
+    assert.deepEqual(
+        ykphone_split_view.search_messages(route).map((message) => message.id),
+        [30, 31],
+    );
+    assert.deepEqual(
+        ykphone_split_view.search_file_rows(route).map((row) => row.name),
+        ["notes.txt"],
+    );
+    assert.deepEqual(
+        ykphone_split_view.search_tab_links(route).map((tab) => [tab.id, tab.count, tab.active]),
+        [
+            ["messages", "2", true],
+            ["files", "1", false],
+            ["channels", "0", false],
+            ["people", "0", false],
+        ],
+    );
+    assert.equal(
+        ykphone_split_view.search_tab_links(route)[1].url,
+        "#ykphone/search/%EC%98%88%EC%82%B0/files",
+    );
+
+    // The date range and the sort come from the route.
+    const week = search_route({query: "예산", range: "week"});
+    assert.deepEqual(
+        ykphone_split_view.search_messages(week).map((message) => message.id),
+        [30],
+    );
+    const oldest = search_route({query: "예산", sort: "oldest"});
+    assert.deepEqual(
+        ykphone_split_view.search_messages(oldest).map((message) => message.id),
+        [31, 30],
+    );
+
+    // A route with no choices of its own reads as the defaults, and
+    // the files are ordered the same way the messages are, oldest
+    // first when that is asked for.
+    const bare = {page: "search", tab: "messages", selection: undefined, query: "예산"};
+    assert.deepEqual(
+        ykphone_split_view.search_messages(bare).map((message) => message.id),
+        [30, 31],
+    );
+    assert.deepEqual(
+        ykphone_split_view.search_file_rows(bare).map((row) => row.message_id),
+        [32],
+    );
+    run_search(helpers, "예산", {
+        messages: [],
+        files: [
+            raw_message(40, {
+                timestamp: now - 10,
+                content: '<p><a href="/user_uploads/2/ab/a.txt">a.txt</a></p>',
+            }),
+            raw_message(41, {
+                timestamp: now - 10,
+                content: '<p><a href="/user_uploads/2/ab/b.txt">b.txt</a></p>',
+            }),
+        ],
+    });
+    // Two files of the same second are ordered by their message.
+    assert.deepEqual(
+        ykphone_split_view.search_file_rows(route).map((row) => row.message_id),
+        [41, 40],
+    );
+    assert.deepEqual(
+        ykphone_split_view
+            .search_file_rows(search_route({query: "예산", sort: "oldest"}))
+            .map((row) => row.message_id),
+        [40, 41],
+    );
+    run_search(helpers, "예산", {
+        messages: [
+            raw_message(30, {timestamp: now - 60}),
+            raw_message(31, {timestamp: now - 60 * 60 * 24 * 40}),
+        ],
+        files: [
+            raw_message(32, {
+                timestamp: now - 120,
+                content: '<p><a href="/user_uploads/2/ab/notes.txt">notes.txt</a></p>',
+            }),
+        ],
+    });
+
+    // A file facet narrows the Files tab's rows, but not the count on
+    // its own tab: that is how many files the search found.
+    ykphone_search.set_file_filters({kind: "image", sender_id: undefined, stream_id: undefined});
+    assert.deepEqual(ykphone_split_view.search_file_rows(route), []);
+    assert.deepEqual(ykphone_split_view.search_file_rows(route, {facets: false}).length, 1);
+    assert.equal(ykphone_split_view.search_tab_links(route)[1].count, "1");
+    ykphone_search.reset_facets();
+
+    // A search that stopped at a page says so, whatever a date range
+    // then left of it.
+    run_search(helpers, "예산", {
+        messages: [
+            raw_message(33, {timestamp: now - 60}),
+            raw_message(34, {timestamp: now - 60 * 60 * 24 * 400}),
+        ],
+        files: [],
+        complete: false,
+    });
+    assert.equal(ykphone_split_view.search_tab_links(week)[0].count, "1+");
+    assert.equal(ykphone_split_view.search_tab_links(route)[0].count, "2+");
+
+    // The rows of another query than the one on screen are not shown.
+    assert.deepEqual(ykphone_split_view.search_messages(search_route({query: "보고"})), []);
+    assert.deepEqual(ykphone_split_view.search_file_rows(search_route({query: "보고"})), []);
+    assert.deepEqual(ykphone_split_view.search_messages(blank), []);
+    assert.deepEqual(ykphone_split_view.search_file_rows(blank), []);
+
+    // A word in the query lists the channels and people it matches.
+    const with_words = search_route({query: "Verona"});
+    run_search(helpers, "Verona", {messages: [], files: []});
+    assert.deepEqual(
+        ykphone_split_view.search_tab_links(with_words).map((tab) => [tab.id, tab.count]),
+        [
+            ["messages", "0"],
+            ["files", "0"],
+            ["channels", "1"],
+            ["people", "0"],
+        ],
+    );
+});
+
+run_test("what a search result opens", (helpers) => {
+    reset();
+    run_search(helpers, "예산", {
+        messages: [raw_message(30)],
+        files: [
+            raw_message(32, {
+                content: '<p><a href="/user_uploads/2/ab/notes.txt">notes.txt</a></p>',
+            }),
+        ],
+    });
+
+    // A message result opens its conversation at that message; a
+    // channel and a person result open the conversation itself.
+    assert.deepEqual(ykphone_split_view.narrow_terms(search_route({selection: "30"})), [
+        {operator: "channel", operand: String(verona_id)},
+        {operator: "topic", operand: ""},
+        {operator: "near", operand: "30"},
+    ]);
+    assert.deepEqual(ykphone_split_view.narrow_terms(search_route({selection: `c${verona_id}`})), [
+        {operator: "channel", operand: String(verona_id)},
+        {operator: "topic", operand: ""},
+    ]);
+    assert.deepEqual(ykphone_split_view.narrow_terms(search_route({selection: "u7"})), [
+        {operator: "dm", operand: [7]},
+    ]);
+    // A file's row opens the message it was shared in, which the page
+    // knows from the Files tab's own results.
+    assert.deepEqual(
+        ykphone_split_view.narrow_terms(search_route({tab: "files", selection: "32"})),
+        [
+            {operator: "channel", operand: String(verona_id)},
+            {operator: "topic", operand: ""},
+            {operator: "near", operand: "32"},
+        ],
+    );
+
+    // Once the results are in, a selection that names nothing is
+    // stale, and the page opens nothing by itself.
+    assert.deepEqual(
+        ykphone_split_view.resolve_route(search_route({selection: "999"}), {stacked: false}),
+        {type: "placeholder", stale: true},
+    );
+    assert.deepEqual(ykphone_split_view.resolve_route(search_route(), {stacked: false}), {
+        type: "placeholder",
+        stale: false,
+    });
+    assert.deepEqual(
+        ykphone_split_view.resolve_route(search_route({selection: "30"}), {stacked: false}),
+        {
+            type: "activate",
+            terms: [
+                {operator: "channel", operand: String(verona_id)},
+                {operator: "topic", operand: ""},
+                {operator: "near", operand: "30"},
+            ],
+        },
+    );
 });

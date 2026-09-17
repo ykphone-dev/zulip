@@ -124,7 +124,9 @@ export function place_for_filter(filter: Filter): Place | undefined {
 export function current_view_place(): Place | undefined {
     const route = ykphone_split_view.get_route();
     if (route !== undefined) {
-        return page_place(route.page);
+        // A search is not a place to return to: its results go stale
+        // and Home should not land on somebody's old query.
+        return route.page === "search" ? undefined : page_place(route.page);
     }
     const filter = narrow_state.filter();
     return filter === undefined ? undefined : place_for_filter(filter);

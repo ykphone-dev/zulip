@@ -1,5 +1,5 @@
-// Slack's DM, Activity and Threads pages for the 옆커폰 fork: the state
-// and data of the split-pane shell.
+// Slack's DM, Activity, Threads and search results pages for the 옆커폰
+// fork: the state and data of the split-pane shell.
 //
 // Each page is two columns inside the middle pane: a list on the left
 // (this module's rows) and the selected conversation on the right,
@@ -8,9 +8,11 @@
 // through the same show/hide protocol as the inbox. Reading, sending,
 // reactions, the always-open composer and unread marking are therefore
 // upstream's, untouched. The hashes are #ykphone/dms[/<user ids>],
-// #ykphone/activity[/<tab>[/<message id>]] and
-// #ykphone/threads[/<root message id>]. The DOM side lives in
-// ykphone_split_view_ui.ts.
+// #ykphone/activity[/<tab>[/<message id>]],
+// #ykphone/threads[/<root message id>] and
+// #ykphone/search/<query>[/<tab>[/<result>]]. The DOM side lives in
+// ykphone_split_view_ui.ts; the search page's own data (the query, the
+// results, the filters) lives in ykphone_search.ts.
 
 import assert from "minimalistic-assert";
 import * as z from "zod/mini";
@@ -31,17 +33,30 @@ import * as timerender from "./timerender.ts";
 import * as unread from "./unread.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
 import type {ActivityItem, ActivityTab} from "./ykphone_activity.ts";
+import * as ykphone_files from "./ykphone_files.ts";
+import * as ykphone_search from "./ykphone_search.ts";
+import type {DateRange, SearchTab, SortOrder} from "./ykphone_search.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 
-export type SplitPage = "dms" | "activity" | "threads";
+export type SplitPage = "dms" | "activity" | "threads" | "search";
+
+// The Activity page's filters and the search results page's tabs are
+// the same row of chips in the list header.
+export type SplitTab = ActivityTab | SearchTab;
 
 export type SplitRoute = {
     page: SplitPage;
-    // Only the Activity page has tabs; the others carry "all".
-    tab: ActivityTab;
+    // Pages without tabs carry "all".
+    tab: SplitTab;
     // The list row shown on the right: a DM's user ids ("7" or "7,9"),
-    // an activity item's message id, a thread's root message id.
+    // an activity item's message id, a thread's root message id, or a
+    // search result (a message id, "c<channel id>", "u<user id>").
     selection: string | undefined;
+    // The search results page only: the Zulip search string, and the
+    // two view choices that belong in the URL with it.
+    query?: string | undefined;
+    sort?: SortOrder | undefined;
+    range?: DateRange | undefined;
 };
 
 // The trigger of the narrows the shell activates; message_view's hook
@@ -104,12 +119,35 @@ export function is_thread_shown(): boolean {
     return (
         route?.selection !== undefined &&
         !placeholder_visible &&
-        (route.page === "threads" || route.page === "activity")
+        (route.page === "threads" || route.page === "activity" || route.page === "search")
     );
 }
 
 function non_empty(part: string | undefined): string | undefined {
     return part === undefined || part === "" ? undefined : part;
+}
+
+// The search page's sort and date range travel in the hash, so that a
+// reload, a shared link and Back all show what the page showed. The
+// segment is left out while both are the default, which is why
+// anything that is not one is read as the selection instead.
+const DEFAULT_VIEW_OPTIONS = "newest-any";
+
+function view_options(route: {
+    sort?: SortOrder | undefined;
+    range?: DateRange | undefined;
+}): string {
+    return `${route.sort ?? "newest"}-${route.range ?? "any"}`;
+}
+
+function parse_view_options(
+    part: string | undefined,
+): {sort: SortOrder; range: DateRange} | undefined {
+    const [sort, range] = (part ?? "").split("-");
+    if ((sort !== "newest" && sort !== "oldest") || range === undefined) {
+        return undefined;
+    }
+    return ykphone_search.is_date_range(range) ? {sort, range} : undefined;
 }
 
 // The components of the hash after "#ykphone".
@@ -127,6 +165,20 @@ export function parse_hash(parts: string[]): SplitRoute | undefined {
             }
             return {page: "activity", tab, selection: non_empty(rest[1])};
         }
+        case "search": {
+            // #ykphone/search/<query>[/<tab>[/<sort>-<range>[/<result>]]]
+            const query = ykphone_search.decode_query(rest[0] ?? "");
+            const tab = ykphone_search.is_search_tab(rest[1]) ? rest[1] : "messages";
+            const view = parse_view_options(rest[2]);
+            return {
+                page: "search",
+                tab,
+                selection: non_empty(view === undefined ? rest[2] : rest[3]),
+                query,
+                sort: view?.sort ?? "newest",
+                range: view?.range ?? "any",
+            };
+        }
         default:
             return undefined;
     }
@@ -134,9 +186,30 @@ export function parse_hash(parts: string[]): SplitRoute | undefined {
 
 export function page_hash(
     page: SplitPage,
-    opts: {tab?: ActivityTab | undefined; selection?: string | undefined} = {},
+    opts: {
+        tab?: SplitTab | undefined;
+        selection?: string | undefined;
+        query?: string | undefined;
+        sort?: SortOrder | undefined;
+        range?: DateRange | undefined;
+    } = {},
 ): string {
     let hash = `#ykphone/${page}`;
+    if (page === "search") {
+        hash += `/${ykphone_search.encode_query(opts.query ?? "")}`;
+        const options = view_options(opts);
+        const named = options !== DEFAULT_VIEW_OPTIONS;
+        if (opts.tab !== undefined || opts.selection !== undefined || named) {
+            hash += `/${opts.tab ?? "messages"}`;
+        }
+        if (opts.selection !== undefined || named) {
+            hash += `/${options}`;
+        }
+        if (opts.selection !== undefined) {
+            hash += `/${opts.selection}`;
+        }
+        return hash;
+    }
     if (page === "activity" && (opts.tab !== undefined || opts.selection !== undefined)) {
         hash += `/${opts.tab ?? "all"}`;
     }
@@ -148,8 +221,11 @@ export function page_hash(
 
 export function route_hash(current: SplitRoute, selection: string | undefined): string {
     return page_hash(current.page, {
-        tab: current.page === "activity" ? current.tab : undefined,
+        tab: current.page === "activity" || current.page === "search" ? current.tab : undefined,
         selection,
+        query: current.query,
+        sort: current.sort,
+        range: current.range,
     });
 }
 
@@ -158,6 +234,7 @@ export function page_title(page: SplitPage): string {
         dms: $t({defaultMessage: "Direct messages"}),
         activity: $t({defaultMessage: "Activity"}),
         threads: $t({defaultMessage: "Threads"}),
+        search: $t({defaultMessage: "Search results"}),
     };
     return titles[page];
 }
@@ -167,6 +244,7 @@ export function page_icon(page: SplitPage): string {
         dms: "ykphone-rail-dm",
         activity: "ykphone-rail-bell",
         threads: "threads",
+        search: "search",
     };
     return icons[page];
 }
@@ -725,6 +803,114 @@ export function thread_narrow_terms(row: ThreadRow): NarrowTerm[] {
     ];
 }
 
+// ---- Search results ----
+
+export type SearchTabLink = {
+    id: SplitTab;
+    label: string;
+    count: string;
+    active: boolean;
+    url: string;
+};
+
+// Reading the files out of a result set is a regex pass over every
+// message, so it is done once per set rather than once per render.
+let file_row_cache: {messages: RawMessage[]; rows: ykphone_files.FileRow[]} | undefined;
+
+function file_rows_of(messages: RawMessage[]): ykphone_files.FileRow[] {
+    if (file_row_cache?.messages !== messages) {
+        file_row_cache = {messages, rows: ykphone_files.rows_from_messages(messages)};
+    }
+    return file_row_cache.rows;
+}
+
+function results_for(current: SplitRoute): ykphone_search.SearchResults | undefined {
+    const results = ykphone_search.get_results();
+    if (results === undefined) {
+        return undefined;
+    }
+    return results.query === (current.query ?? "") ? results : undefined;
+}
+
+// How many each tab holds. A count the search could not finish reading
+// is "N+"; the 파일 count is of the files the search found, not of the
+// ones the facets leave on screen, so choosing a 종류 does not change
+// the tab's own number.
+export function search_tab_links(current: SplitRoute): SearchTabLink[] {
+    const results = results_for(current);
+    const words = ykphone_search.search_words(current.query ?? "");
+    const hash_for = (selection: string): string => route_hash(current, selection);
+    const counts: Record<SearchTab, string> = {
+        messages: ykphone_search.count_label(
+            search_messages(current).length,
+            results?.messages_complete ?? true,
+        ),
+        files: ykphone_search.count_label(
+            search_file_rows(current, {facets: false}).length,
+            results?.files_complete ?? true,
+        ),
+        channels: ykphone_search
+            .channel_rows(words, {selection: undefined, hash_for})
+            .length.toString(),
+        people: ykphone_search
+            .people_rows(words, {selection: undefined, hash_for})
+            .length.toString(),
+    };
+    return ykphone_search.SEARCH_TABS.map((tab) => ({
+        id: tab,
+        label: ykphone_search.tab_label(tab),
+        count: counts[tab],
+        active: tab === current.tab,
+        // Switching tabs keeps the query and the view choices, and
+        // drops the selection, whose meaning is the tab's.
+        url: page_hash("search", {
+            tab,
+            query: current.query,
+            sort: current.sort,
+            range: current.range,
+        }),
+    }));
+}
+
+// The messages of the Messages tab: what the search brought back,
+// narrowed by the date range and in the chosen order.
+export function search_messages(current: SplitRoute): RawMessage[] {
+    const results = results_for(current);
+    if (results === undefined) {
+        return [];
+    }
+    return ykphone_search.sort_messages(
+        ykphone_search.filter_by_date(results.messages, current.range ?? "any"),
+        current.sort ?? "newest",
+    );
+}
+
+export function search_file_rows(
+    current: SplitRoute,
+    opts?: {facets: boolean},
+): ykphone_files.FileRow[] {
+    const results = results_for(current);
+    if (results === undefined) {
+        return [];
+    }
+    const rows = ykphone_search.filter_by_date(file_rows_of(results.files), current.range ?? "any");
+    const order = current.sort ?? "newest";
+    const sorted = rows.toSorted((a, b) =>
+        order === "newest"
+            ? b.timestamp - a.timestamp || b.message_id - a.message_id
+            : a.timestamp - b.timestamp || a.message_id - b.message_id,
+    );
+    return opts?.facets === false
+        ? sorted
+        : ykphone_files.filter_rows(sorted, ykphone_search.get_file_filters());
+}
+
+// Every message the page knows about, for looking a selection up.
+function search_known_messages(): RawMessage[] {
+    const results = ykphone_search.get_results();
+    return results === undefined ? [] : [...results.messages, ...results.files];
+}
+
 // ---- Selection ----
 
 // The narrow the selection stands for, or undefined while the rows it
@@ -739,6 +925,9 @@ export function narrow_terms(current: SplitRoute): NarrowTerm[] | undefined {
     if (current.page === "activity") {
         const item = find_activity_item(Number.parseInt(current.selection, 10));
         return item === undefined ? undefined : activity_narrow_terms(item);
+    }
+    if (current.page === "search") {
+        return ykphone_search.selection_terms(current.selection, search_known_messages());
     }
     const row = find_thread_row(Number.parseInt(current.selection, 10));
     return row === undefined ? undefined : thread_narrow_terms(row);
@@ -782,6 +971,9 @@ function rows_loaded(page: SplitPage): boolean {
     if (page === "activity") {
         return activity_loaded;
     }
+    if (page === "search") {
+        return ykphone_search.get_results() !== undefined;
+    }
     return thread_rows !== undefined;
 }
 
@@ -794,6 +986,18 @@ export type ShowPlan = "page" | "tab" | "rows";
 export function plan_show(previous: SplitRoute | undefined, current: SplitRoute): ShowPlan {
     if (previous?.page !== current.page) {
         return "page";
+    }
+    // A new query, or an order that reads the other end of the
+    // history, is a new page: its results have to be fetched again.
+    if (
+        current.page === "search" &&
+        (previous.query !== current.query || previous.sort !== current.sort)
+    ) {
+        return "page";
+    }
+    // A date range is applied to the results that are already here.
+    if (current.page === "search" && previous.range !== current.range) {
+        return "tab";
     }
     if (previous.tab !== current.tab) {
         return "tab";
@@ -857,11 +1061,18 @@ export function refresh_for_messages(messages: Message[]): RefreshPlan {
     if (route.page === "activity") {
         return affects_activity(messages) ? "reload" : undefined;
     }
+    if (route.page === "search") {
+        // A search is a snapshot: new messages do not change what was
+        // searched for, and re-running it under the reader would move
+        // the rows they are working through.
+        return undefined;
+    }
     return affects_threads(messages) ? "reload" : undefined;
 }
 
 export function clear_for_testing(): void {
     route = undefined;
+    file_row_cache = undefined;
     placeholder_visible = false;
     shown_selection = undefined;
     last_dm_messages.clear();

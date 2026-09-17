@@ -1,0 +1,6 @@
+{{! One dropdown of a fork filter bar (the search results page, the Files view). }}
+<select class="ykphone-filter-select" data-ykphone-filter="{{name}}" aria-label="{{label}}">
+    {{#each options}}
+    <option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+    {{/each}}
+</select>

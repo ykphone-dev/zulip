@@ -35,6 +35,7 @@ import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_favorites_ui from "./ykphone_favorites_ui.ts";
+import * as ykphone_files_ui from "./ykphone_files_ui.ts";
 import * as ykphone_forward from "./ykphone_forward.ts";
 import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
 import * as ykphone_history from "./ykphone_history.ts";
@@ -126,6 +127,15 @@ function add_mount_points(): void {
     );
 }
 
+// Zulip's template parser has no {{else}} branch for {{#each}}, so
+// the empty case is an {{#unless}} beside the loop.
+function history_menu_context(items: ReturnType<typeof ykphone_history.menu_items>): {
+    items: typeof items;
+    has_items: boolean;
+} {
+    return {items, has_items: items.length > 0};
+}
+
 export function initialize(): void {
     add_mount_points();
     ykphone_rail.mount();
@@ -144,6 +154,7 @@ export function initialize(): void {
     ykphone_favorites_ui.initialize();
     ykphone_channel_create_ui.initialize();
     ykphone_channel_details_ui.initialize();
+    ykphone_files_ui.initialize();
     ykphone_shell_theme_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
@@ -192,9 +203,11 @@ export function initialize(): void {
         onShow(instance) {
             instance.setContent(
                 parse_html(
-                    render_ykphone_history_menu({
-                        items: ykphone_history.menu_items(ykphone_places.current_view_place()),
-                    }),
+                    render_ykphone_history_menu(
+                        history_menu_context(
+                            ykphone_history.menu_items(ykphone_places.current_view_place()),
+                        ),
+                    ),
                 ),
             );
             $(instance.reference).addClass("active-navbar-menu");

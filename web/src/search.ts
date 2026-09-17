@@ -12,6 +12,7 @@ import type {SearchPillWidget} from "./search_pill.ts";
 import * as search_suggestion from "./search_suggestion.ts";
 import type {NarrowCanonicalTerm, NarrowTerm} from "./state_data.ts";
 import * as util from "./util.ts";
+import * as ykphone_search_ui from "./ykphone_search_ui.ts";
 
 // Exported for unit testing
 export let is_using_input_method = false;
@@ -82,6 +83,11 @@ function narrow_or_search_for_term({on_narrow_search}: {on_narrow_search: OnNarr
         search_typeahead.shown,
         set_search_bar_text,
     );
+    // The 옆커폰 fork answers Enter with its own search results page.
+    if (ykphone_search_ui.open_results(terms)) {
+        $("#search_query").trigger("blur");
+        return;
+    }
     on_narrow_search(terms, {trigger: "search"});
 
     // It's sort of annoying that this is not in a position to
@@ -132,6 +138,12 @@ function narrow_to_search_contents_with_search_bar_open(): void {
     let terms = convert_search_text_to_terms() ?? [];
     terms = [...search_pill.get_current_search_pill_terms(search_pill_widget!), ...terms];
     if (terms.length === 0) {
+        return;
+    }
+
+    // The 옆커폰 fork runs a finished query on its own results page and
+    // never narrows the pane while the query is being built.
+    if (ykphone_search_ui.handle_search_contents(terms, text_terms.at(-1)?.operator === "search")) {
         return;
     }
 
@@ -208,7 +220,7 @@ export function initialize(opts: {on_narrow_search: OnNarrowSearch}): void {
                 Filter.parse(query),
                 add_current_filter,
             );
-            return suggestions;
+            return ykphone_search_ui.order_suggestions(suggestions, query, pill_terms);
         },
         non_tippy_parent_element: "#searchbox_form",
         items: search_suggestion.max_num_of_search_results,
@@ -216,7 +228,9 @@ export function initialize(opts: {on_narrow_search: OnNarrowSearch}): void {
         stopAdvance: true,
         requireHighlight: false,
         item_html(query: string): (item: string) => string {
-            return (item: string) => search_pill.generate_pills_html(item, query);
+            return (item: string) =>
+                ykphone_search_ui.suggestion_html(item) ??
+                search_pill.generate_pills_html(item, query);
         },
         // When the user starts typing new search operands,
         // we want to highlight the first typeahead row by default
