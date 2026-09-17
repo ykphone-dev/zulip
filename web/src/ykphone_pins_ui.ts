@@ -21,8 +21,8 @@ import * as rendered_markdown from "./rendered_markdown.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as spectators from "./spectators.ts";
 import * as stream_data from "./stream_data.ts";
-import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
+import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 

@@ -466,11 +466,12 @@ export class RichEditor {
     // header, which is one line. Control characters are left out.
     private text_slice(text: string, state: EditorState): Slice {
         const in_header = state.selection.$from.parent.type.name === "spoiler_header";
-        const clean = text.replaceAll(/[\x00-\x08\x0B-\x1F\x7F]/gu, "");
+        // eslint-disable-next-line no-control-regex -- control characters are what this removes
+        const clean = text.replaceAll(/[\u0000-\u0008\u000B-\u001F\u007F]/gu, "");
         const nodes: PMNode[] = [];
         for (const [index, line] of clean.split(/\r?\n/u).entries()) {
             if (index > 0 && !in_header) {
-                nodes.push(schema.nodes["hard_break"]!.create());
+                nodes.push(schema.nodes.hard_break.create());
             }
             const piece = in_header && index > 0 ? " " + line : line;
             if (piece !== "") {
@@ -869,6 +870,8 @@ export class RichEditor {
 
     private handle_key_down(editor: EditorView, event: KeyboardEvent): boolean {
         this.shift_pressed = event.shiftKey;
+        // Some IMEs send keydown with keyCode 229 and no isComposing.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         if (event.isComposing || event.keyCode === 229) {
             return false;
         }
@@ -1104,10 +1107,14 @@ export class RichEditor {
 }
 
 function upstream_keydown(event: KeyboardEvent): JQuery.Event {
+    // eslint-disable-next-line new-cap -- jQuery's event factory
     return $.Event("keydown", {
         key: event.key,
         code: event.code,
+        // Upstream's jQuery handlers read keyCode and which.
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         keyCode: event.keyCode,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated
         which: event.which,
         ctrlKey: event.ctrlKey,
         metaKey: event.metaKey,
@@ -1121,6 +1128,8 @@ function upstream_keydown(event: KeyboardEvent): JQuery.Event {
 // compose box's rule, which the message edit form shares.
 export function upstream_enter_sends(event: KeyboardEvent): boolean {
     return composebox_typeahead.should_enter_send(
+        // The jQuery event carries every field should_enter_send reads.
+        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
         upstream_keydown(event) as unknown as JQuery.KeyDownEvent,
     );
 }

@@ -22,7 +22,8 @@ const CHIPS = new Set([
     "opaque_inline",
 ]);
 const FENCED = new Set(["code_block", "math_block", "blockquote", "spoiler"]);
-const CONTROL_RE = /[\x00-\x08\x0B-\x1F\x7F]/gu;
+// eslint-disable-next-line no-control-regex -- control characters are what this matches
+const CONTROL_RE = /[\u0000-\u0008\u000B-\u001F\u007F]/gu;
 const INFO_RE = /^[\w+\-./#]*$/u;
 const MARKER_RE = /^ *(?:[*+-]|\d+\.) +$/u;
 
@@ -59,7 +60,7 @@ function text_nodes(text: string, marks: Mark[]): PMNode[] {
     const nodes: PMNode[] = [];
     for (const [index, line] of text.split("\n").entries()) {
         if (index > 0) {
-            nodes.push(schema.nodes["hard_break"]!.create());
+            nodes.push(schema.nodes.hard_break.create());
         }
         if (line !== "") {
             nodes.push(schema.text(line, marks));
@@ -99,7 +100,7 @@ function sanitize_node(node: PMNode, ctx: MarkdownContext): PMNode[] {
             attrs["info"] = "";
         }
     } else if (node.type.name === "list_item") {
-        const marker = node.attrs["marker"];
+        const marker: unknown = node.attrs["marker"];
         attrs = {marker: typeof marker === "string" && MARKER_RE.test(marker) ? marker : null};
     } else if (node.type.name === "heading") {
         const level = Number(node.attrs["level"]);
@@ -116,6 +117,7 @@ function sanitize_node(node: PMNode, ctx: MarkdownContext): PMNode[] {
 
 function children_of_fragment(fragment: Fragment): PMNode[] {
     const result: PMNode[] = [];
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror fragment, not an array
     fragment.forEach((child) => {
         result.push(child);
     });
@@ -124,6 +126,7 @@ function children_of_fragment(fragment: Fragment): PMNode[] {
 
 export function sanitize_fragment(fragment: Fragment, ctx: MarkdownContext): Fragment {
     const nodes: PMNode[] = [];
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror fragment, not an array
     fragment.forEach((child) => {
         nodes.push(...sanitize_node(child, ctx));
     });

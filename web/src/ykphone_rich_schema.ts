@@ -11,7 +11,13 @@
 // editors; the chips' visible rendering is done by node views in
 // ykphone_rich_views.ts.
 
-import {type DOMOutputSpec, type Mark, type Node as PMNode, Schema} from "prosemirror-model";
+import {
+    type Attrs,
+    type DOMOutputSpec,
+    type Mark,
+    type Node as PMNode,
+    Schema,
+} from "prosemirror-model";
 
 import {sanitize_href} from "./ykphone_rich_inline.ts";
 
@@ -63,6 +69,20 @@ function chip_parse_attrs(
         attrs[key] = attrs[key] === "true";
     }
     return attrs;
+}
+
+// A node's or mark's attribute that holds a string or null (a fence, a
+// marker), as the attribute's type.
+export function string_attr(attrs: Attrs, name: string): string | null {
+    const value: unknown = attrs[name];
+    return typeof value === "string" ? value : null;
+}
+
+// The same for an attribute holding a number or null (a separation, a
+// code span's backtick count).
+export function number_attr(attrs: Attrs, name: string): number | null {
+    const value: unknown = attrs[name];
+    return typeof value === "number" ? value : null;
 }
 
 export const schema = new Schema({
@@ -385,7 +405,7 @@ export const schema = new Schema({
                 {
                     tag: "a[href]",
                     // An address the server would refuse is no link.
-                    getAttrs: (dom) => {
+                    getAttrs(dom) {
                         const href = sanitize_href(dom.getAttribute("href")!);
                         return href === undefined ? false : {href};
                     },

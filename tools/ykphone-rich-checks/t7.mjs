@@ -1,20 +1,45 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document, window -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
 await kb.type("before abc after");
-await kb.press("Home"); for (let i = 0; i < 7; i++) await kb.press("ArrowRight"); await kb.down("Shift"); for (let i = 0; i < 3; i++) await kb.press("ArrowRight"); await kb.up("Shift");
+await kb.press("Home");
+for (let i = 0; i < 7; i += 1) {
+    await kb.press("ArrowRight");
+}
+await kb.down("Shift");
+for (let i = 0; i < 3; i += 1) {
+    await kb.press("ArrowRight");
+}
+await kb.up("Shift");
 await page.evaluate(() => {
-  window.__log = [];
-  const ta = document.querySelector("#compose-textarea");
-  const log = (label) => window.__log.push(label + " ta=" + ta.selectionStart + "," + ta.selectionEnd + " active=" + (document.activeElement.id || document.activeElement.className.slice(0,12)));
-  ta.addEventListener("focus", () => log("ta focus"));
-  ta.addEventListener("input", () => { log("ta input"); queueMicrotask(() => log("mt-after-input")); });
-  document.addEventListener("selectionchange", () => log("selectionchange"));
-  const origSet = ta.setSelectionRange.bind(ta);
-  ta.setSelectionRange = (a, b, c) => { log("setSel(" + a + "," + b + ")"); return origSet(a, b, c); };
+    window.__log = [];
+    const ta = document.querySelector("#compose-textarea");
+    const log = (label) =>
+        window.__log.push(
+            label +
+                " ta=" +
+                ta.selectionStart +
+                "," +
+                ta.selectionEnd +
+                " active=" +
+                (document.activeElement.id || document.activeElement.className.slice(0, 12)),
+        );
+    ta.addEventListener("focus", () => log("ta focus"));
+    ta.addEventListener("input", () => {
+        log("ta input");
+        queueMicrotask(() => log("mt-after-input"));
+    });
+    document.addEventListener("selectionchange", () => log("selectionchange"));
+    const origSet = ta.setSelectionRange.bind(ta);
+    ta.setSelectionRange = (a, b, c) => {
+        log("setSel(" + a + "," + b + ")");
+        return origSet(a, b, c);
+    };
 });
 await page.click(`#ykphone-compose-formatting-row .formatting_button[data-format-type="spoiler"]`);
 await sleep(600);

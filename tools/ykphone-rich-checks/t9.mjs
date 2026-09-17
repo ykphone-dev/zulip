@@ -1,16 +1,34 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document, getSelection -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
-const dom = () => page.evaluate(() => { const s = getSelection(); return [s.anchorNode?.nodeName, s.anchorOffset, s.focusNode?.nodeName, s.focusOffset, document.activeElement.className.slice(0, 20), document.querySelector("#compose-textarea").selectionStart]; });
+const dom = () =>
+    page.evaluate(() => {
+        const s = getSelection();
+        return [
+            s.anchorNode?.nodeName,
+            s.anchorOffset,
+            s.focusNode?.nodeName,
+            s.focusOffset,
+            document.activeElement.className.slice(0, 20),
+            document.querySelector("#compose-textarea").selectionStart,
+        ];
+    });
 await kb.type("before abc after");
 console.log("typed", await dom());
-await kb.press("Home"); await sleep(100);
+await kb.press("Home");
+await sleep(100);
 console.log("home", await dom());
-await kb.press("ArrowRight"); await sleep(100);
+await kb.press("ArrowRight");
+await sleep(100);
 console.log("right", await dom());
-await kb.down("Shift"); await kb.press("ArrowRight"); await kb.up("Shift"); await sleep(100);
+await kb.down("Shift");
+await kb.press("ArrowRight");
+await kb.up("Shift");
+await sleep(100);
 console.log("shift-right", await dom());
 await browser.close();

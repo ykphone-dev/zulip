@@ -8,7 +8,7 @@ const {page_params} = require("./lib/zpage_params.cjs");
 
 const compose_actions = mock_esm("../src/compose_actions");
 const compose_state = mock_esm("../src/compose_state");
-const message_util = mock_esm("../src/message_util", {
+mock_esm("../src/message_util", {
     user_can_send_direct_message: (user_ids_string) => user_ids_string !== "9",
 });
 const narrow_state = mock_esm("../src/narrow_state", {
@@ -39,9 +39,7 @@ function set_focus(active) {
 
 // A stand-in for HTMLElement, which the module checks with instanceof.
 class HTMLElement {
-    constructor() {
-        this.focused = 0;
-    }
+    focused = 0;
 
     focus() {
         this.focused += 1;

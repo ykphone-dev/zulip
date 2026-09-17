@@ -276,7 +276,7 @@ export function abandon_creation(): void {
 // True from begin_creation until the creation was abandoned, turned
 // out to be a conflict, or ended in the navigation.
 export function is_creating(name: string): boolean {
-    return pending !== undefined && pending.name.toLowerCase() === name.trim().toLowerCase();
+    return pending?.name.toLowerCase() === name.trim().toLowerCase();
 }
 
 function maybe_navigate(creation: PendingCreation): void {

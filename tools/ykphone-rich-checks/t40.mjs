@@ -1,7 +1,8 @@
 // Phase 3 polish in the compose box: the code block language menu, the
 // math block's rendered formula, Markdown typed in a spoiler's header;
 // and the saved snippet form's editor.
-import {start, shot, sleep, BASE} from "./lib.mjs";
+/* global document -- page.evaluate callbacks run in the browser */
+import {BASE, shot, sleep, start} from "./lib.mjs";
 
 const {browser, page} = await start({width: 1400, height: 900});
 const kb = page.keyboard;
@@ -38,14 +39,14 @@ await page.click("#compose .ykphone-rich-code-block code");
 await sleep(300);
 console.log(
     "click in code opens a menu:",
-    await page.evaluate(() => !!document.querySelector(".ykphone-rich-language-menu")),
+    await page.evaluate(() => Boolean(document.querySelector(".ykphone-rich-language-menu"))),
 );
 await page.click("#compose .ykphone-rich-code-label");
 await sleep(500);
 console.log(
     "menu open:",
     await page.evaluate(() => [
-        !!document.querySelector(".ykphone-rich-language-menu"),
+        Boolean(document.querySelector(".ykphone-rich-language-menu")),
         document.activeElement?.className,
         [...document.querySelectorAll(".ykphone-rich-language-option")]
             .slice(0, 4)
@@ -89,7 +90,7 @@ await sleep(300);
 console.log(
     "escape:",
     await page.evaluate(() => [
-        !!document.querySelector(".ykphone-rich-language-menu"),
+        Boolean(document.querySelector(".ykphone-rich-language-menu")),
         document.activeElement?.classList.contains("ProseMirror"),
     ]),
     "draft kept:",
@@ -106,8 +107,8 @@ console.log(
     "math md:",
     JSON.stringify(await md()),
     "rendered:",
-    await page.evaluate(
-        () => !!document.querySelector("#compose .ykphone-rich-math-preview .katex"),
+    await page.evaluate(() =>
+        Boolean(document.querySelector("#compose .ykphone-rich-math-preview .katex")),
     ),
 );
 await shot(page, "p3-math");
@@ -163,6 +164,8 @@ const modal = await page.evaluate(() => {
     const pm = document.querySelector("#add-new-saved-snippet-modal .ykphone-rich-content");
     return {
         md: ta?.value,
+        // innerText: the text as shown, which is what the check is about.
+        // eslint-disable-next-line unicorn/prefer-dom-node-text-content
         text: pm?.innerText,
         chips: pm?.querySelectorAll(".ykphone-rich-mention").length,
         strong: pm?.querySelector("strong")?.textContent,

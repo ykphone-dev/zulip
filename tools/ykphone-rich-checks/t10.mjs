@@ -1,61 +1,124 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document -- page.evaluate callbacks run in the browser */
+import {BASE, shot, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
-const report = async (label) => { const s = await state(page); console.log("==", label, JSON.stringify(s.md), s.sel, "|", s.html.replace(/ class="[^"]*"| contenteditable="false"| data-[a-z-]+="[^"]*"| title="[^"]*"| aria-[a-z]+="[^"]*"| role="[^"]*"/g, "").slice(0, 260)); };
+const report = async (label) => {
+    const s = await state(page);
+    console.log(
+        "==",
+        label,
+        JSON.stringify(s.md),
+        s.sel,
+        "|",
+        s.html
+            .replaceAll(
+                / class="[^"]*"| contenteditable="false"| data-[a-z-]+="[^"]*"| title="[^"]*"| aria-[a-z]+="[^"]*"| role="[^"]*"/g,
+                "",
+            )
+            .slice(0, 260),
+    );
+};
 await kb.type("files: ");
 const input = await page.$("#compose .file_input");
 await input.uploadFile("/Users/apple/develop/ykphone/zulip/var/rc/notes.txt");
-await sleep(150); await report("uploading");
-await sleep(2500); await report("uploaded txt");
+await sleep(150);
+await report("uploading");
+await sleep(2500);
+await report("uploaded txt");
 await kb.type(" and ");
 await input.uploadFile("/Users/apple/develop/ykphone/zulip/var/rc/sample.png");
-await sleep(3000); await report("uploaded png");
+await sleep(3000);
+await report("uploaded png");
 await kb.type(" ok");
 await shot(page, "t10-uploads");
-await kb.press("Enter"); await sleep(1500); await report("sent uploads");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent uploads");
 // calls
-await page.evaluate(() => document.querySelector("#compose .video_link").click()); await sleep(1500); await report("video call");
-await page.evaluate(() => document.querySelector("#compose .audio_link").click()); await sleep(1500); await report("audio call");
+await page.evaluate(() => document.querySelector("#compose .video_link").click());
+await sleep(1500);
+await report("video call");
+await page.evaluate(() => document.querySelector("#compose .audio_link").click());
+await sleep(1500);
+await report("audio call");
 await kb.type("call me");
 await shot(page, "t10-calls");
-await kb.press("Enter"); await sleep(1500); await report("sent calls");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent calls");
 // time
 await kb.type("meet at ");
-await page.evaluate(() => document.querySelector("#compose .time_pick").click()); await sleep(800);
-console.log("flatpickr open", await page.evaluate(() => !!document.querySelector(".flatpickr-calendar.open")));
-await page.evaluate(() => document.querySelector(".flatpickr-calendar.open .flatpickr-confirm")?.click()); await sleep(600);
+await page.evaluate(() => document.querySelector("#compose .time_pick").click());
+await sleep(800);
+console.log(
+    "flatpickr open",
+    await page.evaluate(() => Boolean(document.querySelector(".flatpickr-calendar.open"))),
+);
+await page.evaluate(() =>
+    document.querySelector(".flatpickr-calendar.open .flatpickr-confirm")?.click(),
+);
+await sleep(600);
 await report("time");
 await kb.type("please");
-await kb.press("Enter"); await sleep(1500); await report("sent time");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent time");
 // poll
-await page.evaluate(() => document.querySelector("#compose .add-poll").click()); await sleep(800);
+await page.evaluate(() => document.querySelector("#compose .add-poll").click());
+await sleep(800);
 await page.type("#poll-question-input", "점심 메뉴?");
 const options = await page.$$("input.poll-option-input");
-await options[0].type("김밥"); await sleep(200);
+await options[0].type("김밥");
+await sleep(200);
 const options2 = await page.$$("input.poll-option-input");
 await options2[1].type("라면");
-await page.evaluate(() => document.querySelector("#add-poll-modal .dialog_submit_button").click()); await sleep(800);
+await page.evaluate(() => document.querySelector("#add-poll-modal .dialog_submit_button").click());
+await sleep(800);
 await report("poll");
 await shot(page, "t10-poll");
-await kb.press("Enter"); await sleep(1500); await report("sent poll");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent poll");
 // todo
-await page.evaluate(() => document.querySelector("#compose .add-todo-list").click()); await sleep(800);
-await page.$eval("#todo-title-input", (el) => { el.value = ""; });
+await page.evaluate(() => document.querySelector("#compose .add-todo-list").click());
+await sleep(800);
+await page.$eval("#todo-title-input", (el) => {
+    el.value = "";
+});
 await page.type("#todo-title-input", "할 일");
 const todos = await page.$$("input.todo-input");
-await todos[0].type("보고서"); await sleep(200);
-await page.evaluate(() => document.querySelector("#add-todo-modal .dialog_submit_button").click()); await sleep(800);
+await todos[0].type("보고서");
+await sleep(200);
+await page.evaluate(() => document.querySelector("#add-todo-modal .dialog_submit_button").click());
+await sleep(800);
 await report("todo");
-await kb.press("Enter"); await sleep(1500); await report("sent todo");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent todo");
 // snippet
 await kb.type("snippet: ");
-await page.evaluate(() => document.querySelector("#compose .saved-snippets-composebox-widget").click()); await sleep(800);
-const items = await page.$$eval(".dropdown-list-item-common-styles, .dropdown-list .list-item", (els) => els.map((e) => e.textContent.trim().slice(0, 30)));
+await page.evaluate(() =>
+    document.querySelector("#compose .saved-snippets-composebox-widget").click(),
+);
+await sleep(800);
+const items = await page.$$eval(
+    ".dropdown-list-item-common-styles, .dropdown-list .list-item",
+    (els) => els.map((e) => e.textContent.trim().slice(0, 30)),
+);
 console.log("snippet items", items);
-await page.evaluate(() => { const item = [...document.querySelectorAll(".dropdown-list-item-common-styles")].find((e) => e.textContent.includes("감사")); item?.click(); });
-await sleep(800); await report("snippet");
-await kb.press("Enter"); await sleep(1500); await report("sent snippet");
+await page.evaluate(() => {
+    const item = [...document.querySelectorAll(".dropdown-list-item-common-styles")].find((e) =>
+        e.textContent.includes("감사"),
+    );
+    item?.click();
+});
+await sleep(800);
+await report("snippet");
+await kb.press("Enter");
+await sleep(1500);
+await report("sent snippet");
 await browser.close();

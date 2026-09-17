@@ -1,21 +1,41 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global getComputedStyle -- page.evaluate callbacks run in the browser */
+import {BASE, shot, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
 await kb.type("snippet: ");
-await page.click(".ykphone-compose-more"); await sleep(300);
-const box = await page.$eval("#compose .saved-snippets-composebox-widget", (el) => { const r = el.getBoundingClientRect(); return [r.x, r.y, r.width, r.height, getComputedStyle(el).display]; });
+await page.click(".ykphone-compose-more");
+await sleep(300);
+const box = await page.$eval("#compose .saved-snippets-composebox-widget", (el) => {
+    const r = el.getBoundingClientRect();
+    return [r.x, r.y, r.width, r.height, getComputedStyle(el).display];
+});
 console.log("button", box);
-await page.click("#compose .saved-snippets-composebox-widget"); await sleep(1000);
-console.log("items", await page.$$eval(".list-item", (els) => els.map((e) => e.textContent.trim().replace(/\s+/g, " ").slice(0, 40))));
+await page.click("#compose .saved-snippets-composebox-widget");
+await sleep(1000);
+console.log(
+    "items",
+    await page.$$eval(".list-item", (els) =>
+        els.map((e) => e.textContent.trim().replaceAll(/\s+/g, " ").slice(0, 40)),
+    ),
+);
 await shot(page, "t12-snippets");
 const target = await page.$$(".list-item");
-for (const t of target) { const txt = await t.evaluate((e) => e.textContent); if (txt.includes("감사")) { await t.click(); break; } }
+for (const t of target) {
+    const txt = await t.evaluate((e) => e.textContent);
+    if (txt.includes("감사")) {
+        await t.click();
+        break;
+    }
+}
 await sleep(800);
-const s = await state(page); console.log(JSON.stringify(s.md), s.html.slice(0, 400));
+const s = await state(page);
+console.log(JSON.stringify(s.md), s.html.slice(0, 400));
 await shot(page, "t12-after");
-await kb.press("Enter"); await sleep(1500);
+await kb.press("Enter");
+await sleep(1500);
 console.log("after send", JSON.stringify((await state(page)).md));
 await browser.close();

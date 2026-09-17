@@ -113,7 +113,7 @@ run_test("what upstream writes to the textarea reaches the editor", () => {
 });
 
 run_test("inserting at the cursor, and replacing syntax", () => {
-    const {view, textarea, sync, inputs, type} = make_editor();
+    const {view, sync, inputs, type} = make_editor();
     type("note: ");
     // What compose_ui.insert_and_scroll_into_view does for an upload,
     // a call link or a snippet.

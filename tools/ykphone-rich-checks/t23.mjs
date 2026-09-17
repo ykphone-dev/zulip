@@ -1,35 +1,107 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document, getComputedStyle -- page.evaluate callbacks run in the browser */
+import {BASE, shot, sleep, start, state} from "./lib.mjs";
+
 const scheme = Number(process.argv[2] ?? 3);
 const width = Number(process.argv[3] ?? 1280);
 const {browser, page} = await start({width, height: width < 600 ? 800 : 900});
 const kb = page.keyboard;
 await page.evaluate(async (scheme) => {
-  const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ?? "";
-  await fetch("/json/settings", {method: "PATCH", headers: {"Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": csrf}, body: `color_scheme=${scheme}`});
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ?? "";
+    await fetch("/json/settings", {
+        method: "PATCH",
+        headers: {"Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": csrf},
+        body: `color_scheme=${scheme}`,
+    });
 }, scheme);
 await page.goto(BASE + "/#narrow/channel/12-errors");
 await sleep(4000);
-const clickable = await page.evaluate(() => { const el = document.querySelector(".ykphone-rich-content"); const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-if (!clickable) { await page.evaluate(() => { document.querySelector(".compose_mobile_button, #compose-content, #compose")?.click(); }); await sleep(800); }
+const clickable = await page.evaluate(() => {
+    const el = document.querySelector(".ykphone-rich-content");
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+});
+if (!clickable) {
+    await page.evaluate(() => {
+        document.querySelector(".compose_mobile_button, #compose-content, #compose")?.click();
+    });
+    await sleep(800);
+}
 await page.evaluate(() => document.querySelector(".ykphone-rich-content")?.focus());
 await sleep(300);
-await kb.down("Control"); await kb.press("a"); await kb.up("Control"); await kb.press("Backspace"); await sleep(200);
+await kb.down("Control");
+await kb.press("a");
+await kb.up("Control");
+await kb.press("Backspace");
+await sleep(200);
 await kb.type("리치 컴포저 **굵게** *기울임* ~~취소선~~ `코드` @iag");
-await sleep(500); await kb.press("Enter"); await sleep(300);
-await kb.type("#ver"); await sleep(500); await kb.press("Enter"); await sleep(300);
-await kb.type(":smile"); await sleep(500); await kb.press("Enter"); await sleep(300);
-await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift");
-await kb.type("- 첫째"); await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift");
-await kb.type("둘째"); await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift"); await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift");
-await kb.type("> 인용문"); await sleep(300);
-await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift");
-await kb.type("```python"); await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift"); await sleep(200);
-await kb.type("print('hi')"); await sleep(300);
+await sleep(500);
+await kb.press("Enter");
+await sleep(300);
+await kb.type("#ver");
+await sleep(500);
+await kb.press("Enter");
+await sleep(300);
+await kb.type(":smile");
+await sleep(500);
+await kb.press("Enter");
+await sleep(300);
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.type("- 첫째");
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.type("둘째");
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.type("> 인용문");
+await sleep(300);
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.type("```python");
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await sleep(200);
+await kb.type("print('hi')");
+await sleep(300);
 const s = await state(page);
 console.log("md", JSON.stringify(s.md));
 console.log("html", s.html.slice(0, 500));
 await shot(page, `t23-${scheme === 3 ? "light" : "dark"}-${width}`);
-const box = await page.evaluate(() => { const r = document.querySelector("#compose").getBoundingClientRect(); return {x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height)}; });
-console.log("compose box", box, "theme", await page.evaluate(() => document.documentElement.className + "|" + getComputedStyle(document.body).backgroundColor));
-await page.screenshot({path: `/Users/apple/develop/ykphone/zulip/var/rc/out/t23-${scheme === 3 ? "light" : "dark"}-${width}-box.png`, clip: {x: Math.max(box.x - 4, 0), y: Math.max(box.y - 4, 0), width: Math.min(box.w + 8, width), height: Math.min(box.h + 8, 900)}});
+const box = await page.evaluate(() => {
+    const r = document.querySelector("#compose").getBoundingClientRect();
+    return {
+        x: Math.round(r.x),
+        y: Math.round(r.y),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
+    };
+});
+console.log(
+    "compose box",
+    box,
+    "theme",
+    await page.evaluate(
+        () =>
+            document.documentElement.className +
+            "|" +
+            getComputedStyle(document.body).backgroundColor,
+    ),
+);
+await page.screenshot({
+    path: `/Users/apple/develop/ykphone/zulip/var/rc/out/t23-${scheme === 3 ? "light" : "dark"}-${width}-box.png`,
+    clip: {
+        x: Math.max(box.x - 4, 0),
+        y: Math.max(box.y - 4, 0),
+        width: Math.min(box.w + 8, width),
+        height: Math.min(box.h + 8, 900),
+    },
+});
 await browser.close();

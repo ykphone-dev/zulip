@@ -3,9 +3,10 @@
 // content fetched back; two forms at once; cancel; uploads; a formatting
 // that cannot be saved; the length limit; view source; a re-render while
 // editing; Korean IME.
+/* global ClipboardEvent, DataTransfer, document -- page.evaluate callbacks run in the browser */
 import fs from "node:fs";
 
-import {start, shot, sleep, BASE} from "./lib.mjs";
+import {BASE, shot, sleep, start} from "./lib.mjs";
 
 const {browser, page} = await start({width: 1400, height: 900});
 const kb = page.keyboard;
@@ -80,11 +81,15 @@ async function open_edit(id) {
 const form_state = (id) =>
     page.evaluate((id) => {
         const form = document.querySelector(`#edit_form_${id}`);
-        if (!form) return null;
+        if (!form) {
+            return null;
+        }
         const ta = form.querySelector("textarea.message_edit_content");
         const pm = form.querySelector(".ykphone-rich-content");
         return {
             md: ta.value,
+            // innerText: the text as shown, which is what the check is about.
+            // eslint-disable-next-line unicorn/prefer-dom-node-text-content
             text: pm?.innerText,
             chips: [
                 ...(pm?.querySelectorAll(".ykphone-rich-chip, .ykphone-rich-upload") ?? []),
@@ -293,7 +298,7 @@ console.log("F view source:", JSON.stringify(s));
 console.log(
     "F copy button:",
     await page.evaluate(
-        (id) => !!document.querySelector(`#edit_form_${id} .copy_message`),
+        (id) => Boolean(document.querySelector(`#edit_form_${id} .copy_message`)),
         othello_id,
     ),
     "focus on close:",

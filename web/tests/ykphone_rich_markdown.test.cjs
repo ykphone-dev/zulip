@@ -673,7 +673,7 @@ function inline_signature(doc) {
     doc.descendants((node) => {
         const marks = node.marks
             .map((mark) => mark.type.name)
-            .sort()
+            .toSorted()
             .join("+");
         if (node.isText) {
             parts.push(...[...node.text].map((char) => `${char}:${marks}`));

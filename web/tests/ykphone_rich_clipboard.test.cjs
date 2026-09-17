@@ -49,6 +49,7 @@ run_test("chips are rebuilt from the Markdown they claim to hold", () => {
     assert.equal(sanitized(schema.node("paragraph", null, [empty])).toString(), "<paragraph>");
     // A chip keeps its formatting, except a link the server would refuse.
     const bold = schema.marks.strong.create();
+    // eslint-disable-next-line no-script-url -- a javascript: address the code must refuse
     const bad_link = schema.marks.link.create({href: "javascript:x"});
     const chip = schema.node("emoji", {raw: ":smile:", name: "smile"}, undefined, [bold, bad_link]);
     const kept = sanitized(schema.node("paragraph", null, [chip])).firstChild.firstChild;
@@ -67,6 +68,7 @@ run_test("chips are rebuilt from the Markdown they claim to hold", () => {
 run_test("links, text and blocks are checked", () => {
     const link = (href) => schema.marks.link.create({href});
     const paragraph = schema.node("paragraph", null, [
+        // eslint-disable-next-line no-script-url -- a javascript: address the code must refuse
         schema.text("a", [link("javascript:alert(1)")]),
         schema.text("b\u0000c", [link("https://ex.com/a b")]),
         schema.text("\u0001"),

@@ -494,6 +494,7 @@ run_test("Enter on a selected block chip adds a line after it", () => {
 
 run_test("a link keeps only an address the server accepts", () => {
     assert.equal(
+        // eslint-disable-next-line no-script-url -- a javascript: address the code must refuse
         run(make_state("abc", 0, 3), commands.apply_link("javascript:alert(1)")),
         undefined,
     );

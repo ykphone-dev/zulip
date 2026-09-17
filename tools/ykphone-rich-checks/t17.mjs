@@ -1,15 +1,27 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 const kb = page.keyboard;
 await page.goto(BASE + "/#narrow/channel/12-errors");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
-await kb.down("Control"); await kb.press("a"); await kb.up("Control"); await kb.press("Backspace");
-await kb.type("예약 **전송** 테스트 :smile:"); await sleep(300);
-await page.click("#send_later"); await sleep(800);
-await page.evaluate(() => document.querySelector(".open_send_later_modal")?.click()); await sleep(1000);
-const opts = await page.$$eval("#send_later_options .send_later_option, .send_later_today, .send_later_tomorrow, [data-send-stamp]", (els) => els.map((e) => e.className + " " + e.textContent.trim().slice(0, 30)));
+await kb.down("Control");
+await kb.press("a");
+await kb.up("Control");
+await kb.press("Backspace");
+await kb.type("예약 **전송** 테스트 :smile:");
+await sleep(300);
+await page.click("#send_later");
+await sleep(800);
+await page.evaluate(() => document.querySelector(".open_send_later_modal")?.click());
+await sleep(1000);
+const opts = await page.$$eval(
+    "#send_later_options .send_later_option, .send_later_today, .send_later_tomorrow, [data-send-stamp]",
+    (els) => els.map((e) => e.className + " " + e.textContent.trim().slice(0, 30)),
+);
 console.log("options", opts);
-await page.evaluate(() => (document.querySelector("[data-send-stamp]"))?.click()); await sleep(2000);
+await page.evaluate(() => document.querySelector("[data-send-stamp]")?.click());
+await sleep(2000);
 console.log("after schedule", JSON.stringify((await state(page)).md));
 await browser.close();

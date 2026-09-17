@@ -167,7 +167,9 @@ function relative_luminance(rgb) {
 }
 
 function contrast(a, b) {
-    const [lighter, darker] = [relative_luminance(a), relative_luminance(b)].sort((x, y) => y - x);
+    const [lighter, darker] = [relative_luminance(a), relative_luminance(b)].toSorted(
+        (x, y) => y - x,
+    );
     return (lighter + 0.05) / (darker + 0.05);
 }
 

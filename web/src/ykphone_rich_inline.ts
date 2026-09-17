@@ -77,9 +77,10 @@ const BEFORE_MENTION = String.raw`(?<![^\s'"({\[/<])`;
 const BEFORE_LINK_PRODUCING_MENTION = String.raw`(?<![^\s'"({/<])`;
 
 // Characters a placeholder is made of, as in Python-Markdown.
-const STX = "\x02";
-const ETX = "\x03";
-const PLACEHOLDER_RE = /\x02klzzwxh:(\d+)\x03/gu;
+const STX = "\u0002";
+const ETX = "\u0003";
+// eslint-disable-next-line no-control-regex -- control characters are what this matches
+const PLACEHOLDER_RE = /\u0002klzzwxh:(\d+)\u0003/gu;
 
 // The URL schemes zerver/lib/markdown sanitize_url lets through.
 const ALLOWED_SCHEMES = new Set([
@@ -220,10 +221,8 @@ function stash_matches(work: Work, tokenizer: Tokenizer, matches: Match[]): void
             starts.push(work.starts[i]!);
             ends.push(work.ends[i]!);
         }
-        for (let i = 0; i < placeholder.length; i += 1) {
-            starts.push(match.token.start);
-            ends.push(match.token.end);
-        }
+        starts.push(...Array.from({length: placeholder.length}, () => match.token.start));
+        ends.push(...Array.from({length: placeholder.length}, () => match.token.end));
         from = match.end;
     }
     data += work.data.slice(from);
@@ -290,7 +289,7 @@ function all_matches(
         [...work.data.matchAll(regex)].map((m) => ({
             start: m.index,
             end: m.index + m[0].length,
-            token: handle(m as RegExpExecArray, work, tokenizer),
+            token: handle(m, work, tokenizer),
         }));
 }
 
@@ -381,6 +380,7 @@ function get_link_href(data: string, index: number): {href: string; end: number}
         const start = pos;
         while (pos < data.length) {
             const c = data[pos]!;
+            // eslint-disable-next-line unicorn/prefer-switch -- a switch's break would not leave the loop
             if (c === "(") {
                 depth += 1;
             } else if (c === ")") {
@@ -449,7 +449,8 @@ export function is_allowed_url(url: string): boolean {
 // parentheses are percent-encoded, a bare address is left as it is.
 export function sanitize_href(href: string): string | undefined {
     const trimmed = href.trim();
-    if (trimmed === "" || !is_allowed_url(trimmed) || /[\x00-\x1f<>]/u.test(trimmed)) {
+    // eslint-disable-next-line no-control-regex -- control characters are what this matches
+    if (trimmed === "" || !is_allowed_url(trimmed) || /[\u0000-\u001F<>]/u.test(trimmed)) {
         return undefined;
     }
     return trimmed.replaceAll(/[\s()]/gu, (char) => {
@@ -659,7 +660,8 @@ export function tokenize(text: string, ctx: InlineContext = permissive_context):
         // Text that happens to hold the placeholder's own characters
         // must not be taken for a placeholder; the tokens keep their
         // offsets into the text as given.
-        data: text.replaceAll(/[\x02\x03]/gu, "\uFFFD"),
+        // eslint-disable-next-line no-control-regex -- the placeholder delimiters are control characters
+        data: text.replaceAll(/[\u0002\u0003]/gu, "\uFFFD"),
         starts: Array.from({length: text.length}, (_, i) => i),
         ends: Array.from({length: text.length}, (_, i) => i + 1),
     };

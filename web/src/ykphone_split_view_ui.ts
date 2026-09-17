@@ -72,6 +72,7 @@ function render_shell(route: SplitRoute): void {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-return -- the switch covers every page
 function rows_html(route: SplitRoute): string {
     switch (route.page) {
         case "dms": {
@@ -158,21 +159,21 @@ function morph_rows(body: HTMLElement, html: string): void {
             // changed, and are removed; a changed row's new markup is
             // inserted like a new row.
             let cursor: Element | null = old_list.firstElementChild;
+            // A copy: rows are moved out of new_list while it is walked.
+            // eslint-disable-next-line unicorn/no-useless-spread
             for (const new_item of [...new_list.children]) {
                 const key = row_key(new_item);
                 const kept = key === undefined ? undefined : existing.get(key);
                 let node: Element = new_item;
-                if (
-                    key !== undefined &&
-                    kept !== undefined &&
-                    kept.outerHTML === new_item.outerHTML
-                ) {
+                if (key !== undefined && kept?.outerHTML === new_item.outerHTML) {
                     existing.delete(key);
                     node = kept;
                 }
                 if (node === cursor) {
                     cursor = cursor.nextElementSibling;
                 } else {
+                    // cursor is null past the last row, which appends.
+                    // eslint-disable-next-line unicorn/prefer-modern-dom-apis
                     old_list.insertBefore(node, cursor);
                 }
             }

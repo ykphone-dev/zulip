@@ -20,6 +20,7 @@ import * as composebox_typeahead from "./composebox_typeahead.ts";
 import * as emoji from "./emoji.ts";
 import {$t} from "./i18n.ts";
 import * as markdown from "./markdown.ts";
+import {message_render_response_schema} from "./message_store.ts";
 import * as people from "./people.ts";
 import {postprocess_content} from "./postprocess_content.ts";
 import * as realm_playground from "./realm_playground.ts";
@@ -168,7 +169,7 @@ export function show_rendered(element: HTMLElement, raw: string, inline: boolean
         url: "/json/messages/render",
         data: {content: raw},
         success(response) {
-            const html = (response as {rendered: string}).rendered;
+            const html = message_render_response_schema.parse(response).rendered;
             cache_rendered(raw, html);
             fill(html);
         },

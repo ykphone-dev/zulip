@@ -1,7 +1,8 @@
 // Phase 2: how the edit form's editor sits compared with upstream's
 // textarea (the editor hidden and the textarea shown again in the same
 // form), in both themes and at 1400 and 480 wide.
-import {start, sleep, BASE, OUT} from "./lib.mjs";
+/* global document, getComputedStyle -- page.evaluate callbacks run in the browser */
+import {BASE, OUT, sleep, start} from "./lib.mjs";
 
 const width = Number(process.env.WIDTH ?? 1400);
 const theme = process.env.THEME ?? "light";
@@ -46,7 +47,9 @@ const measure = () =>
     page.evaluate((id) => {
         const form = document.querySelector(`#edit_form_${id}`);
         const rect = (el) => {
-            if (!el) return null;
+            if (!el) {
+                return null;
+            }
             const r = el.getBoundingClientRect();
             return [r.left, r.top, r.width, r.height].map((v) => Math.round(v * 10) / 10);
         };

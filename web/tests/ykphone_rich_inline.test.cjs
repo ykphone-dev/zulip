@@ -85,7 +85,7 @@ run_test("mentions, channels, emoji and times", () => {
         "stream[#**Verona**] text[ ] stream[#**Verona>topic**] text[ ] " +
             "stream[#**Verona>topic@12**] text[ #] strong[**Elsinore**](text[Elsinore])",
     );
-    const [, , topic] = ykphone_rich_inline.tokenize("#**Verona** #**Verona>t@9**", context);
+    const topic = ykphone_rich_inline.tokenize("#**Verona** #**Verona>t@9**", context)[2];
     assert.equal(topic.type === "stream" && topic.topic, "t");
     assert.equal(topic.type === "stream" && topic.message_id, "9");
 
@@ -178,6 +178,7 @@ run_test("addresses are checked as the server checks them", () => {
     const {is_allowed_url, sanitize_href} = ykphone_rich_inline;
     assert.ok(is_allowed_url("https://ex.com"));
     assert.ok(is_allowed_url("/user_uploads/1/a.png"));
+    // eslint-disable-next-line no-script-url -- a javascript: address the code must refuse
     assert.ok(!is_allowed_url("javascript:alert(1)"));
     // The server unescapes entities before it looks at the scheme.
     assert.ok(!is_allowed_url("&#106;avascript:alert(1)"));
@@ -188,6 +189,7 @@ run_test("addresses are checked as the server checks them", () => {
     assert.equal(sanitize_href("https://ex.com/a)b(c"), "https://ex.com/a%29b%28c");
     assert.equal(sanitize_href("ex.com"), "ex.com");
     assert.equal(sanitize_href(""), undefined);
+    // eslint-disable-next-line no-script-url -- a javascript: address the code must refuse
     assert.equal(sanitize_href("javascript:x"), undefined);
     assert.equal(sanitize_href("https://ex.com/<b>"), undefined);
 });

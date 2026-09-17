@@ -10,8 +10,8 @@
 // are held here until they actually appear on screen, and
 // unread_ops.process_scrolled_to_bottom leaves held messages out.
 
-import type {Message} from "./message_store.ts";
 import * as message_lists from "./message_lists.ts";
+import type {Message} from "./message_store.ts";
 import * as message_viewport from "./message_viewport.ts";
 
 const held = new Set<number>();

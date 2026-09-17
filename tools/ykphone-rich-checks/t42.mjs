@@ -6,9 +6,8 @@
 // S2 — editors whose box leaves the page are destroyed at once.
 // S3 — the code block language control from the keyboard.
 // S4 — the language menu goes with its editor.
-import fs from "node:fs";
-
-import {start, sleep, BASE} from "./lib.mjs";
+/* global document, window, zulip_test -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start} from "./lib.mjs";
 
 const {browser, page} = await start({width: 1400, height: 900});
 const kb = page.keyboard;
@@ -32,17 +31,6 @@ const api = (method, url, data) =>
     );
 const raw = async (id) =>
     (await api("GET", `/json/messages/${id}?apply_markdown=false`)).message.content;
-const othello_send = async (topic, content) => {
-    const key = fs.readFileSync("/tmp/othello_key", "utf8").trim();
-    const r = await fetch("http://localhost:9991/api/v1/messages", {
-        method: "POST",
-        headers: {
-            Authorization: "Basic " + Buffer.from(`othello@zulip.com:${key}`).toString("base64"),
-        },
-        body: new URLSearchParams({type: "stream", to: "errors", topic, content}),
-    });
-    return (await r.json()).id;
-};
 const count = () => page.evaluate(() => document.body.dataset.ykphoneRichEditors);
 const shift_enter = async () => {
     await kb.down("Shift");
@@ -78,7 +66,7 @@ console.log(
     "B1 compose addresses:",
     await page.evaluate(() => [
         zulip_test.private_message_recipient_emails(),
-        !!document.querySelector("#ykphone-thread-panel .ykphone-rich-editor"),
+        Boolean(document.querySelector("#ykphone-thread-panel .ykphone-rich-editor")),
     ]),
 );
 const panel_md = () =>
@@ -324,12 +312,16 @@ console.log(
     "S3 arrows:",
     await page.evaluate(() => {
         const input = document.activeElement;
-        const active = document.getElementById(input.getAttribute("aria-activedescendant"));
+        const active = document.querySelector(
+            `[id="${input.getAttribute("aria-activedescendant")}"]`,
+        );
         return [
             active?.textContent,
             active?.getAttribute("aria-selected"),
             active?.getAttribute("role"),
-            document.getElementById(input.getAttribute("aria-controls"))?.getAttribute("role"),
+            document
+                .querySelector(`[id="${input.getAttribute("aria-controls")}"]`)
+                ?.getAttribute("role"),
         ];
     }),
 );
@@ -380,7 +372,7 @@ await page.click(`#edit_form_${mine} .ykphone-rich-code-label`);
 await sleep(400);
 console.log(
     "S4 menu open:",
-    await page.evaluate(() => !!document.querySelector(".ykphone-rich-language-menu")),
+    await page.evaluate(() => Boolean(document.querySelector(".ykphone-rich-language-menu"))),
 );
 // The form closes under the menu (upstream ends the edit when the
 // message is changed elsewhere; here the form's Cancel is clicked from

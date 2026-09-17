@@ -19,9 +19,9 @@
 // Nothing here touches the editor's DOM, so it runs in node tests
 // against an EditorState.
 
-import type {Node as PMNode} from "prosemirror-model";
-import {EditorState, type Selection, TextSelection, type Transaction} from "prosemirror-state";
 import {closeHistory} from "prosemirror-history";
+import type {Node as PMNode} from "prosemirror-model";
+import {type EditorState, type Selection, TextSelection, type Transaction} from "prosemirror-state";
 
 import {
     type Anchor,
@@ -283,7 +283,7 @@ export function create_sync(options: SyncOptions): ComposeSync {
             timer = undefined;
         }
         pending = false;
-        const value = native.get!.call(textarea) as string;
+        const value = String(native.get!.call(textarea));
         if (value === agreed) {
             return;
         }
@@ -302,7 +302,7 @@ export function create_sync(options: SyncOptions): ComposeSync {
         enumerable: true,
         get(this: HTMLTextAreaElement) {
             flush();
-            return native.get!.call(this) as string;
+            return String(native.get!.call(this));
         },
         set(this: HTMLTextAreaElement, value: string) {
             native.set!.call(this, value);
@@ -367,7 +367,7 @@ export function create_sync(options: SyncOptions): ComposeSync {
         destroy() {
             flush();
             textarea.removeEventListener("input", on_input);
-            delete (textarea as {value?: string}).value;
+            Reflect.deleteProperty(textarea, "value");
         },
     };
 }

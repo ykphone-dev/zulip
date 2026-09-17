@@ -127,6 +127,16 @@ function parse_user_id(element: Element): number | undefined {
 // Decides whether a blockquote is the quote half of a forward, and
 // picks out the pieces of its header that the card keeps. Exported so
 // that the decision can be tested apart from the DOM surgery.
+// Node types by nodeType rather than instanceof, which also holds for
+// nodes from another document.
+function is_text(node: Node): node is Text {
+    return node.nodeType === node.TEXT_NODE;
+}
+
+function is_element(node: Node): node is Element {
+    return node.nodeType === node.ELEMENT_NODE;
+}
+
 export function parse_forward_quote(blockquote: Element): ForwardQuote | undefined {
     if (blockquote.querySelector("blockquote") !== null) {
         return undefined;
@@ -147,18 +157,18 @@ export function parse_forward_quote(blockquote: Element): ForwardQuote | undefin
         if (node === sender) {
             continue;
         }
-        if (node.nodeType === node.TEXT_NODE) {
-            const words = (node as Text).data.replaceAll(/[:,]/g, " ").split(/\s+/);
+        if (is_text(node)) {
+            const words = node.data.replaceAll(/[:,]/g, " ").split(/\s+/);
             if (words.some((word) => word !== "" && !CONNECTING_WORDS.has(word))) {
                 return undefined;
             }
             continue;
         }
-        if (node.nodeType !== node.ELEMENT_NODE) {
+        if (!is_element(node)) {
             // A comment or anything else the header shape has no place for.
             return undefined;
         }
-        const element = node as Element;
+        const element = node;
         const is_link = element.tagName === "A";
         const id = is_link ? quoted_message_id(element.getAttribute("href")) : undefined;
         if (id !== undefined && link === undefined && SAID_LABELS.has(element.textContent.trim())) {
@@ -221,7 +231,7 @@ function avatar_url(sender_id: number): string | undefined {
 
 function build_card(quote: ForwardQuote, blockquote: Element): Element {
     // Non-null because ownerDocument is null only on a Document node.
-    const doc = blockquote.ownerDocument!;
+    const doc = blockquote.ownerDocument;
     const card = doc.createElement("div");
     card.className = "ykphone-quote-card";
 

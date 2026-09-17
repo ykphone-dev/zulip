@@ -37,7 +37,7 @@ import {
     permissive_context,
     tokenize,
 } from "./ykphone_rich_inline.ts";
-import {schema} from "./ykphone_rich_schema.ts";
+import {number_attr, schema, string_attr} from "./ykphone_rich_schema.ts";
 
 export type MarkdownContext = InlineContext & {
     // The link texts of the compose box's call buttons ("Join video
@@ -67,7 +67,7 @@ export type SerializeResult = {
 
 // zerver/lib/markdown/fenced_code.py FENCE_RE.
 export const FENCE_RE =
-    /^(?<fence>~{3,}|\x60{3,})[ ]*(?:\{?\.?(?<lang>[\w+\-./#]+)[ ]*(?<header>[^ ~\x60][^~\x60]*)?\}?)?$/u;
+    /^(?<fence>~{3,}|\u0060{3,})[ ]*(?:\{?\.?(?<lang>[\w+\-./#]+)[ ]*(?<header>[^ ~\u0060][^~\u0060]*)?\}?)?$/u;
 // Python-Markdown's HRProcessor.
 const HR_RE = /^[ ]{0,3}(?:(?:-+[ ]{0,2}){3,}|(?:_+[ ]{0,2}){3,}|(?:\*+[ ]{0,2}){3,})[ ]*$/u;
 const HEADING_RE = /^(?<hashes>#{1,6}) (?<content>.*)$/u;
@@ -108,7 +108,7 @@ const NAMED_ENTITIES = new Map([
     ["gt", ">"],
     ["quot", '"'],
     ["apos", "'"],
-    ["nbsp", "\xA0"],
+    ["nbsp", "\u00A0"],
 ]);
 
 export function decode_entity(raw: string): string {
@@ -166,7 +166,7 @@ function build_inline(
                 nodes.push(
                     schema.text(
                         raw.slice(token.ticks, -token.ticks),
-                        add_marks(marks, schema.marks["code"]!.create({ticks: token.ticks})),
+                        add_marks(marks, schema.marks.code.create({ticks: token.ticks})),
                     ),
                 );
                 break;
@@ -178,7 +178,7 @@ function build_inline(
                         token.children,
                         source,
                         ctx,
-                        add_marks(marks, schema.marks[token.type]!.create()),
+                        add_marks(marks, schema.marks[token.type].create()),
                     ),
                 );
                 break;
@@ -188,11 +188,7 @@ function build_inline(
                         token.children,
                         source,
                         ctx,
-                        add_marks(
-                            marks,
-                            schema.marks["strong"]!.create(),
-                            schema.marks["em"]!.create(),
-                        ),
+                        add_marks(marks, schema.marks.strong.create(), schema.marks.em.create()),
                     ),
                 );
                 break;
@@ -226,9 +222,7 @@ function build_inline(
                 );
                 break;
             case "tex":
-                nodes.push(
-                    schema.text(token.body, add_marks(marks, schema.marks["math"]!.create())),
-                );
+                nodes.push(schema.text(token.body, add_marks(marks, schema.marks.math.create())));
                 break;
             case "time":
                 nodes.push(inline_atom("time", {raw, time: token.time}, marks));
@@ -288,7 +282,7 @@ function build_link(
     if (!plain || text.trim() === "" || text.includes("\n")) {
         return [inline_atom("opaque_inline", {raw}, marks)];
     }
-    const link = schema.marks["link"]!.create({href: token.href});
+    const link = schema.marks.link.create({href: token.href});
     return build_inline(token.children, source, ctx, add_marks(marks, link));
 }
 
@@ -315,7 +309,8 @@ const CHIP_TYPES = new Set([
 const BEFORE_MENTION_RE = /[\s'"({[/<]$/u;
 const BEFORE_CHANNEL_RE = /[\s'"({/<]$/u;
 // Control characters the server would not show; written as entities.
-const CONTROL_RE = /[\x00-\x08\x0B-\x1F\x7F]/u;
+// eslint-disable-next-line no-control-regex -- control characters are what this matches
+const CONTROL_RE = /[\u0000-\u0008\u000B-\u001F\u007F]/u;
 // Rounds of escaping before every special character is escaped.
 const MAX_ESCAPE_ROUNDS = 8;
 
@@ -341,10 +336,10 @@ const WRITE_STRATEGIES: WriteStrategy[] = [
     },
 ];
 // What the last-resort escaping pass escapes.
-const SPECIAL_CHARS = new Set([..."*~\x60$@#<[]!&:_>|\\"]);
+const SPECIAL_CHARS = new Set("*~\u0060$@#<[]!&:_>|\\");
 
 function sorted_marks(marks: readonly Mark[], order = MARK_ORDER): Mark[] {
-    return [...marks].sort((a, b) => order.indexOf(a.type.name) - order.indexOf(b.type.name));
+    return marks.toSorted((a, b) => order.indexOf(a.type.name) - order.indexOf(b.type.name));
 }
 
 // Moves whitespace at the edges of runs of the given marks outside them.
@@ -383,15 +378,15 @@ function expel_whitespace(items: PMNode[], mark_names: string[]): PMNode[] {
 }
 
 function backtick_fence(text: string, ticks: number | null): string {
-    const runs = new Set((text.match(/\x60+/gu) ?? []).map((run) => run.length));
+    const runs = new Set((text.match(/\u0060+/gu) ?? []).map((run) => run.length));
     if (ticks !== null && !runs.has(ticks)) {
-        return "\x60".repeat(ticks);
+        return "\u0060".repeat(ticks);
     }
     let count = 1;
     while (runs.has(count)) {
         count += 1;
     }
-    return "\x60".repeat(count);
+    return "\u0060".repeat(count);
 }
 
 function mark_delimiters(mark: Mark): [string, string] {
@@ -502,10 +497,11 @@ function write_line(items: PMNode[], escapes: Set<string>, order: string[]): Lin
         const value = node.text!;
         const code = marks.find((mark) => mark.type.name === "code");
         const fence =
-            code === undefined ? "" : backtick_fence(value, code.attrs["ticks"] as number | null);
+            code === undefined ? "" : backtick_fence(value, number_attr(code.attrs, "ticks"));
         emit(fence);
         const before = text.length;
         const offsets: [number, number][] = [];
+        // eslint-disable-next-line unicorn/no-for-loop -- offsets are UTF-16 units, as the anchors count
         for (let unit = 0; unit < value.length; unit += 1) {
             const char = value[unit]!;
             if (escapes.has(`${index}:${unit}`) || (code === undefined && CONTROL_RE.test(char))) {
@@ -684,7 +680,7 @@ function write_group_with_strategy(
     strategy: WriteStrategy,
 ): WrittenGroup {
     const items = lines.map((line) => expel_whitespace(line.nodes, strategy.expel));
-    const break_units = to_units([schema.nodes["hard_break"]!.create()], ctx);
+    const break_units = to_units([schema.nodes.hard_break.create()], ctx);
     // The indentation written after each hard break (none before the
     // first line).
     const line_units = lines.map((line, index) =>
@@ -806,6 +802,7 @@ function write_group_with_strategy(
             // Our own syntax did not read back as intended; escape every
             // literal character that could take part in syntax.
             used_fallback = true;
+            // eslint-disable-next-line unicorn/no-for-loop -- offsets are UTF-16 units, as the anchors count
             for (let offset = 0; offset < text.length; offset += 1) {
                 if (SPECIAL_CHARS.has(text[offset]!)) {
                     escaped = try_escape_joined(starts, offset) || escaped;
@@ -834,7 +831,7 @@ function serialize_inline_lines(
         if (node.type.name === "hard_break") {
             lines.push({
                 nodes: [],
-                indent: (node.attrs["indent"] as string | null) ?? options.indent ?? "",
+                indent: string_attr(node.attrs, "indent") ?? options.indent ?? "",
             });
         } else {
             lines.at(-1)!.nodes.push(node);
@@ -861,17 +858,17 @@ function serialize_inline_lines(
         if (is_blank_line(line.nodes)) {
             flush();
             const text = line.nodes.map((node) => node.text!).join("");
+            const boundaries: {before: number; after: number}[] = [];
+            let end = 0;
+            for (const node of line.nodes) {
+                boundaries.push({before: end, after: end + node.text!.length});
+                end += node.text!.length;
+            }
             written.push({
                 output: {
                     text,
                     provenance: [],
-                    boundaries: line.nodes.reduce<{before: number; after: number}[]>(
-                        (boundaries, node) => {
-                            const before = boundaries.at(-1)?.after ?? 0;
-                            return [...boundaries, {before, after: before + node.text!.length}];
-                        },
-                        [],
-                    ),
+                    boundaries,
                     unit_offsets: new Map(),
                     spaced: new Set(),
                     lossy: false,
@@ -1392,6 +1389,7 @@ function block_kind_of(node: PMNode): BlockKind {
         case "heading":
             return "heading";
         case "opaque_block":
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the kind an opaque block was parsed as
             return node.attrs["kind"] as BlockKind;
         default:
             return "paragraph";
@@ -1440,6 +1438,7 @@ function min_sep(previous: PMNode, node: PMNode): number {
 
 function is_empty_paragraph(node: PMNode): boolean {
     let empty = true;
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror node, not an array
     node.forEach((child) => {
         empty &&= child.type.name === "hard_break" || (child.isText && is_blank(child.text!));
     });
@@ -1463,6 +1462,7 @@ function shift_anchors(anchors: Anchor[], pos: number, off: number): Anchor[] {
 
 function children_of(node: PMNode): PMNode[] {
     const children: PMNode[] = [];
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror node, not an array
     node.forEach((child) => {
         children.push(child);
     });
@@ -1490,12 +1490,7 @@ function serialize_block_cached(
     at_end: boolean,
 ): BlockOutput {
     const cached = block_cache.get(node);
-    if (
-        cached !== undefined &&
-        cached.ctx === ctx &&
-        cached.block_start === block_start &&
-        cached.at_end === at_end
-    ) {
+    if (cached?.ctx === ctx && cached.block_start === block_start && cached.at_end === at_end) {
         return cached.result;
     }
     const result = serialize_block(node, ctx, block_start, at_end);
@@ -1520,7 +1515,7 @@ function serialize_children(
             pos += child.nodeSize;
             continue;
         }
-        const stored = child.attrs["sep"] as number | null;
+        const stored = number_attr(child.attrs, "sep");
         let sep = stored ?? 0;
         let block_start = true;
         if (previous !== undefined) {
@@ -1547,7 +1542,7 @@ function serialize_children(
 // hashes ending a heading, a backtick in a spoiler's header.
 function escape_offsets(lines: InlineLines, offsets: number[]): InlineLines {
     let {text, anchors} = lines;
-    for (const offset of [...offsets].sort((a, b) => b - a)) {
+    for (const offset of offsets.toSorted((a, b) => b - a)) {
         const entity = encode_entity(text[offset]!);
         text = text.slice(0, offset) + entity + text.slice(offset + 1);
         const added = entity.length - 1;
@@ -1568,7 +1563,7 @@ function serialize_block(
         case "paragraph":
         case "heading": {
             const is_heading = node.type.name === "heading";
-            const prefix = is_heading ? "#".repeat(node.attrs["level"] as number) + " " : "";
+            const prefix = is_heading ? "#".repeat(Number(node.attrs["level"])) + " " : "";
             let inline = serialize_inline_lines(children_of(node), ctx, {
                 block_start: block_start && !is_heading,
                 line_triggers: !is_heading,
@@ -1636,17 +1631,17 @@ function fence_lines(
     at_end: boolean,
     info = "",
 ): {fence: string; close: string | null} {
-    const stored = node.attrs["fence"] as string | null;
-    const backtick_in_info = info.includes("\x60");
+    const stored = string_attr(node.attrs, "fence");
+    const backtick_in_info = info.includes("\u0060");
     if (
         stored !== null &&
         !would_close(stored) &&
-        !(backtick_in_info && stored.startsWith("\x60"))
+        !(backtick_in_info && stored.startsWith("\u0060"))
     ) {
-        const close = node.attrs["close"] as string | null;
+        const close = string_attr(node.attrs, "close");
         return {fence: stored, close: close ?? (at_end ? null : stored)};
     }
-    const fence = unused_fence(content, backtick_in_info ? "~" : "\x60");
+    const fence = unused_fence(content, backtick_in_info ? "~" : "\u0060");
     return {fence, close: fence};
 }
 
@@ -1713,7 +1708,7 @@ function serialize_fenced_container(
         // the fence line early, and the server trims it.
         const escaped: number[] = [];
         for (const [offset, char] of [...header.text].entries()) {
-            if (char === "\x60" || char === "~") {
+            if (char === "\u0060" || char === "~") {
                 escaped.push(offset);
             }
         }
@@ -1732,7 +1727,7 @@ function serialize_fenced_container(
         (fence) => closes_early(inner.text, fence),
         at_end,
     );
-    let info = (node.attrs["info"] as string | null) ?? (is_spoiler ? "spoiler" : "quote");
+    let info = string_attr(node.attrs, "info") ?? (is_spoiler ? "spoiler" : "quote");
     if (is_spoiler && header.text !== "" && !info.endsWith(" ")) {
         info += " ";
     }
@@ -1785,7 +1780,7 @@ function serialize_angle_quote(node: PMNode, ctx: MarkdownContext, at_end: boole
 
 function list_marker(list: PMNode, item: PMNode, index: number, depth: number): string {
     const ordered = list.type.name === "ordered_list";
-    const stored = item.attrs["marker"] as string | null;
+    const stored = string_attr(item.attrs, "marker");
     const m = stored === null ? null : ITEM_RE.exec(stored + "x");
     if (m !== null) {
         const leading = m.groups!["indent"]!.length;
@@ -1839,7 +1834,7 @@ export function serialize_markdown(
     ctx: MarkdownContext = default_context,
 ): SerializeResult {
     const result = serialize_children(doc, ctx, 0, true);
-    const anchors = result.anchors.sort((a, b) => a.pos - b.pos || a.off - b.off);
+    const anchors = result.anchors.toSorted((a, b) => a.pos - b.pos || a.off - b.off);
     // A poll or to-do list is the whole message to the server.
     const widget_among_others =
         doc.childCount > 1 &&

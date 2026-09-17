@@ -1,22 +1,36 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+/* global document, window -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
-await kb.type("first"); await kb.down("Shift"); await kb.press("Enter"); await kb.up("Shift"); await kb.type("second");
-await kb.down("Control"); await kb.press("a"); await kb.up("Control");
+await kb.type("first");
+await kb.down("Shift");
+await kb.press("Enter");
+await kb.up("Shift");
+await kb.type("second");
+await kb.down("Control");
+await kb.press("a");
+await kb.up("Control");
 await sleep(200);
 console.log(await state(page));
-const visible = await page.evaluate(() => !!document.querySelector("#ykphone-compose-formatting-row")?.offsetParent);
+const visible = await page.evaluate(() =>
+    Boolean(document.querySelector("#ykphone-compose-formatting-row")?.offsetParent),
+);
 console.log("row visible", visible);
 await page.evaluate(() => {
-  window.__log = [];
-  const ta = document.querySelector("#compose-textarea");
-  ta.addEventListener("focus", (e) => window.__log.push("ta focus trusted=" + e.isTrusted));
-  ta.addEventListener("input", (e) => window.__log.push("ta input " + JSON.stringify(ta.value)));
-  document.querySelector(".ProseMirror").addEventListener("focus", () => window.__log.push("pm focus"));
-  document.querySelector(".ProseMirror").addEventListener("blur", () => window.__log.push("pm blur"));
+    window.__log = [];
+    const ta = document.querySelector("#compose-textarea");
+    ta.addEventListener("focus", (e) => window.__log.push("ta focus trusted=" + e.isTrusted));
+    ta.addEventListener("input", () => window.__log.push("ta input " + JSON.stringify(ta.value)));
+    document
+        .querySelector(".ProseMirror")
+        .addEventListener("focus", () => window.__log.push("pm focus"));
+    document
+        .querySelector(".ProseMirror")
+        .addEventListener("blur", () => window.__log.push("pm blur"));
 });
 await page.click(`#ykphone-compose-formatting-row .formatting_button[data-format-type="bulleted"]`);
 await sleep(500);

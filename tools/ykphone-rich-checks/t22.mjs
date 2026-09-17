@@ -1,12 +1,27 @@
-import {start, state, sleep, BASE} from "./lib.mjs";
+/* global document, getSelection -- page.evaluate callbacks run in the browser */
+import {BASE, sleep, start} from "./lib.mjs";
+
 const {browser, page} = await start();
 const kb = page.keyboard;
 await page.goto(BASE + "/#narrow/channel/12-errors");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
-await kb.down("Control"); await kb.press("a"); await kb.up("Control"); await kb.press("Backspace");
-await kb.type("see [text](https://zulip.com) here"); await sleep(400);
-await page.click(".ykphone-rich-content a"); await sleep(600);
-console.log(await page.evaluate(() => document.querySelector(".ykphone-rich-link-form")?.outerHTML));
-console.log("selection", await page.evaluate(() => { const s = getSelection(); return [s.anchorNode?.textContent?.slice(0,10), s.anchorOffset]; }));
+await kb.down("Control");
+await kb.press("a");
+await kb.up("Control");
+await kb.press("Backspace");
+await kb.type("see [text](https://zulip.com) here");
+await sleep(400);
+await page.click(".ykphone-rich-content a");
+await sleep(600);
+console.log(
+    await page.evaluate(() => document.querySelector(".ykphone-rich-link-form")?.outerHTML),
+);
+console.log(
+    "selection",
+    await page.evaluate(() => {
+        const s = getSelection();
+        return [s.anchorNode?.textContent?.slice(0, 10), s.anchorOffset];
+    }),
+);
 await browser.close();

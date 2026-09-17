@@ -2,7 +2,8 @@
 // link form, a bulleted list (upstream's Markdown) and the emoji picker;
 // with two forms open, only the form whose button was used changes.
 // Preview mode hides the editor.
-import {start, shot, sleep, BASE} from "./lib.mjs";
+/* global document, getComputedStyle -- page.evaluate callbacks run in the browser */
+import {BASE, shot, sleep, start} from "./lib.mjs";
 
 const {browser, page} = await start({width: 1400, height: 900});
 const kb = page.keyboard;
@@ -71,7 +72,7 @@ const button = (id, selector) =>
         ({id, selector}) => {
             const el = document.querySelector(`#edit_form_${id} ${selector}`);
             el.scrollIntoView({block: "center"});
-            return !!el;
+            return Boolean(el);
         },
         {id, selector},
     );
@@ -103,7 +104,7 @@ await page.click(`#edit_form_${b} .formatting_button[data-format-type="link"]`);
 await sleep(500);
 console.log(
     "link form open:",
-    await page.evaluate(() => !!document.querySelector(".ykphone-rich-link-form")),
+    await page.evaluate(() => Boolean(document.querySelector(".ykphone-rich-link-form"))),
     "focus:",
     await page.evaluate(() => document.activeElement?.className),
 );

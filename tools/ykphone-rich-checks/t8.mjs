@@ -1,20 +1,49 @@
-import {start, state, shot, sleep, BASE} from "./lib.mjs";
+import {BASE, sleep, start, state} from "./lib.mjs";
+
 const {browser, page} = await start();
 await page.goto(BASE + "/#narrow/channel/12-errors/topic/general.20chat");
 await sleep(3500);
 await page.click(".ykphone-rich-content");
 const kb = page.keyboard;
-const sel3 = async () => { await kb.press("Home"); for (let i = 0; i < 7; i++) await kb.press("ArrowRight"); await kb.down("Shift"); for (let i = 0; i < 3; i++) await kb.press("ArrowRight"); await kb.up("Shift"); };
-await kb.type("before abc after"); await sel3();
+const sel3 = async () => {
+    await kb.press("Home");
+    for (let i = 0; i < 7; i += 1) {
+        await kb.press("ArrowRight");
+    }
+    await kb.down("Shift");
+    for (let i = 0; i < 3; i += 1) {
+        await kb.press("ArrowRight");
+    }
+    await kb.up("Shift");
+};
+await kb.type("before abc after");
+await sel3();
 console.log("selected", (await state(page)).sel);
-await kb.down("Control"); await kb.press("b"); await kb.up("Control"); await sleep(200);
+await kb.down("Control");
+await kb.press("b");
+await kb.up("Control");
+await sleep(200);
 console.log("ctrl-b", await state(page));
-await kb.down("Control"); await kb.press("i"); await kb.up("Control"); await sleep(200);
+await kb.down("Control");
+await kb.press("i");
+await kb.up("Control");
+await sleep(200);
 console.log("ctrl-i", (await state(page)).md);
-await kb.down("Control"); await kb.press("z"); await kb.up("Control"); await sleep(200);
+await kb.down("Control");
+await kb.press("z");
+await kb.up("Control");
+await sleep(200);
 console.log("undo", (await state(page)).md);
-await kb.down("Control"); await kb.press("z"); await kb.up("Control"); await sleep(200);
+await kb.down("Control");
+await kb.press("z");
+await kb.up("Control");
+await sleep(200);
 console.log("undo2", (await state(page)).md);
-await kb.down("Control"); await kb.down("Shift"); await kb.press("Z"); await kb.up("Shift"); await kb.up("Control"); await sleep(200);
+await kb.down("Control");
+await kb.down("Shift");
+await kb.press("Z");
+await kb.up("Shift");
+await kb.up("Control");
+await sleep(200);
 console.log("redo", (await state(page)).md);
 await browser.close();

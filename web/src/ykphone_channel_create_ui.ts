@@ -109,7 +109,9 @@ function open_menu({
 
 function show_name_check(check: NameCheck): void {
     const $container = $modal();
-    $container.find(".ykphone-channel-name-error").html(check.error_html ?? "");
+    // Rendered from a Handlebars template (render_channel_name_conflict_error).
+    const rendered_error = check.error_html ?? "";
+    $container.find(".ykphone-channel-name-error").html(rendered_error);
     $container
         .find(".ykphone-channel-open-existing")
         .prop("hidden", check.existing_stream_id === undefined)
@@ -431,15 +433,20 @@ export function initialize(): void {
     // element itself, so it runs first and, when the user may create
     // channels, keeps upstream's from running. Otherwise upstream's
     // takes the user to the channel browser.
-    $("#add_streams_button").on("click keydown", function (this: HTMLElement, e) {
-        if (e.type === "keydown" && !keydown_util.is_enter_event(e as JQuery.KeyDownEvent)) {
-            return;
-        }
+    const open_from_button = (button: HTMLElement, e: JQuery.TriggeredEvent): void => {
         if (!ykphone_channel_create.can_create()) {
             return;
         }
         e.preventDefault();
         e.stopPropagation();
-        open_menu({reference: this, $link: $(this), folder_id: undefined});
+        open_menu({reference: button, $link: $(button), folder_id: undefined});
+    };
+    $("#add_streams_button").on("click", function (this: HTMLElement, e) {
+        open_from_button(this, e);
+    });
+    $("#add_streams_button").on("keydown", function (this: HTMLElement, e) {
+        if (keydown_util.is_enter_event(e)) {
+            open_from_button(this, e);
+        }
     });
 }

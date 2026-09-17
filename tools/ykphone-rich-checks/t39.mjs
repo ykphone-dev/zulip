@@ -2,7 +2,8 @@
 // chosen from the typeahead, Korean IME and a second line is sent with
 // Enter and its raw content fetched back; a formatting that cannot be sent
 // is refused; the box is compared with the textarea it covers.
-import {start, sleep, BASE, OUT} from "./lib.mjs";
+/* global ClipboardEvent, DataTransfer, document, getComputedStyle -- page.evaluate callbacks run in the browser */
+import {BASE, OUT, sleep, start} from "./lib.mjs";
 
 const width = Number(process.env.WIDTH ?? 1400);
 const theme = process.env.THEME ?? "light";
@@ -165,7 +166,7 @@ const measure = () =>
                 const b = composer
                     .querySelector(".ykphone-thread-panel-send")
                     .getBoundingClientRect();
-                return [b.left, b.top].map(Math.round);
+                return [b.left, b.top].map((value) => Math.round(value));
             })(),
             scroll_width: document.documentElement.scrollWidth,
         };

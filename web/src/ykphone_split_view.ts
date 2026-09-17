@@ -102,8 +102,7 @@ export function is_narrow_shown_for(current: SplitRoute): boolean {
 // split page: the composer and the pane header call it a thread.
 export function is_thread_shown(): boolean {
     return (
-        route !== undefined &&
-        route.selection !== undefined &&
+        route?.selection !== undefined &&
         !placeholder_visible &&
         (route.page === "threads" || route.page === "activity")
     );
@@ -789,7 +788,7 @@ function rows_loaded(page: SplitPage): boolean {
 export type ShowPlan = "page" | "tab" | "rows";
 
 export function plan_show(previous: SplitRoute | undefined, current: SplitRoute): ShowPlan {
-    if (previous === undefined || previous.page !== current.page) {
+    if (previous?.page !== current.page) {
         return "page";
     }
     if (previous.tab !== current.tab) {

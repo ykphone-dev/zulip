@@ -106,7 +106,7 @@ export function get_pin(message_id: number): PinInfo | undefined {
 export function pins_for_stream(stream_id: number): PinInfo[] {
     return [...pins_by_message.values()]
         .filter((pin) => pin.stream_id === stream_id)
-        .sort((a, b) => b.date_pinned - a.date_pinned || b.message_id - a.message_id);
+        .toSorted((a, b) => b.date_pinned - a.date_pinned || b.message_id - a.message_id);
 }
 
 export function pin_count(stream_id: number): number {

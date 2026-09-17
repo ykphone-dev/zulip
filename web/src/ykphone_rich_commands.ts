@@ -14,6 +14,8 @@
 // character inserted is parsed again, and if it now reads differently
 // the paragraph is replaced. Backspace right after that undoes it.
 
+import {newlineInCode, toggleMark} from "prosemirror-commands";
+import {InputRule, inputRules} from "prosemirror-inputrules";
 import {
     Fragment,
     type Mark,
@@ -22,6 +24,7 @@ import {
     type ResolvedPos,
     Slice,
 } from "prosemirror-model";
+import {liftListItem, sinkListItem, splitListItem} from "prosemirror-schema-list";
 import {
     type Command,
     type EditorState,
@@ -30,9 +33,6 @@ import {
     TextSelection,
     type Transaction,
 } from "prosemirror-state";
-import {newlineInCode, toggleMark} from "prosemirror-commands";
-import {InputRule, inputRules} from "prosemirror-inputrules";
-import {liftListItem, sinkListItem, splitListItem} from "prosemirror-schema-list";
 
 import {sanitize_href} from "./ykphone_rich_inline.ts";
 import {
@@ -43,7 +43,7 @@ import {
     pos_to_offset,
     serialize_markdown,
 } from "./ykphone_rich_markdown.ts";
-import {schema} from "./ykphone_rich_schema.ts";
+import {schema, string_attr} from "./ykphone_rich_schema.ts";
 
 const CODE_TEXTBLOCKS = new Set(["code_block", "math_block"]);
 
@@ -143,9 +143,10 @@ export function link_at_selection(
         }
         run = undefined;
     };
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror node, whose forEach gives positions
     $from.parent.forEach((child, offset) => {
         const link = type.isInSet(child.marks);
-        if (run !== undefined && (link === undefined || !link.eq(run.mark))) {
+        if (run !== undefined && !link?.eq(run.mark)) {
             close(base + offset);
         }
         if (link !== undefined) {
@@ -289,7 +290,7 @@ export const remove_link: Command = (state, dispatch) => {
 // The marker for a list item added after `item`: the same bullet, or the
 // next number, with the same indentation.
 export function next_marker(item: PMNode): string | null {
-    const marker = item.attrs["marker"] as string | null;
+    const marker = string_attr(item.attrs, "marker");
     if (marker === null) {
         return null;
     }
@@ -307,7 +308,7 @@ function paragraph_after_selected_block(
         return false;
     }
     if (dispatch) {
-        const tr = state.tr.insert(selection.to, schema.nodes["paragraph"]!.create());
+        const tr = state.tr.insert(selection.to, schema.nodes.paragraph.create());
         dispatch(tr.setSelection(TextSelection.create(tr.doc, selection.to + 1)).scrollIntoView());
     }
     return true;
@@ -316,7 +317,7 @@ function paragraph_after_selected_block(
 function insert_hard_break(state: EditorState, dispatch?: (tr: Transaction) => void): boolean {
     if (dispatch) {
         const marks = state.storedMarks ?? state.selection.$from.marks();
-        const tr = state.tr.replaceSelectionWith(schema.nodes["hard_break"]!.create());
+        const tr = state.tr.replaceSelectionWith(schema.nodes.hard_break.create());
         dispatch(tr.setStoredMarks(marks).scrollIntoView());
     }
     return true;
@@ -353,8 +354,9 @@ const exit_container: Command = (state, dispatch) => {
         } else {
             tr.delete($from.pos - 1, $from.pos);
         }
+        // eslint-disable-next-line no-jquery/no-append-html -- a ProseMirror position, not jQuery
         const after_container = tr.mapping.map($from.after(-1));
-        tr.insert(after_container, schema.nodes["paragraph"]!.create());
+        tr.insert(after_container, schema.nodes.paragraph.create());
         tr.setSelection(TextSelection.create(tr.doc, after_container + 1));
         dispatch(tr.scrollIntoView());
     }
@@ -378,7 +380,7 @@ export const enter_without_sending: Command = (state, dispatch) => {
         return true;
     }
     if ($from.depth >= 2 && $from.node(-1).type.name === "list_item") {
-        const item_type = schema.nodes["list_item"]!;
+        const item_type = schema.nodes.list_item;
         // An empty item at the end of a list ends the list.
         return (
             splitListItem(item_type, {marker: next_marker($from.node(-1))})(state, dispatch) ||
@@ -387,13 +389,14 @@ export const enter_without_sending: Command = (state, dispatch) => {
     }
     if (parent.type.name === "heading") {
         if (dispatch) {
-            const tr = state.tr.split($from.pos, 1, [{type: schema.nodes["paragraph"]!}]);
+            const tr = state.tr.split($from.pos, 1, [{type: schema.nodes.paragraph}]);
             dispatch(tr.scrollIntoView());
         }
         return true;
     }
     if (parent.type.name === "spoiler_header") {
         if (dispatch) {
+            // eslint-disable-next-line no-jquery/variable-pattern -- a ProseMirror position, not jQuery
             const body = $from.after();
             dispatch(state.tr.setSelection(TextSelection.near(state.doc.resolve(body + 1))));
         }
@@ -403,10 +406,10 @@ export const enter_without_sending: Command = (state, dispatch) => {
 };
 
 export const indent_list_item: Command = (state, dispatch) =>
-    sinkListItem(schema.nodes["list_item"]!)(state, dispatch);
+    sinkListItem(schema.nodes.list_item)(state, dispatch);
 
 export const outdent_list_item: Command = (state, dispatch) =>
-    liftListItem(schema.nodes["list_item"]!)(state, dispatch);
+    liftListItem(schema.nodes.list_item)(state, dispatch);
 
 // At the very end of the message inside a quote, list, code block or
 // the like, moving down (or right) adds a line after it to type on.
@@ -415,6 +418,7 @@ export const leave_block_at_end: Command = (state, dispatch) => {
     if (!empty || $from.depth < 1 || $from.parentOffset < $from.parent.content.size) {
         return false;
     }
+    // eslint-disable-next-line no-jquery/no-append-html -- a ProseMirror position, not jQuery
     if ($from.after(1) !== state.doc.content.size) {
         return false;
     }
@@ -429,7 +433,7 @@ export const leave_block_at_end: Command = (state, dispatch) => {
     }
     if (dispatch) {
         const end = state.doc.content.size;
-        const tr = state.tr.insert(end, schema.nodes["paragraph"]!.create());
+        const tr = state.tr.insert(end, schema.nodes.paragraph.create());
         tr.setSelection(TextSelection.create(tr.doc, end + 1));
         dispatch(tr.scrollIntoView());
     }
@@ -446,6 +450,7 @@ function is_top_level_container(node: PMNode): boolean {
 function line_start_offset(state: EditorState, pos: number): number {
     const $pos = state.doc.resolve(pos);
     let start = 0;
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror node, whose forEach gives positions
     $pos.parent.forEach((child, offset) => {
         if (child.type.name === "hard_break" && offset < $pos.parentOffset) {
             start = offset + 1;
@@ -482,7 +487,7 @@ function standalone_textblock($pos: ResolvedPos): {
             doc: schema.node("doc", null, [
                 spoiler.type.create({...spoiler.attrs, sep: null}, [
                     block,
-                    schema.nodes["paragraph"]!.create(),
+                    schema.nodes.paragraph.create(),
                 ]),
             ]),
             content_start: 2,
@@ -570,7 +575,7 @@ function reparse_with_typed_text(
 // Characters that can complete inline syntax. A line break in the text
 // the rules are matched against is an object replacement character, like
 // every other leaf node.
-const INLINE_TRIGGER_RE = /[\x60)*:>$~]$/u;
+const INLINE_TRIGGER_RE = /[\u0060)*:>$~]$/u;
 const LINE_START = String.raw`(?:^|\n|\uFFFC)`;
 const BULLET_RE = new RegExp(`${LINE_START}(?<prefix>[ ]?[*+-][ ])$`, "u");
 const ORDERED_RE = new RegExp(`${LINE_START}(?<prefix>[ ]?\\d+\\.[ ])$`, "u");
@@ -593,6 +598,7 @@ function replace_line_with_block(
     }
     const line_start = line_start_offset(state, pos);
     let line_end = paragraph.content.size;
+    // eslint-disable-next-line unicorn/no-array-for-each -- a ProseMirror node, whose forEach gives positions
     paragraph.forEach((child, offset) => {
         if (
             child.type.name === "hard_break" &&
@@ -615,6 +621,7 @@ function replace_line_with_block(
         blocks.push(paragraph.type.create(null, paragraph.content.cut(line_end + 1)));
     }
     const tr = state.tr;
+    // eslint-disable-next-line no-jquery/variable-pattern -- a ProseMirror position, not jQuery
     const start = $pos.before();
     tr.replaceWith(start, $pos.after(), blocks);
     let block_start = start;
@@ -636,9 +643,9 @@ function typed_block_rules(): InputRule[] {
         new InputRule(regex, (state, match, _start, end) => {
             const prefix = match.groups!["prefix"]!;
             return replace_line_with_block(state, end, prefix.length - 1, (content) =>
-                schema.nodes[ordered ? "ordered_list" : "bullet_list"]!.create(null, [
-                    schema.nodes["list_item"]!.create({marker: prefix}, [
-                        schema.nodes["paragraph"]!.create(null, content),
+                schema.nodes[ordered ? "ordered_list" : "bullet_list"].create(null, [
+                    schema.nodes.list_item.create({marker: prefix}, [
+                        schema.nodes.paragraph.create(null, content),
                     ]),
                 ]),
             );
@@ -648,15 +655,15 @@ function typed_block_rules(): InputRule[] {
         list_rule(ORDERED_RE, true),
         new InputRule(QUOTE_RE, (state, _match, _start, end) =>
             replace_line_with_block(state, end, 1, (content) =>
-                schema.nodes["blockquote"]!.create({style: "angle"}, [
-                    schema.nodes["paragraph"]!.create(null, content),
+                schema.nodes.blockquote.create({style: "angle"}, [
+                    schema.nodes.paragraph.create(null, content),
                 ]),
             ),
         ),
         new InputRule(HEADING_RE_TYPED, (state, match, _start, end) => {
             const prefix = match.groups!["prefix"]!;
             return replace_line_with_block(state, end, prefix.length - 1, (content) =>
-                schema.nodes["heading"]!.create({level: prefix.trim().length}, content),
+                schema.nodes.heading.create({level: prefix.trim().length}, content),
             );
         }),
     ];
@@ -708,21 +715,21 @@ export const enter_after_fence: Command = (state, dispatch) => {
         $from.parentOffset - line_start,
         (content) => {
             if (lang === "quote" || lang === "quoted") {
-                return schema.nodes["blockquote"]!.create({...attrs, style: "fence"}, [
-                    schema.nodes["paragraph"]!.create(null, content),
+                return schema.nodes.blockquote.create({...attrs, style: "fence"}, [
+                    schema.nodes.paragraph.create(null, content),
                 ]);
             }
             if (lang === "spoiler") {
-                return schema.nodes["spoiler"]!.create(attrs, [
-                    schema.nodes["spoiler_header"]!.create(
+                return schema.nodes.spoiler.create(attrs, [
+                    schema.nodes.spoiler_header.create(
                         null,
                         header === "" ? undefined : schema.text(header),
                     ),
-                    schema.nodes["paragraph"]!.create(null, content),
+                    schema.nodes.paragraph.create(null, content),
                 ]);
             }
             const text = content.textBetween(0, content.size, undefined, OBJECT_REPLACEMENT);
-            return schema.nodes[lang === "math" ? "math_block" : "code_block"]!.create(
+            return schema.nodes[lang === "math" ? "math_block" : "code_block"].create(
                 attrs,
                 text === "" ? undefined : schema.text(text),
             );
