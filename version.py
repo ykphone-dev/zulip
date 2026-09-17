@@ -48,4 +48,4 @@ API_FEATURE_LEVEL = 500
 #   historical commits sharing the same major version, in which case a
 #   minor version bump suffices.
 
-PROVISION_VERSION = (379, 0)  # bumped 2026-05-12 to upgrade Python requirements
+PROVISION_VERSION = (379, 1)  # bumped 2026-09-17 to add the rich composer's ProseMirror packages
