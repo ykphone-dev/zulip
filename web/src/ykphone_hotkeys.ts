@@ -11,7 +11,8 @@
 //   with unread messages;
 // - ↑ in an empty compose box edits the user's last message in the
 //   conversation;
-// - Escape in a conversation marks it as read.
+// - "i" opens the channel details dialog when no message is selected;
+//   Escape in a conversation marks it as read.
 //
 // Spectators keep upstream's keys: none of the fork's views are theirs.
 
@@ -32,8 +33,10 @@ import * as stream_list from "./stream_list.ts";
 import * as stream_list_sort from "./stream_list_sort.ts";
 import * as unread from "./unread.ts";
 import * as unread_ops from "./unread_ops.ts";
+import * as ykphone_channel_details_ui from "./ykphone_channel_details_ui.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_places from "./ykphone_places.ts";
 import type {Place} from "./ykphone_places.ts";
@@ -266,6 +269,27 @@ function edit_last_message(): boolean {
     return true;
 }
 
+// ---- The channel ----
+
+// "i" opens the channel details, as it opens Slack's channel details.
+// Upstream gives the key to the selected message's ⋮ menu, which is
+// what it keeps while the user is moving through the feed with the
+// keyboard (the state that draws the selection box); with no selection
+// showing, the key belongs to the conversation, as Slack has it.
+function open_channel_details(): boolean {
+    const place = conversation_place();
+    if (
+        ykphone_keyboard_nav.is_active() ||
+        is_ui_layered() ||
+        is_text_focused() ||
+        (place?.kind !== "channel" && place?.kind !== "thread")
+    ) {
+        return false;
+    }
+    ykphone_channel_details_ui.open(place.stream_id, "info");
+    return true;
+}
+
 // Returns whether the hotkey was handled here.
 export function process_hotkey(e: JQuery.KeyDownEvent, hotkey_name: string): boolean {
     if (!is_enabled()) {
@@ -299,6 +323,8 @@ export function process_hotkey(e: JQuery.KeyDownEvent, hotkey_name: string): boo
         case "up_arrow":
             // Shift+↑ selects text, as it does in Slack.
             return !e.shiftKey && edit_last_message();
+        case "message_actions":
+            return open_channel_details();
         default:
             return false;
     }

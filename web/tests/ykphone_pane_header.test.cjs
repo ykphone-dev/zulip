@@ -416,44 +416,25 @@ run_test("get_context direct messages", () => {
 });
 
 run_test("members button label", ({override}) => {
-    $.clear_all_elements();
-    const $body = $("body");
-    const $column = $(".app-main .column-right");
+    // The button opens the channel details dialog on its member tab
+    // (ykphone_channel_details_ui), so its label no longer depends on
+    // whether the sidebar member list is on screen.
+    assert.equal(ykphone_pane_header.members_button_label(), "translated: Channel members");
 
-    // Wide screens: the persisted toggle.
+    // The dialog's "사이드바에 멤버 목록 표시" link does depend on it:
+    // the persisted toggle on wide screens, the overlay's state below
+    // that.
+    $.clear_all_elements();
     override(ui_util, "matches_viewport_state", (state) => state === "gte_xl_min");
-    $body.addClass("hide-right-sidebar");
-    assert.equal(ykphone_pane_header.members_button_label(), "translated: Show members");
-    $body.removeClass("hide-right-sidebar");
-    assert.equal(ykphone_pane_header.members_button_label(), "translated: Hide members");
+    assert.equal(ykphone_pane_header.member_list_shown(), true);
+    $("body").addClass("hide-right-sidebar");
+    assert.equal(ykphone_pane_header.member_list_shown(), false);
 
-    // Narrower: the overlay's state.
     override(ui_util, "matches_viewport_state", () => false);
-    assert.equal(ykphone_pane_header.members_button_label(), "translated: Show members");
-    $column.addClass("expanded");
-    assert.equal(ykphone_pane_header.members_button_label(), "translated: Hide members");
-
-    // Updating the button refreshes both the label and an existing
-    // tooltip; without a button (a view) there is nothing to do.
-    const $button = $("#ykphone-pane-header .ykphone-pane-header-members");
-    let tooltip_content;
-    $button[0]._tippy = {
-        setContent(content) {
-            tooltip_content = content;
-        },
-    };
-    ykphone_pane_header.update_members_button();
-    assert.equal($button.attr("aria-label"), "translated: Hide members");
-    assert.equal($button.attr("data-tippy-content"), "translated: Hide members");
-    assert.equal(tooltip_content, "translated: Hide members");
-    $button[0]._tippy = undefined;
-    $column.removeClass("expanded");
-    ykphone_pane_header.update_members_button();
-    assert.equal($button.attr("aria-label"), "translated: Show members");
-
+    assert.equal(ykphone_pane_header.member_list_shown(), false);
+    $(".app-main .column-right").addClass("expanded");
+    assert.equal(ykphone_pane_header.member_list_shown(), true);
     $.clear_all_elements();
-    $.create("#ykphone-pane-header .ykphone-pane-header-members", {elements: []});
-    ykphone_pane_header.update_members_button();
 });
 
 run_test("render before mount", ({override, mock_template}) => {
@@ -512,7 +493,6 @@ run_test("render and mount", ({override, mock_template}) => {
     page_params.is_spectator = false;
     override(narrow_state, "filter", () => verona_filter);
     override(narrow_state, "stream_id", () => 3);
-    $("body").addClass("hide-right-sidebar");
 
     let rendered;
     let render_count = 0;
@@ -553,13 +533,14 @@ run_test("render and mount", ({override, mock_template}) => {
     assert.equal(prepended, $("<div>")[0]);
     assert.equal($("<div>").attr("id"), "ykphone-pane-header");
     assert.equal(rendered.data.title, "Verona");
-    assert.equal(rendered.data.members_label, "translated: Show members");
+    assert.equal(rendered.data.members_label, "translated: Channel members");
     assert.ok(rendered.html.includes("zulip-icon-hashtag"));
     assert.ok(rendered.html.includes('href="#channels/3/general"'));
     assert.ok(rendered.html.includes('data-stream-id="3"'));
     assert.ok(rendered.html.includes("zulip-icon-chevron-down"));
-    assert.ok(rendered.html.includes("no-auto-hide-right-sidebar-overlay"));
-    assert.ok(rendered.html.includes('aria-label="translated: Show members"'));
+    assert.ok(rendered.html.includes('aria-label="translated: Channel members"'));
+    // The menu the title used to open sits beside the member button.
+    assert.ok(rendered.html.includes("ykphone-pane-header-menu"));
     // No avatars yet: the member button shows the list icon and count.
     assert.ok(rendered.html.includes("zulip-icon-user-list"));
     assert.ok(rendered.html.includes(">11<"));

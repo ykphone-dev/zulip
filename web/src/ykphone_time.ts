@@ -6,7 +6,9 @@
 // for users on a 12-hour clock ("오전 10:12") and without a leading zero
 // on the hour. The user's 12/24-hour preference still decides which hour
 // is shown, and every other timestamp in the app keeps upstream's
-// format, so this module only serves the gutter.
+// format, so this module only serves the gutter. The module also holds
+// day_or_time(), the "today at 10:12, otherwise the date too" label the
+// pins panel and the unread bar share.
 
 import * as timerender from "./timerender.ts";
 import {user_settings} from "./user_settings.ts";
@@ -51,6 +53,21 @@ export function hour_and_minute(date: Date | number): string {
         }
     }
     return `${hour}:${minute}`;
+}
+
+// The clock alone for a timestamp from today, the date and the clock
+// otherwise (and the year too when it is not this one): what the pins
+// panel and the unread bar both want to say about a message.
+export function day_or_time(timestamp: number): string {
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) {
+        return timerender.get_localized_date_or_time_for_format(date, "time");
+    }
+    return timerender.get_localized_date_or_time_for_format(
+        date,
+        date.getFullYear() === now.getFullYear() ? "dayofyear_time" : "dayofyear_year_time",
+    );
 }
 
 export function clear_for_testing(): void {

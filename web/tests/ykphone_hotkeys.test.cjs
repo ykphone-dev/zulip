@@ -61,6 +61,15 @@ const ykphone_compose = mock_esm("../src/ykphone_compose", {
         return true;
     },
 });
+const opened_details = [];
+mock_esm("../src/ykphone_channel_details_ui", {
+    open(stream_id, tab) {
+        opened_details.push({stream_id, tab});
+    },
+});
+mock_esm("../src/ykphone_keyboard_nav", {
+    is_active: () => layers.keyboard_nav === true,
+});
 mock_esm("../src/ykphone_pins", {
     get_panel_stream_id: () => (layers.pins === true ? 3 : undefined),
 });
@@ -135,6 +144,7 @@ function reset() {
     layers = {};
     visited.length = 0;
     closed.length = 0;
+    opened_details.length = 0;
 }
 
 run_test("key combinations", () => {
@@ -333,6 +343,40 @@ run_test("unread conversation hotkeys", () => {
     dm_conversations = [{user_ids_string: "42", unread: 1}];
     assert.ok(ykphone_hotkeys.process_hotkey(key_event, "ykphone_next_unread_conversation"));
     assert.equal(visited.length, 2);
+});
+
+run_test("i opens the channel details", () => {
+    reset();
+    // In a channel or one of its threads, with no message selected.
+    current_filter = {place: {kind: "channel", stream_id: 7}};
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), true);
+    current_filter = {place: {kind: "thread", stream_id: 8, topic: "plans"}};
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), true);
+    assert.deepEqual(opened_details, [
+        {stream_id: 7, tab: "info"},
+        {stream_id: 8, tab: "info"},
+    ]);
+
+    // While the user is moving through the feed with the keyboard the
+    // key keeps upstream's meaning (the selected message's menu), and
+    // so it does in a direct message conversation, on a page, behind a
+    // menu, and while a text field has the keyboard.
+    reset();
+    current_filter = {place: {kind: "channel", stream_id: 7}};
+    layers.keyboard_nav = true;
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), false);
+    reset();
+    current_filter = {place: {kind: "dm", user_ids: [12]}};
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), false);
+    current_filter = {place: {kind: "page", page: "dms"}};
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), false);
+    current_filter = {place: {kind: "channel", stream_id: 7}};
+    layers.popover = true;
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), false);
+    layers.popover = false;
+    focus = "input";
+    assert.equal(ykphone_hotkeys.process_hotkey(key_event, "message_actions"), false);
+    assert.deepEqual(opened_details, []);
 });
 
 run_test("up arrow edits the last message", ({override}) => {

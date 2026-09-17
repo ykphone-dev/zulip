@@ -1,0 +1,14 @@
+{{! Slack's bar at the top of a conversation with unread history. }}
+<div class="ykphone-unread-banner-card" role="status">
+    <span class="ykphone-unread-banner-text">
+        <span class="ykphone-unread-banner-count">{{count_label}}</span>
+        {{#if since_label}}
+        <span class="ykphone-unread-banner-since">{{since_label}}</span>
+        {{/if}}
+    </span>
+    <button type="button" class="ykphone-unread-banner-jump">{{jump_label}}</button>
+    <button type="button" class="ykphone-unread-banner-read">{{mark_read_label}}</button>
+    <button type="button" class="ykphone-unread-banner-close" aria-label="{{t 'Close' }}">
+        <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
+    </button>
+</div>

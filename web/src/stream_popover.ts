@@ -47,6 +47,7 @@ import * as unread from "./unread.ts";
 import * as unread_ops from "./unread_ops.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_channel_details_ui from "./ykphone_channel_details_ui.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
 
 // In this module, we manage stream popovers
@@ -150,6 +151,11 @@ export function build_stream_popover(opts: {
         has_unread_messages,
         show_go_to_channel_feed,
         show_go_to_list_of_topics,
+        // The fork's channel row menu (Slack's items, in Slack's
+        // order); the inbox's channel headers keep upstream's, whose
+        // mark-all-read item belongs to that view.
+        ykphone_slack_menu:
+            ykphone_flags.channels_open_in_general_chat() && !is_triggered_from_inbox,
     });
 
     popover_menus.toggle_popover_menu(
@@ -240,6 +246,16 @@ export function build_stream_popover(opts: {
 
                 $popper.on("click", ".copy_stream_link", function (this: HTMLElement) {
                     void clipboard_handler.popover_copy_link_to_clipboard(instance, $(this));
+                });
+
+                // The fork's channel details dialog (the item says
+                // which tab it wants).
+                $popper.on("click", ".ykphone-channel-menu-item", function (this: HTMLElement, e) {
+                    const sub = stream_popover_sub(e);
+                    hide_stream_popover(instance);
+                    ykphone_channel_details_ui.open_from_menu(this, sub.stream_id);
+                    e.preventDefault();
+                    e.stopPropagation();
                 });
             },
             onHidden(instance) {

@@ -17,7 +17,6 @@
 
 import $ from "jquery";
 import assert from "minimalistic-assert";
-import type {ReferenceElement} from "tippy.js";
 
 import render_ykphone_pane_header from "../templates/ykphone_pane_header.hbs";
 
@@ -35,7 +34,6 @@ import {realm} from "./state_data.ts";
 import * as stream_data from "./stream_data.ts";
 import type {StreamSubscription} from "./sub_store.ts";
 import * as ui_util from "./ui_util.ts";
-import * as util from "./util.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
@@ -281,32 +279,21 @@ function maybe_fetch_subscribers(stream_id: number): void {
     })();
 }
 
+// The member button opens the channel details dialog on its 멤버 tab,
+// as clicking Slack's member avatars does. (Until round 15 it toggled
+// the sidebar member list, which the dialog's own toggle now does.)
+export function members_button_label(): string {
+    return $t({defaultMessage: "Channel members"});
+}
+
 // Whether the member list is on screen: the persisted toggle on wide
-// screens, the overlay state below that.
-function member_list_shown(): boolean {
+// screens, the overlay state below that. The dialog's "사이드바에 멤버
+// 목록 표시" link labels itself from this.
+export function member_list_shown(): boolean {
     if (ui_util.matches_viewport_state("gte_xl_min")) {
         return !$("body").hasClass("hide-right-sidebar");
     }
     return $(".app-main .column-right").hasClass("expanded");
-}
-
-export function members_button_label(): string {
-    return member_list_shown()
-        ? $t({defaultMessage: "Hide members"})
-        : $t({defaultMessage: "Show members"});
-}
-
-// Called after the member list is toggled from the button.
-export function update_members_button(): void {
-    const label = members_button_label();
-    const $button = $("#ykphone-pane-header .ykphone-pane-header-members");
-    if ($button.length === 0) {
-        return;
-    }
-    $button.attr("aria-label", label).attr("data-tippy-content", label);
-    // A tooltip already created reads its content once.
-    const button: ReferenceElement = util.the($button);
-    button._tippy?.setContent(label);
 }
 
 function with_split_back_url(context: PaneHeaderContext): PaneHeaderContext {

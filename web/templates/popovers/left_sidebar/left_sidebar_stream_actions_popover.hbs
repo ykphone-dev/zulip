@@ -10,6 +10,9 @@
         </li>
         {{#if stream.rendered_description}}<li role="none" class="text-item popover-menu-list-item ykphone-popover-stream-description rendered_markdown">{{rendered_markdown stream.rendered_description}}</li>{{/if}}
         <li role="separator" class="popover-menu-separator"></li>
+        {{#if ykphone_slack_menu}}
+        {{> ../../ykphone_channel_menu_items . }}
+        {{else}}
         {{#if has_unread_messages}}
         <li role="none" class="link-item popover-menu-list-item hidden-for-spectators">
             <a role="menuitem" class="mark_stream_as_read popover-menu-link" tabindex="0">
@@ -92,5 +95,6 @@
             </a>
         </li>
         {{/unless}}
+        {{/if}}
     </ul>
 </div>

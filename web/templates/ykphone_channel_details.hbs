@@ -1,0 +1,127 @@
+{{! Slack's channel details modal: 정보 / 멤버 / 설정. The tabs themselves
+are upstream's dialog tab switcher, rendered into the modal header. }}
+<section class="ykphone-channel-details-pane" data-details-tab="info">
+    <div class="ykphone-channel-details-block">
+        <div class="ykphone-channel-details-block-head">
+            <h2 class="ykphone-channel-details-label">{{t 'Description' }}</h2>
+            {{#if info.can_edit_description}}
+            <button type="button" class="ykphone-channel-details-edit ykphone-channel-details-description-edit">{{t 'Edit' }}</button>
+            {{/if}}
+        </div>
+        <div class="ykphone-channel-details-description rendered_markdown">
+            {{#if info.has_description}}
+            {{rendered_markdown info.rendered_description}}
+            {{else}}
+            <span class="ykphone-channel-details-empty">{{t 'No description.' }}</span>
+            {{/if}}
+        </div>
+        {{#if info.can_edit_description}}
+        <div class="ykphone-channel-details-description-form" hidden>
+            <textarea class="ykphone-channel-details-description-input" rows="2" maxlength="1024" aria-label="{{t 'Description' }}">{{info.description}}</textarea>
+            <div class="ykphone-channel-details-form-buttons">
+                <button type="button" class="ykphone-channel-details-button ykphone-channel-details-description-cancel">{{t 'Cancel' }}</button>
+                <button type="button" class="ykphone-channel-details-button ykphone-channel-details-primary ykphone-channel-details-description-save">{{t 'Save' }}</button>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+    <div class="ykphone-channel-details-block">
+        <h2 class="ykphone-channel-details-label">{{t 'About' }}</h2>
+        <ul class="ykphone-channel-details-facts">
+            <li>
+                <i class="zulip-icon zulip-icon-{{info.privacy_icon}}" aria-hidden="true"></i>
+                <span>{{info.privacy_label}}</span>
+            </li>
+            <li>
+                <i class="zulip-icon zulip-icon-user" aria-hidden="true"></i>
+                <button type="button" class="ykphone-channel-details-member-link">{{t 'Members' }}: {{info.member_count}}</button>
+            </li>
+            <li>
+                <i class="zulip-icon zulip-icon-clock" aria-hidden="true"></i>
+                <span>{{created_by_line}}</span>
+            </li>
+        </ul>
+    </div>
+    {{#if info.can_leave}}
+    <div class="ykphone-channel-details-block ykphone-channel-details-danger-block">
+        <button type="button" class="ykphone-channel-details-danger ykphone-channel-details-leave">{{t 'Leave channel' }}</button>
+    </div>
+    {{/if}}
+    {{#if info.can_archive}}
+    <div class="ykphone-channel-details-block ykphone-channel-details-danger-block">
+        <button type="button" class="ykphone-channel-details-danger ykphone-channel-details-archive">{{t 'Archive channel' }}</button>
+    </div>
+    {{/if}}
+</section>
+<section class="ykphone-channel-details-pane" data-details-tab="members" hidden>
+    <div class="ykphone-channel-details-members-head">
+        <input type="text" class="ykphone-channel-details-member-search" placeholder="{{t 'Find members' }}" aria-label="{{t 'Find members' }}" />
+        {{#if members.can_add}}
+        <button type="button" class="ykphone-channel-details-button ykphone-channel-details-primary ykphone-channel-details-add-open">{{t 'Add people' }}</button>
+        {{/if}}
+    </div>
+    {{#if members.can_add}}
+    <div class="ykphone-channel-details-add-form" hidden>
+        <div class="ykphone-channel-details-pill">
+            <div class="pill-container person_picker">
+                <div class="input" contenteditable="true" id="ykphone-channel-details-add-input" data-placeholder="{{t 'Search for people or groups' }}">
+                    {{~! Squash whitespace so that placeholder is displayed when empty. ~}}
+                </div>
+            </div>
+        </div>
+        <div class="ykphone-channel-details-form-buttons">
+            <button type="button" class="ykphone-channel-details-button ykphone-channel-details-add-cancel">{{t 'Cancel' }}</button>
+            <button type="button" class="ykphone-channel-details-button ykphone-channel-details-primary ykphone-channel-details-add-save">{{t 'Add' }}</button>
+        </div>
+    </div>
+    {{/if}}
+    <div class="ykphone-channel-details-member-list">
+        {{> ykphone_channel_details_members members}}
+    </div>
+    <button type="button" class="ykphone-channel-details-sidebar-toggle">{{sidebar_toggle_label}}</button>
+</section>
+<section class="ykphone-channel-details-pane" data-details-tab="settings" hidden>
+    {{#if settings.can_rename}}
+    <div class="ykphone-channel-details-block">
+        <h2 class="ykphone-channel-details-label" id="ykphone-channel-details-name-label">{{t 'Channel name' }}</h2>
+        <div class="ykphone-channel-details-name-row">
+            <input type="text" class="ykphone-channel-details-name-input" value="{{settings.name}}" maxlength="60" aria-labelledby="ykphone-channel-details-name-label" />
+            <button type="button" class="ykphone-channel-details-button ykphone-channel-details-primary ykphone-channel-details-name-save" disabled>{{t 'Save' }}</button>
+        </div>
+        <div class="ykphone-channel-details-name-error"></div>
+    </div>
+    {{/if}}
+    {{#if settings.is_subscribed}}
+    <div class="ykphone-channel-details-block">
+        <h2 class="ykphone-channel-details-label">{{t 'Notifications' }}</h2>
+        <label class="ykphone-channel-details-radio">
+            <input type="radio" name="ykphone-channel-notifications" value="all" {{#if (eq settings.notification_choice "all")}}checked{{/if}} />
+            <span class="ykphone-channel-details-radio-text">
+                <span class="ykphone-channel-details-radio-label">{{t 'Every new message' }}</span>
+            </span>
+        </label>
+        <label class="ykphone-channel-details-radio">
+            <input type="radio" name="ykphone-channel-notifications" value="mentions" {{#if (eq settings.notification_choice "mentions")}}checked{{/if}} />
+            <span class="ykphone-channel-details-radio-text">
+                <span class="ykphone-channel-details-radio-label">{{t 'Mentions only' }}</span>
+            </span>
+        </label>
+        <label class="ykphone-channel-details-radio">
+            <input type="radio" name="ykphone-channel-notifications" value="none" {{#if (eq settings.notification_choice "none")}}checked{{/if}} />
+            <span class="ykphone-channel-details-radio-text">
+                <span class="ykphone-channel-details-radio-label">{{t 'Nothing' }}</span>
+                <span class="ykphone-channel-details-radio-hint">{{t "Turns off desktop, mobile and email notifications for this channel. You are still notified for direct mentions, alert words and threads you follow." }}</span>
+            </span>
+        </label>
+    </div>
+    <div class="ykphone-channel-details-block">
+        <label class="ykphone-channel-details-toggle">
+            <input type="checkbox" class="ykphone-channel-details-mute" {{#if settings.is_muted}}checked{{/if}} />
+            <span class="ykphone-channel-details-radio-text">
+                <span class="ykphone-channel-details-radio-label">{{t 'Mute channel' }}</span>
+                <span class="ykphone-channel-details-radio-hint">{{t 'A muted channel is not bold and does not count towards unread badges.' }}</span>
+            </span>
+        </label>
+    </div>
+    {{/if}}
+</section>

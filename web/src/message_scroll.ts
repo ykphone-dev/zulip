@@ -13,6 +13,7 @@ import * as unread from "./unread.ts";
 import * as unread_ops from "./unread_ops.ts";
 import * as unread_ui from "./unread_ui.ts";
 import {the} from "./util.ts";
+import * as ykphone_unread_banner from "./ykphone_unread_banner.ts";
 import * as ykphone_unread_guard from "./ykphone_unread_guard.ts";
 
 let hide_scroll_to_bottom_timer: ReturnType<typeof setInterval> | undefined;
@@ -81,6 +82,7 @@ export function scroll_finished(): void {
     // We still want the rest of the code to run but it's fine to skip this.
     message_lists.current.view.update_sticky_recipient_headers();
     ykphone_unread_guard.release_visible();
+    ykphone_unread_banner.render();
 
     if (compose_banner.scroll_to_message_banner_message_id !== null) {
         const $message_row = message_lists.current.get_row(

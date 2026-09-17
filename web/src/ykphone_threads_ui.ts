@@ -21,13 +21,16 @@ import {$t} from "./i18n.ts";
 import * as lightbox from "./lightbox.ts";
 import * as message_store from "./message_store.ts";
 import * as message_view from "./message_view.ts";
+import {page_params} from "./page_params.ts";
 import * as popover_menus from "./popover_menus.ts";
+import * as popovers from "./popovers.ts";
 import * as reactions from "./reactions.ts";
 import * as rows from "./rows.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as stream_popover from "./stream_popover.ts";
 import {parse_html} from "./ui_util.ts";
 import * as ykphone_channel_create_ui from "./ykphone_channel_create_ui.ts";
+import * as ykphone_channel_details_ui from "./ykphone_channel_details_ui.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
@@ -51,6 +54,7 @@ import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
 import * as ykphone_unread_badges from "./ykphone_unread_badges.ts";
+import * as ykphone_unread_banner from "./ykphone_unread_banner.ts";
 
 export function open_in_full_view(thread: ThreadInfo): void {
     ykphone_thread_panel.close();
@@ -130,6 +134,8 @@ export function initialize(): void {
     ykphone_layout.hide_member_list_by_default();
     ykphone_layout.track_feed_bottom();
     ykphone_pane_header.mount();
+    ykphone_unread_banner.mount();
+    ykphone_unread_banner.initialize();
     ykphone_compose.mount();
     ykphone_rich_compose.mount();
     ykphone_rich_surfaces.initialize();
@@ -137,6 +143,7 @@ export function initialize(): void {
     ykphone_pins_ui.initialize();
     ykphone_favorites_ui.initialize();
     ykphone_channel_create_ui.initialize();
+    ykphone_channel_details_ui.initialize();
     ykphone_shell_theme_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
@@ -205,13 +212,50 @@ export function initialize(): void {
         ykphone_history.go_forward();
     });
 
-    // The member button stands in for the navbar toggle, which keeps
-    // the show/hide state; while a thread is open the panel holds the
-    // column, so it closes first.
-    $("body").on("click", ".ykphone-pane-header-members", () => {
-        ykphone_thread_panel.close();
-        $("#userlist-toggle-button").trigger("click");
-        ykphone_pane_header.update_members_button();
+    // The member button opens the channel details on its member list,
+    // as clicking Slack's member avatars does; the list in the sidebar
+    // is toggled from inside that tab.
+    $("body").on("click", ".ykphone-pane-header-members", function (this: HTMLElement) {
+        ykphone_channel_details_ui.open(Number($(this).attr("data-stream-id")), "members");
+    });
+
+    // User card: the ⋮ beside the 메시지 button reveals Zulip's own
+    // items (the list the theme hides while the card is collapsed), and
+    // 통화 opens a direct message with a video call link, which is what
+    // the composer's own call button inserts.
+    $("body").on("click", ".ykphone-user-card-more", function (this: HTMLElement, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $card = $(this).closest(".user-card-popover-actions");
+        const expanded = !$card.hasClass("ykphone-user-card-expanded");
+        $card.toggleClass("ykphone-user-card-expanded", expanded);
+        $(this).attr("aria-expanded", expanded ? "true" : "false");
+        if (expanded) {
+            $card.find(".popover-menu-list .link-item .popover-menu-link").first().trigger("focus");
+        }
+    });
+    $("body").on("click", ".ykphone-user-card-call", function (this: HTMLElement, e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const user_id = Number($(this).closest("ul").attr("data-user-id"));
+        popovers.hide_all();
+        compose_actions.start({
+            message_type: "private",
+            trigger: "ykphone call",
+            private_message_recipient_ids: [user_id],
+        });
+        $(".compose-control-buttons-container .video_link").trigger("click");
+    });
+
+    // The "N new messages" bar at the top of the conversation.
+    $("body").on("click", ".ykphone-unread-banner-read", () => {
+        ykphone_unread_banner.mark_read();
+    });
+    $("body").on("click", ".ykphone-unread-banner-jump", () => {
+        ykphone_unread_banner.jump_to_first_unread();
+    });
+    $("body").on("click", ".ykphone-unread-banner-close", () => {
+        ykphone_unread_banner.hide();
     });
 
     $("#compose").on("click", ".ykphone-compose-formatting-toggle", (e) => {
@@ -227,18 +271,27 @@ export function initialize(): void {
         ykphone_compose.toggle_extras();
     });
 
-    // The channel title opens the channel menu, as in Slack; modified
-    // clicks keep the link to the channel settings.
+    // The channel title opens the channel details dialog, as in Slack;
+    // modified clicks keep the link to the channel settings. The menu
+    // the title used to open is on the ⋮ button beside it. A spectator
+    // has neither (the dialog needs a subscriber list they cannot
+    // fetch), so their click keeps following the link.
     $("body").on("click", ".ykphone-pane-header-channel", function (this: HTMLElement, e) {
-        if (e.metaKey || e.ctrlKey || e.shiftKey) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || page_params.is_spectator) {
             return;
         }
+        e.preventDefault();
+        e.stopPropagation();
+        ykphone_channel_details_ui.open(Number($(this).attr("data-stream-id")), "info");
+    });
+
+    $("body").on("click", ".ykphone-pane-header-menu", function (this: HTMLElement, e) {
         e.preventDefault();
         e.stopPropagation();
         stream_popover.build_stream_popover({
             elt: this,
             stream_id: Number($(this).attr("data-stream-id")),
-            placement: "bottom-start",
+            placement: "bottom-end",
         });
     });
 

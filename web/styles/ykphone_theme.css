@@ -1762,6 +1762,34 @@ a.ykphone-pane-header-channel {
     }
 }
 
+/* The channel menu the sidebar row also carries; the title beside it
+   opens the channel details dialog. */
+.ykphone-pane-header-menu {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    padding: 0;
+    border: 0;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--yk-text-muted);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+    }
+}
+
 .ykphone-pane-header-avatars {
     display: flex;
     align-items: center;
@@ -4681,6 +4709,115 @@ body.ykphone-keyboard-nav
             }
         }
     }
+
+    /* Slack's card: the status, the local time and the primary
+       buttons under the name (round 15). */
+    .ykphone-user-card-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3571em; /* 5px at 14px/em */
+        padding: 0 1.1429em 0.2857em;
+        text-align: center;
+        color: var(--yk-text);
+    }
+
+    .ykphone-user-card-status-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ykphone-user-card-time {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3571em;
+        padding: 0 1.1429em 0.2857em;
+        font-size: 0.9286em; /* 13px at 14px/em */
+        color: var(--yk-text-muted);
+    }
+
+    /* Wide enough for the buttons to sit in one row; upstream's card
+       is 200px, which wraps "메시지" one letter per line. */
+    min-width: 17.1429em; /* 240px at 14px/em */
+
+    .ykphone-user-card-buttons {
+        display: flex;
+        align-items: stretch;
+        gap: 0.4286em; /* 6px at 14px/em */
+        margin: 0.4286em 0 0;
+        padding: 0 0.8571em 0.5714em;
+        list-style: none;
+    }
+
+    .ykphone-user-card-button-item {
+        display: flex;
+
+        &:first-child {
+            flex: 1 1 auto;
+        }
+    }
+
+    .ykphone-user-card-primary,
+    .ykphone-user-card-more {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3571em;
+        min-height: 2.2857em; /* 32px at 14px/em */
+        padding: 0 0.8571em;
+        border: 1px solid var(--yk-border);
+        border-radius: var(--yk-radius-sm);
+        color: var(--yk-text);
+        font-weight: 700;
+        white-space: nowrap;
+        text-decoration: none;
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            background-color: var(--yk-row-hover);
+            color: var(--yk-text);
+            text-decoration: none;
+        }
+    }
+
+    /* The message button is the card's green primary, like the
+       composer's send button. */
+    .ykphone-user-card-primary.compose_private_message,
+    .ykphone-user-card-primary.respond_personal_button {
+        border-color: transparent;
+        background-color: var(--yk-green);
+        color: hsl(0deg 0% 100%);
+
+        &:hover,
+        &:focus-visible {
+            background-color: var(--yk-green-hover);
+            color: hsl(0deg 0% 100%);
+        }
+    }
+
+    .ykphone-user-card-more {
+        flex: none;
+        width: 2.2857em;
+        padding: 0;
+    }
+
+    /* Already shown by the card itself: the status, the local time and
+       the direct message action. Your own status keeps its list row,
+       which carries the button that clears it, and the card's copy of
+       it goes instead (below). */
+    .popover-menu-list
+        > li:has(.personal-menu-status-wrapper):not(
+            :has(.user-card-clear-status-button)
+        ),
+    .popover-menu-list > li:has(.popover-menu-icon.zulip-icon-clock),
+    .popover-menu-list > li:has(.popover-menu-link.compose_private_message),
+    .popover-menu-list > li:has(.popover-menu-link.respond_personal_button) {
+        display: none;
+    }
 }
 
 /* Emoji picker: a pill search field, an icon row of categories,
@@ -6060,4 +6197,514 @@ body.ykphone-split-highlight .message_row.selected_message {
 .ykphone-quick-switcher-empty {
     padding: 0.8571em 1.1429em; /* 12px 16px at 14px/em */
     color: var(--yk-text-muted);
+}
+
+/* ---- Channel details dialog ---- */
+
+/* Slack's channel details modal (ykphone_channel_details_ui): 520px
+   wide with the tab switcher in the header, no footer, and each tab a
+   column of labelled blocks. As with the creation modal, the skin's
+   flattened selector carries a specificity bump, so this one has to
+   weigh as much and come later. */
+.micromodal #ykphone-channel-details-modal.modal__container {
+    border-radius: var(--yk-radius-md);
+
+    .modal__title {
+        font-size: 1.2857em; /* 18px at 14px/em */
+    }
+
+    .modal__content {
+        padding: 1.1429em 1.4286em 1.4286em; /* 16px 20px 20px at 14px/em */
+    }
+
+    /* Upstream's header grid gives the switcher its own row under the
+       title; it spans the width there (its "large allow-overflow"
+       flex row divides it in three). */
+    .ykphone-channel-details-tabs {
+        margin: 0;
+    }
+}
+
+.ykphone-channel-details-pane[hidden] {
+    display: none;
+}
+
+.ykphone-channel-details-block {
+    margin-bottom: 1.1429em; /* 16px at 14px/em */
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.ykphone-channel-details-block-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5714em; /* 8px at 14px/em */
+}
+
+.ykphone-channel-details-label {
+    margin: 0 0 0.2857em; /* 4px at 14px/em */
+    font-size: 1em;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--yk-text);
+}
+
+.ykphone-channel-details-edit {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-link);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ykphone-channel-details-description {
+    line-height: 1.5;
+    color: var(--yk-text);
+
+    p {
+        margin: 0;
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ykphone-channel-details-empty {
+    color: var(--yk-text-muted);
+}
+
+.ykphone-channel-details-description-form[hidden],
+.ykphone-channel-details-add-form[hidden] {
+    display: none;
+}
+
+.ykphone-channel-details-description-input,
+.ykphone-channel-details-name-input,
+.ykphone-channel-details-member-search {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0.5em 0.7143em; /* 7px 10px at 14px/em */
+    border: 1px solid var(--yk-border);
+    border-radius: 4px;
+    background-color: var(--color-background-modal);
+    color: var(--yk-text);
+    font-family: inherit;
+    font-size: 1em;
+    line-height: 1.4;
+
+    &:focus {
+        outline: 2px solid var(--yk-blue-selected);
+        outline-offset: -1px;
+    }
+}
+
+.ykphone-channel-details-form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5714em; /* 8px at 14px/em */
+    margin-top: 0.5714em;
+}
+
+.ykphone-channel-details-button {
+    min-height: 2.2857em; /* 32px at 14px/em */
+    padding: 0 0.8571em; /* 12px at 14px/em */
+    border: 1px solid var(--yk-border);
+    border-radius: var(--yk-radius-sm);
+    background-color: transparent;
+    color: var(--yk-text);
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-row-hover);
+    }
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ykphone-channel-details-primary {
+    border-color: transparent;
+    background-color: var(--yk-green);
+    color: hsl(0deg 0% 100%);
+
+    &:hover,
+    &:focus-visible {
+        background-color: var(--yk-green-hover);
+        color: hsl(0deg 0% 100%);
+    }
+}
+
+.ykphone-channel-details-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4286em; /* 6px at 14px/em */
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    > li {
+        display: flex;
+        align-items: center;
+        gap: 0.5714em; /* 8px at 14px/em */
+        color: var(--yk-text);
+    }
+
+    .zulip-icon {
+        color: var(--yk-text-muted);
+    }
+}
+
+.ykphone-channel-details-member-link {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--yk-link);
+    font-family: inherit;
+    font-size: 1em;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.ykphone-channel-details-danger-block {
+    margin-bottom: 0.4286em;
+}
+
+.ykphone-channel-details-danger {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--yk-red);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.ykphone-channel-details-members-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em; /* 8px at 14px/em */
+    margin-bottom: 0.8571em; /* 12px at 14px/em */
+
+    .ykphone-channel-details-member-search {
+        flex: 1 1 auto;
+    }
+
+    .ykphone-channel-details-button {
+        flex: none;
+        white-space: nowrap;
+    }
+}
+
+.ykphone-channel-details-members {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ykphone-channel-details-member {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em; /* 8px at 14px/em */
+    min-height: 2.5714em; /* 36px at 14px/em */
+    padding: 0.2857em 0.2857em 0.2857em 0;
+    border-radius: var(--yk-radius-sm);
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+}
+
+.ykphone-channel-details-member-avatar {
+    flex: none;
+    width: 1.7143em; /* 24px at 14px/em */
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: 4px;
+}
+
+.ykphone-channel-details-member-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--yk-text);
+}
+
+.ykphone-channel-details-member-you,
+.ykphone-channel-details-member-role {
+    font-weight: 400;
+    color: var(--yk-text-muted);
+}
+
+.ykphone-channel-details-member-role {
+    margin-left: auto;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    white-space: nowrap;
+}
+
+.ykphone-channel-details-member-remove {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7143em;
+    height: 1.7143em;
+    margin-left: 0.2857em;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: var(--yk-text-muted);
+    /* Hidden to the eye but not to the keyboard or a screen reader:
+       visibility/display would take it out of the tab order, and this
+       is the member list's only action. */
+    opacity: 0;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-border);
+        color: var(--yk-text);
+    }
+}
+
+.ykphone-channel-details-member:hover .ykphone-channel-details-member-remove,
+.ykphone-channel-details-member-remove:focus-visible,
+.ykphone-channel-details-member:focus-within
+    .ykphone-channel-details-member-remove {
+    opacity: 1;
+}
+
+/* A member with no role label keeps the remove button on the right. */
+.ykphone-channel-details-member:not(:has(.ykphone-channel-details-member-role))
+    .ykphone-channel-details-member-remove {
+    margin-left: auto;
+}
+
+.ykphone-channel-details-sidebar-toggle {
+    margin: 0.8571em 0 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    font-family: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-link);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        text-decoration: underline;
+    }
+}
+
+.ykphone-channel-details-radio,
+.ykphone-channel-details-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5714em; /* 8px at 14px/em */
+    margin: 0 0 0.5714em;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--yk-text);
+    cursor: pointer;
+
+    input {
+        flex: none;
+        margin: 0.1429em 0 0; /* 2px at 14px/em */
+    }
+}
+
+.ykphone-channel-details-radio-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1429em;
+}
+
+.ykphone-channel-details-radio-hint {
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-text-muted);
+}
+
+.ykphone-channel-details-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em;
+}
+
+.ykphone-channel-details-name-error {
+    margin-top: 0.2857em;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-red);
+}
+
+@media (width <= 480px) {
+    .micromodal #ykphone-channel-details-modal.modal__container {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
+
+    .ykphone-channel-details-members-head {
+        flex-wrap: wrap;
+    }
+}
+
+/* ---- The "N new messages" bar ---- */
+
+/* Floats over the top of the conversation, under the pane header
+   (ykphone_unread_banner): a zero-height sticky wrapper, so the feed's
+   own scroll arithmetic and the round-8 bottom reserve are untouched,
+   with the card positioned inside it. */
+.ykphone-unread-banner {
+    position: sticky;
+    top: calc(
+        var(--yk-navbar-bottom) + var(--yk-frame-gap) +
+            var(--yk-pane-header-height)
+    );
+    /* The feed's sticky recipient bar and date pill are pinned at this
+       same offset (--navbar-fixed-height) at z-index 3, and the bar is
+       earlier in the DOM, so it needs the higher layer to be readable
+       in the fork's usual landing position. */
+    z-index: 4;
+    height: 0;
+}
+
+.ykphone-unread-banner-card {
+    position: absolute;
+    top: 0.5714em; /* 8px at 14px/em */
+    right: 1.1429em;
+    left: 1.1429em;
+    display: flex;
+    align-items: center;
+    gap: 0.5714em;
+    box-sizing: border-box;
+    min-height: 2.4286em; /* 34px at 14px/em */
+    padding: 0.2857em 0.2857em 0.2857em 0.8571em;
+    border-radius: var(--yk-radius-md);
+    background-color: var(--yk-blue-selected);
+    color: hsl(0deg 0% 100%);
+    box-shadow: var(--yk-shadow-popover);
+}
+
+.ykphone-unread-banner-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ykphone-unread-banner-count {
+    font-weight: 700;
+}
+
+.ykphone-unread-banner-since {
+    margin-left: 0.2857em;
+    color: hsl(0deg 0% 100% / 85%);
+}
+
+.ykphone-unread-banner-jump,
+.ykphone-unread-banner-read {
+    flex: none;
+    margin: 0;
+    padding: 0.2143em 0.5714em; /* 3px 8px at 14px/em */
+    border: 1px solid hsl(0deg 0% 100% / 50%);
+    border-radius: 4px;
+    background: transparent;
+    color: hsl(0deg 0% 100%);
+    font-family: inherit;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: hsl(0deg 0% 100% / 15%);
+    }
+}
+
+.ykphone-unread-banner-jump {
+    margin-left: auto;
+}
+
+.ykphone-unread-banner-close {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7143em;
+    height: 1.7143em;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    color: hsl(0deg 0% 100%);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+        background-color: hsl(0deg 0% 100% / 15%);
+    }
+}
+
+@media (width <= 480px) {
+    .ykphone-unread-banner-card {
+        right: 0.5714em;
+        left: 0.5714em;
+        flex-wrap: wrap;
+    }
+
+    .ykphone-unread-banner-jump {
+        margin-left: 0;
+    }
+}
+
+#user_card_popover:has(.user-card-clear-status-button)
+    .ykphone-user-card-status {
+    display: none;
+}
+
+/* Collapsed until the ⋮ is used. */
+#user_card_popover:has(.ykphone-user-card-buttons):not(
+        .ykphone-user-card-expanded
+    ) {
+    .popover-menu-list {
+        display: none;
+    }
 }

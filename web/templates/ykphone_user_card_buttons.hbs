@@ -1,0 +1,52 @@
+{{! Slack's user card, under the 96px avatar and the name: the status,
+    the local time, and the primary buttons with a ⋮ that reveals the
+    rest of Zulip's own items (the list below, which the theme hides
+    until then). With no primary button — yourself, a bot, a
+    deactivated account — the list is shown from the start
+    (ykphone_threads_ui). }}
+{{#if status_content_available}}
+<div class="ykphone-user-card-status">
+    {{#if status_emoji_info}}
+        {{#if status_emoji_info.emoji_alt_code}}
+            <span class="emoji_alt_code">&nbsp;:{{status_emoji_info.emoji_name}}:</span>
+        {{else if status_emoji_info.url}}
+            <img src="{{status_emoji_info.url}}" class="emoji status_emoji" data-tippy-content=":{{status_emoji_info.emoji_name}}:"/>
+        {{else}}
+            <span class="emoji status_emoji emoji-{{status_emoji_info.emoji_code}}" data-tippy-content=":{{status_emoji_info.emoji_name}}:"></span>
+        {{/if}}
+    {{/if}}
+    {{#unless show_placeholder_for_status_text}}
+    <span class="ykphone-user-card-status-text">{{status_text}}</span>
+    {{/unless}}
+</div>
+{{/if}}
+{{#if (and is_active user_time)}}
+<div class="ykphone-user-card-time">
+    <i class="zulip-icon zulip-icon-clock" aria-hidden="true"></i>
+    <span>{{t "{user_time} local time" }}</span>
+</div>
+{{/if}}
+{{#if can_send_private_message}}
+{{! data-user-id: upstream's handler for the message button reads the id from the list it sits in. }}
+<ul class="ykphone-user-card-buttons" data-user-id="{{user_id}}">
+    <li class="ykphone-user-card-button-item">
+        <a role="button" tabindex="0" class="ykphone-user-card-primary {{private_message_class}}">
+            <i class="zulip-icon zulip-icon-send-dm" aria-hidden="true"></i>
+            <span>{{t "Message" }}</span>
+        </a>
+    </li>
+    {{#if ykphone_show_call}}
+    <li class="ykphone-user-card-button-item">
+        <a role="button" tabindex="0" class="ykphone-user-card-primary ykphone-user-card-call tippy-zulip-tooltip" data-tippy-content="{{t 'Open a direct message with a video call link' }}">
+            <i class="zulip-icon zulip-icon-video-call" aria-hidden="true"></i>
+            <span>{{t "Call" }}</span>
+        </a>
+    </li>
+    {{/if}}
+    <li class="ykphone-user-card-button-item">
+        <a role="button" tabindex="0" class="ykphone-user-card-more tippy-zulip-tooltip" aria-label="{{t 'More actions' }}" data-tippy-content="{{t 'More actions' }}" aria-expanded="false">
+            <i class="zulip-icon zulip-icon-more-vertical" aria-hidden="true"></i>
+        </a>
+    </li>
+</ul>
+{{/if}}

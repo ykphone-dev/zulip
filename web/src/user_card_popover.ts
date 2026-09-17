@@ -14,6 +14,7 @@ import * as browser_history from "./browser_history.ts";
 import * as buddy_data from "./buddy_data.ts";
 import * as channel from "./channel.ts";
 import * as compose_actions from "./compose_actions.ts";
+import * as compose_call from "./compose_call.ts";
 import * as compose_reply from "./compose_reply.ts";
 import * as compose_state from "./compose_state.ts";
 import * as compose_ui from "./compose_ui.ts";
@@ -241,6 +242,8 @@ type UserCardPopoverData = {
     bot_owner?: User;
     is_imported_stub: boolean;
     show_last_active_status: boolean;
+    // Whether the fork's card offers a call button (ykphone_user_card_buttons).
+    ykphone_show_call: boolean;
 };
 
 export let fetch_presence_for_popover = (user_id: number): void => {
@@ -393,6 +396,7 @@ function get_user_card_popover_data(
         can_manage_user,
         is_imported_stub: user.is_imported_stub,
         show_last_active_status: is_active && !user.is_bot && !user.is_imported_stub,
+        ykphone_show_call: compose_call.compute_show_video_chat_button(),
     };
 
     if (user.is_bot) {

@@ -17,7 +17,7 @@ import {$t} from "./i18n.ts";
 import type {Message} from "./message_store.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
-import * as timerender from "./timerender.ts";
+import * as ykphone_time from "./ykphone_time.ts";
 
 const pin_schema = z.object({
     message_id: z.number(),
@@ -280,15 +280,7 @@ export function on_messages_removed(message_ids: number[]): void {
 // The time only for today's messages, date and time otherwise, like
 // the thread panel.
 export function time_label(timestamp: number): string {
-    const date = new Date(timestamp * 1000);
-    const now = new Date();
-    if (date.toDateString() === now.toDateString()) {
-        return timerender.get_localized_date_or_time_for_format(date, "time");
-    }
-    return timerender.get_localized_date_or_time_for_format(
-        date,
-        date.getFullYear() === now.getFullYear() ? "dayofyear_time" : "dayofyear_year_time",
-    );
+    return ykphone_time.day_or_time(timestamp);
 }
 
 export function pin_row_context(pin: PinInfo): PinRowContext {

@@ -104,6 +104,7 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
+import * as ykphone_channel_details from "./ykphone_channel_details.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_shell_theme from "./ykphone_shell_theme.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
@@ -799,6 +800,7 @@ export function dispatch_normal_event(event) {
                         user_group_edit.update_group_permissions_panel_on_losing_stream_access(
                             stream_id,
                         );
+                        ykphone_channel_details.notify_stream_changed(stream_id);
                     }
                     settings_streams.update_default_streams_table();
                     inbox_ui.complete_rerender();

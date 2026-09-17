@@ -12,6 +12,7 @@ import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_recents from "./ykphone_recents.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
+import * as ykphone_unread_banner from "./ykphone_unread_banner.ts";
 import * as ykphone_unread_guard from "./ykphone_unread_guard.ts";
 
 export function handle_narrow_activated(opts: NarrowActivateOpts): void {
@@ -24,4 +25,5 @@ export function handle_narrow_activated(opts: NarrowActivateOpts): void {
     ykphone_conversation.handle_narrow_activated();
     ykphone_compose_narrow.handle_narrow_activated(opts);
     ykphone_split_view_ui.handle_narrow_activated();
+    ykphone_unread_banner.handle_narrow_activated();
 }

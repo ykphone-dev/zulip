@@ -2,6 +2,7 @@ import assert from "minimalistic-assert";
 
 import * as channel from "./channel.ts";
 import * as settings_ui from "./settings_ui.ts";
+import type {RequestOpts} from "./settings_ui.ts";
 import type {StreamProperties, StreamSubscription} from "./sub_store.ts";
 import * as sub_store from "./sub_store.ts";
 
@@ -13,7 +14,14 @@ export type SubData = {
     };
 }[keyof StreamProperties][];
 
-export function bulk_set_stream_property(sub_data: SubData, $status_element?: JQuery): void {
+export function bulk_set_stream_property(
+    sub_data: SubData,
+    $status_element?: JQuery,
+    // Callers that need to hear about a refusal (the fork's channel
+    // details dialog puts its controls back) pass settings_ui's own
+    // options through.
+    opts?: RequestOpts,
+): void {
     const url = "/json/users/me/subscriptions/properties";
     const data = {subscription_data: JSON.stringify(sub_data)};
     if (!$status_element) {
@@ -24,7 +32,7 @@ export function bulk_set_stream_property(sub_data: SubData, $status_element?: JQ
         });
     }
 
-    settings_ui.do_settings_change(channel.post, url, data, $status_element);
+    settings_ui.do_settings_change(channel.post, url, data, $status_element, opts);
     return undefined;
 }
 
@@ -37,9 +45,10 @@ export function set_stream_property(
         };
     }[keyof StreamProperties],
     $status_element?: JQuery,
+    opts?: RequestOpts,
 ): void {
     const sub_data = {stream_id: sub.stream_id, ...data};
-    bulk_set_stream_property([sub_data], $status_element);
+    bulk_set_stream_property([sub_data], $status_element, opts);
 }
 
 export function set_color(stream_id: number, color: string): void {

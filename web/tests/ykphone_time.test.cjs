@@ -42,3 +42,35 @@ run_test("hour_and_minute", () => {
     ykphone_time.clear_for_testing();
     assert.equal(ykphone_time.hour_and_minute(morning), "7:12");
 });
+
+run_test("day_or_time", () => {
+    timerender.set_display_time_zone("UTC");
+    ykphone_time.clear_for_testing();
+    user_settings.default_language = "en-US";
+    user_settings.twenty_four_hour_time = true;
+
+    // Relative to whatever "now" is where the tests run.
+    const now = new Date();
+    const to_timestamp = (date) => Math.floor(date.getTime() / 1000);
+    const today = new Date(now);
+    today.setHours(10, 12, 0, 0);
+
+    // Today: the clock alone, as the pins panel and the unread bar
+    // both want it.
+    assert.equal(ykphone_time.day_or_time(to_timestamp(today)), "10:12");
+
+    // Another day of the same year: the date too, without the year.
+    const this_year = new Date(today);
+    this_year.setMonth(today.getMonth() === 0 ? 11 : 0, 2);
+    const this_year_label = ykphone_time.day_or_time(to_timestamp(this_year));
+    assert.ok(this_year_label.includes("10:12"));
+    assert.ok(this_year_label !== "10:12");
+    assert.equal(this_year_label.includes(String(this_year.getFullYear())), false);
+
+    // Another year: the year as well.
+    const long_ago = new Date(today);
+    long_ago.setFullYear(today.getFullYear() - 5);
+    assert.ok(
+        ykphone_time.day_or_time(to_timestamp(long_ago)).includes(String(long_ago.getFullYear())),
+    );
+});

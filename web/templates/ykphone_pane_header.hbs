@@ -6,7 +6,7 @@
     </a>
     {{/if}}
     {{#if channel}}
-    <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{t 'Channel menu' }}" data-tippy-placement="bottom" aria-haspopup="true">
+    <a class="ykphone-pane-header-title ykphone-pane-header-channel tippy-zulip-tooltip" href="{{channel.settings_url}}" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{t 'Channel details' }}" data-tippy-placement="bottom" aria-haspopup="dialog">
         <i class="zulip-icon zulip-icon-{{zulip_icon}} ykphone-pane-header-icon" aria-hidden="true"></i>
         <span class="ykphone-pane-header-name">{{title}}</span>
         {{#if topic}}
@@ -17,8 +17,7 @@
         {{/if}}
         <i class="zulip-icon zulip-icon-chevron-down ykphone-pane-header-chevron" aria-hidden="true"></i>
     </a>
-    {{! no-auto-hide-right-sidebar-overlay: sidebar_ui's document-level handler would otherwise close the list before the toggle runs. }}
-    <button type="button" class="ykphone-pane-header-members hidden-for-spectators tippy-zulip-tooltip no-auto-hide-right-sidebar-overlay" data-tippy-content="{{members_label}}" data-tippy-placement="bottom" aria-label="{{members_label}}">
+    <button type="button" class="ykphone-pane-header-members hidden-for-spectators tippy-zulip-tooltip" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{members_label}}" data-tippy-placement="bottom" aria-label="{{members_label}}" aria-haspopup="dialog">
         <span class="ykphone-pane-header-avatars">
             {{#if channel.has_avatars}}
             {{#each channel.avatar_urls}}
@@ -29,6 +28,10 @@
             {{/if}}
         </span>
         <span class="ykphone-pane-header-member-count">{{channel.member_count}}</span>
+    </button>
+    {{! The channel menu the sidebar row also has; the title now opens the details dialog. }}
+    <button type="button" class="ykphone-pane-header-menu hidden-for-spectators tippy-zulip-tooltip" data-stream-id="{{channel.stream_id}}" data-tippy-content="{{t 'Channel menu' }}" data-tippy-placement="bottom" aria-label="{{t 'Channel menu' }}" aria-haspopup="true">
+        <i class="zulip-icon zulip-icon-more-vertical" aria-hidden="true"></i>
     </button>
     {{else}}
     <span class="ykphone-pane-header-title">

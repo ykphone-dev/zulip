@@ -642,7 +642,12 @@
                     <td><span class="hotkey"><kbd>G</kbd><kbd class="arrow-key">←</kbd></span></td>
                 </tr>
                 <tr>
+                    {{#if ykphone_topics_hidden}}
+                    {{! With no message selected the key opens the channel details (ykphone_hotkeys). }}
+                    <td class="definition">{{t 'Open channel details (the message menu while a message is selected)' }}</td>
+                    {{else}}
                     <td class="definition">{{t 'Open message menu' }}</td>
+                    {{/if}}
                     <td><span class="hotkey"><kbd>I</kbd></span></td>
                 </tr>
                 <tr>

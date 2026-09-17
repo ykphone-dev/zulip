@@ -45,6 +45,7 @@ import * as unread_ui from "./unread_ui.ts";
 import * as user_group_edit from "./user_group_edit.ts";
 import * as user_profile from "./user_profile.ts";
 import * as ykphone_channel_create from "./ykphone_channel_create.ts";
+import * as ykphone_channel_details from "./ykphone_channel_details.ts";
 
 // In theory, this function should apply the account-level defaults,
 // however, they are only called after a manual override, so
@@ -247,6 +248,10 @@ export function update_property<P extends keyof UpdatableStreamProperties>(
             value,
         });
     }
+
+    // After the updaters, so that an open channel details dialog draws
+    // itself again from the subscription as it now is.
+    ykphone_channel_details.notify_stream_changed(stream_id);
 }
 
 function show_first_stream_created_modal(stream: StreamSubscription): void {
@@ -385,6 +390,10 @@ export function mark_unsubscribed(sub: StreamSubscription): void {
     // If the recent view folder filter is active, the unsubscribed
     // channel may have been in the currently selected folder.
     recent_view_ui.complete_rerender();
+
+    // An open channel details dialog closes or redraws itself: what it
+    // offers depends on the subscription.
+    ykphone_channel_details.notify_stream_changed(sub.stream_id);
 }
 
 export function report_error_if_user_still_has_subscriptions(user_id: number): void {
@@ -405,6 +414,7 @@ export function process_subscriber_update(user_ids: number[], stream_ids: number
         const sub = sub_store.get(stream_id);
         assert(sub !== undefined);
         stream_settings_ui.update_subscribers_ui(sub);
+        ykphone_channel_details.notify_stream_changed(stream_id);
     }
     user_profile.update_user_profile_streams_list_for_users(user_ids);
     const narrow_stream_id = narrow_state.stream_id();
