@@ -3959,3 +3959,9 @@ body.ykphone-keyboard-nav
     color: var(--yk-text-muted);
     white-space: nowrap;
 }
+/* The fork hides topics; the personal settings panel for following
+   and muting topics would only confuse. */
+#settings_overlay_container .sidebar-item[data-section="topics"] {
+    display: none;
+}
+
