@@ -47,6 +47,7 @@ import * as unread from "./unread.ts";
 import type {FullUnreadCountsData, StreamCountInfo} from "./unread.ts";
 import {user_settings} from "./user_settings.ts";
 import * as ykphone_flags from "./ykphone_flags.ts";
+import * as ykphone_unread_badges from "./ykphone_unread_badges.ts";
 
 let pending_stream_list_rerender = false;
 let zoomed_in = false;
@@ -281,6 +282,7 @@ export let update_count_in_dom = (
         stream_counts.stream_is_muted,
         stream_counts.unmuted_count,
     );
+    ykphone_unread_badges.update_channel_row($stream_li);
 };
 
 export function rewire_update_count_in_dom(value: typeof update_count_in_dom): void {

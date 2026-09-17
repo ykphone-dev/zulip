@@ -38,6 +38,7 @@ import * as ykphone_rail from "./ykphone_rail.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
 import type {ThreadInfo} from "./ykphone_threads.ts";
+import * as ykphone_unread_badges from "./ykphone_unread_badges.ts";
 
 export function open_in_full_view(thread: ThreadInfo): void {
     ykphone_thread_panel.close();
@@ -112,6 +113,7 @@ export function initialize(): void {
     ykphone_flags.set_channels_open_in_general_chat(true);
     add_mount_points();
     ykphone_rail.mount();
+    ykphone_unread_badges.initialize();
     ykphone_layout.reorder_left_sidebar_sections();
     ykphone_layout.hide_member_list_by_default();
     ykphone_layout.track_feed_bottom();

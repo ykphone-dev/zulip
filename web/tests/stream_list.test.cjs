@@ -25,6 +25,12 @@ let unread_unmuted_count;
 let stream_has_any_unread_mentions;
 
 const topic_list = mock_esm("../src/topic_list");
+// The fork's channel and navigation indicators are tested in
+// ykphone_unread_badges.test.cjs.
+mock_esm("../src/ykphone_unread_badges", {
+    update_channel_row: noop,
+    update_navigation: noop,
+});
 mock_esm("../src/unread", {
     unread_count_info_for_stream: () => ({
         unmuted_count: unread_unmuted_count,

@@ -18,6 +18,8 @@
                       aria-hidden="true"
                       ></i>
                     <span class="ykphone-rail-label">{{label}}</span>
+                    {{! Unread count, filled in by ykphone_unread_badges; hidden while empty. }}
+                    <span class="ykphone-rail-badge" aria-hidden="true"></span>
                 </a>
             </li>
         {{/each}}

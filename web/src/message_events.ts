@@ -388,6 +388,9 @@ export function insert_new_messages(opts: InsertNewMessagesOpts): Message[] {
         });
     }
 
+    // Before the unread counts, which need to know whether a new
+    // message's topic may be a thread the client has not heard of.
+    ykphone_threads.on_new_messages(messages);
     if (any_untracked_unread_messages) {
         unread_ui.update_unread_counts();
     }
@@ -405,7 +408,6 @@ export function insert_new_messages(opts: InsertNewMessagesOpts): Message[] {
     message_notifications.received_messages(messages);
     stream_list.update_streams_sidebar_for_messages(messages);
     pm_list.update_private_messages();
-    ykphone_threads.on_new_messages(messages);
     ykphone_thread_panel.on_new_messages(messages);
 
     return messages;
@@ -1004,6 +1006,7 @@ export function update_messages(events: UpdateMessageEvent[]): void {
         compose_fade.update_message_list();
     }
 
+    ykphone_threads.on_messages_moved(events);
     unread_ui.update_unread_counts();
     stream_list.update_streams_sidebar();
     pm_list.update_private_messages();

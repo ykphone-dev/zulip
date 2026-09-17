@@ -468,6 +468,9 @@ body {
     --letter-spacing-sidebar-heading: 0;
     --color-left-sidebar-navigation-icon: var(--yk-shell-text-muted);
     --color-sidebar-action: var(--yk-shell-text-muted);
+    /* Upstream draws its "@" at half strength; the fork's red count
+       pill is at full strength (muted contexts still fade it). */
+    --opacity-unread-mention-info: 1;
     --color-sidebar-action-hover: var(--yk-shell-text-strong);
     --color-background-sidebar-action-hover: var(--yk-shell-row-hover);
     --color-background-navigation-item-hover: var(--yk-shell-row-hover);
@@ -665,32 +668,104 @@ body {
     }
 }
 
-/* Unread channels read as bold white text rather than a count; a
-   mention shows Slack's red pill instead. Direct message rows keep
-   the count as a white pill. */
+/* Unread indicators, as Slack draws them (ykphone_unread_badges):
+   a channel's name is bold white while its general chat has unread
+   messages (never for a muted channel) and carries no count; unread
+   mentions in the general chat and the channel's threads show as a
+   red pill with their number. A direct message row is bold white with
+   a red pill of its unread count, since Slack treats every direct
+   message as a mention; its "@" marker would repeat the pill. The
+   Threads row is bold with a red pill of the unread replies in the
+   user's threads. */
 #stream_filters .subscription_block {
     .unread_count {
         display: none;
     }
 
-    &.stream-with-count .stream-name {
+    &.ykphone-unread .stream-name {
         color: var(--yk-shell-text-strong);
         font-weight: 700;
     }
+}
 
-    .unread_mention_info {
-        padding: 0 0.45em;
-        border-radius: 999px;
-        background-color: var(--yk-red);
-        color: hsl(0deg 0% 100%);
-        font-size: 0.8571em; /* 12px at 14px/em */
-        font-weight: 700;
-        line-height: 1.5;
-    }
+#direct-messages-list
+    .dm-list-item:not(.zero-dm-unreads)
+    .conversation-partners,
+#left-sidebar-navigation-list
+    .top_left_row.top_left_recent_view.ykphone-unread
+    .left-sidebar-navigation-label {
+    color: var(--yk-shell-text-strong);
+    font-weight: 700;
 }
 
 #direct-messages-list .dm-markers-and-unreads .unread_mention_info {
     display: none;
+}
+
+/* Section headers carry no counts, as in Slack: the rows' own bold
+   names and red pills are the only unread indicators. Upstream adds
+   up the section's unread messages (and "@" for mentions) beside
+   the channel folder and direct message headers, and beside the
+   "inactive or muted channels" toggle. */
+#left-sidebar .stream-list-subsection-header,
+#left-sidebar .show-inactive-or-muted-channels,
+#direct-messages-section-header {
+    .unread_count,
+    .masked_unread_count,
+    .unread_mention_info {
+        display: none;
+    }
+}
+
+/* Instead, a collapsed folder keeps listing the channels that carry an
+   indicator (bold, or a mention pill), as Slack does; upstream keeps
+   only the open channel. */
+#streams_list
+    .stream-list-section-container.collapsed
+    .narrow-filter:not(.stream-expanded):has(
+        .subscription_block.ykphone-unread,
+        .subscription_block .unread_mention_info:not(:empty)
+    ) {
+    display: block;
+}
+
+/* Upstream hides the count of its recent conversations view unless it
+   is the home view, and may replace the home view's count with a dot;
+   as Threads the row always shows its own count instead. */
+#left-sidebar-navigation-list .top_left_row.top_left_recent_view {
+    .unread_count {
+        visibility: visible;
+    }
+
+    .masked_unread_count {
+        display: none;
+    }
+}
+
+/* One badge everywhere: the same red and white text in both themes, on
+   hover and on the selected row. The navigation rows' plain-text count
+   rule below is more specific than a single class, hence the repeated
+   row classes. Upstream's opacity rules still apply: a channel's
+   mention pill is at full strength, and fades with a muted channel or
+   when every mention is in a muted topic. */
+#stream_filters .subscription_block .unread_mention_info:not(:empty),
+#direct-messages-list .dm-list-item:not(.zero-dm-unreads) .unread_count,
+#left-sidebar-navigation-list
+    .top_left_row.top_left_recent_view
+    .unread_count.normal-count:not(.hide),
+.ykphone-rail-badge {
+    box-sizing: border-box;
+    display: inline-block;
+    min-width: 1.5em; /* 18px at 12px/em */
+    height: 1.5em;
+    padding: 0 0.4167em; /* 5px at 12px/em */
+    border-radius: 0.75em; /* 9px at 12px/em */
+    background-color: var(--yk-red);
+    color: hsl(0deg 0% 100%);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    line-height: 1.5em;
+    text-align: center;
 }
 
 /* The navigation rows (초안 및 전송됨, 예약 메시지, 저장한 메시지,
@@ -831,17 +906,31 @@ body:has(#ykphone-rail) {
        filled counterpart for house, bell, file-text or gear, so the
        active item is marked by that tile and full-opacity white
        instead of by a second glyph. */
-    opacity: 0.7;
-    transition:
-        opacity 120ms ease,
-        background-color 120ms ease;
+    /* The glyph and the label are held back rather than the whole
+       tile, so that an unread badge on the tile keeps its full red. */
+    position: relative;
+    transition: background-color 120ms ease;
+
+    .zulip-icon,
+    .ykphone-rail-label {
+        opacity: 0.7;
+        transition: opacity 120ms ease;
+    }
 
     &:hover,
     &:focus-visible {
-        opacity: 1;
         background-color: var(--yk-shell-row-hover);
         color: var(--yk-shell-text-strong);
         text-decoration: none;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &.active {
+        .zulip-icon,
+        .ykphone-rail-label {
+            opacity: 1;
+        }
     }
 
     &:focus-visible {
@@ -850,7 +939,6 @@ body:has(#ykphone-rail) {
     }
 
     &.active {
-        opacity: 1;
         border-radius: var(--yk-radius-md);
         background-color: hsl(0deg 0% 100% / 24%);
         color: var(--yk-shell-text-strong);
@@ -879,6 +967,18 @@ body:has(#ykphone-rail) {
 
     .zulip-icon-message-square-text {
         font-size: 2.136em; /* 29.9px at 14px/em */
+    }
+}
+
+/* Over the glyph's top-right corner, ringed in the rail's colour so
+   it reads as separate from the glyph. */
+.ykphone-rail-badge {
+    position: absolute;
+    top: 0.1667em; /* 2px at 12px/em */
+    right: 0.1667em;
+
+    &:empty {
+        display: none;
     }
 }
 

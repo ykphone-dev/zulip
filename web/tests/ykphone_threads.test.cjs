@@ -2,9 +2,11 @@
 
 const assert = require("node:assert/strict");
 
-const {mock_esm, zrequire} = require("./lib/namespace.cjs");
+const {mock_esm, set_global, zrequire} = require("./lib/namespace.cjs");
 const {noop, run_test} = require("./lib/test.cjs");
 const {page_params} = require("./lib/zpage_params.cjs");
+
+const me_id = 30;
 
 const channel = mock_esm("../src/channel", {
     xhr_error_message: (message, xhr) => `${message} ${xhr.responseJSON.msg}`,
@@ -13,6 +15,7 @@ const feedback_widget = mock_esm("../src/feedback_widget");
 const message_lists = mock_esm("../src/message_lists");
 mock_esm("../src/people", {
     maybe_get_user_by_id: (user_id) => (user_id === 99 ? undefined : {user_id}),
+    my_current_user_id: () => me_id,
     small_avatar_url_for_person: (person) => `/avatar/${person.user_id}`,
 });
 const stream_data = mock_esm("../src/stream_data", {
@@ -33,6 +36,7 @@ function stream_message(id, topic) {
         topic,
         timestamp: 1_700_000_000 + id,
         sender_id: 20 + id,
+        mentioned: false,
         locally_echoed: false,
     };
 }
@@ -49,6 +53,7 @@ function thread_dict(reply_count, last_reply_timestamp = null, participant_user_
         reply_count,
         last_reply_timestamp,
         participant_user_ids,
+        user_participated: false,
     };
 }
 
@@ -133,14 +138,14 @@ run_test("load and pill on first look", ({override}) => {
 
     // A failed fetch (an archived channel, say) is not retried by
     // rendering; only a forced load asks again.
-    requests[0].error();
+    requests[0].error({status: 400});
     ykphone_threads.get_pill_context_for_message(root);
     ykphone_threads.load_stream_threads(verona_id);
     assert.equal(requests.length, 1);
     ykphone_threads.load_stream_threads(verona_id, true);
     assert.equal(requests.length, 2);
 
-    requests[1].success({threads: [thread_dict(2, root.timestamp)]});
+    requests[1].success({threads: [thread_dict(2, root.timestamp)], participated_topics: []});
     assert.deepEqual(rerendered, [[root.id]]);
     assert.equal(
         ykphone_threads.get_pill_context_for_message(root).reply_label,
@@ -150,24 +155,24 @@ run_test("load and pill on first look", ({override}) => {
 
     // Nothing to re-render when the data has not changed.
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[2].success({threads: [thread_dict(2, root.timestamp)]});
+    requests[2].success({threads: [thread_dict(2, root.timestamp)], participated_topics: []});
     assert.deepEqual(rerendered, [[root.id]]);
 
     // New repliers re-render the pill; the same list does not.
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[3].success({threads: [thread_dict(2, root.timestamp, [7])]});
+    requests[3].success({threads: [thread_dict(2, root.timestamp, [7])], participated_topics: []});
     assert.deepEqual(rerendered, [[root.id], [root.id]]);
     rerendered.length = 0;
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[4].success({threads: [thread_dict(2, root.timestamp, [8])]});
+    requests[4].success({threads: [thread_dict(2, root.timestamp, [8])], participated_topics: []});
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[5].success({threads: [thread_dict(2, root.timestamp, [8])]});
+    requests[5].success({threads: [thread_dict(2, root.timestamp, [8])], participated_topics: []});
     assert.deepEqual(rerendered, [[root.id]]);
     rerendered.length = 0;
 
     // Threads without replies do not get a pill.
     ykphone_threads.load_stream_threads(verona_id, true);
-    requests[6].success({threads: [thread_dict(0)]});
+    requests[6].success({threads: [thread_dict(0)], participated_topics: []});
     assert.equal(ykphone_threads.get_pill_context_for_message(root), undefined);
 
     assert.deepEqual(ykphone_threads.get_thread(root.id), thread_dict(0));
@@ -240,7 +245,7 @@ run_test("on_new_messages", ({override}) => {
     });
 
     ykphone_threads.load_stream_threads(verona_id);
-    requests[0].success({threads: [thread_dict(0)]});
+    requests[0].success({threads: [thread_dict(0)], participated_topics: []});
     // The initial load re-rendered the root once; start counting afresh.
     rerendered.length = 0;
 
@@ -262,6 +267,22 @@ run_test("on_new_messages", ({override}) => {
     assert.deepEqual(rerendered, [[root.id], [root.id]]);
     rerendered.length = 0;
 
+    // Others' replies do not make the user a participant; their own
+    // reply does, once.
+    let participation_changes = 0;
+    ykphone_threads.on_threads_changed(() => {
+        participation_changes += 1;
+    });
+    assert.equal(thread.user_participated, false);
+    assert.equal(participation_changes, 0);
+    ykphone_threads.on_new_messages([{...reply, id: 19, sender_id: me_id}]);
+    assert.equal(thread.user_participated, true);
+    assert.equal(participation_changes, 1);
+    assert.deepEqual(thread.participant_user_ids, [me_id, 40, 42]);
+    ykphone_threads.on_new_messages([{...reply, id: 20, sender_id: me_id}]);
+    assert.equal(participation_changes, 1);
+    rerendered.length = 0;
+
     // A reply in an unknown topic of a loaded channel refreshes it.
     ykphone_threads.on_new_messages([stream_message(13, "someone else's thread")]);
     assert.equal(requests.length, 2);
@@ -274,6 +295,323 @@ run_test("on_new_messages", ({override}) => {
     // Unknown topics in channels we never loaded are ignored.
     ykphone_threads.on_new_messages([{...reply, stream_id: 99}]);
     assert.equal(requests.length, 2);
+});
+
+run_test("message classification", ({override}) => {
+    reset();
+    override(message_lists, "all_rendered_message_lists", () => []);
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+
+    // Nothing is known about a channel whose threads were never fetched.
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), false);
+    ykphone_threads.load_stream_threads(verona_id);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), false);
+    requests[0].success({threads: [thread_dict(0)], participated_topics: []});
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), true);
+
+    // A message in a topic the list did not know waits for the refresh
+    // it triggers.
+    ykphone_threads.on_new_messages([stream_message(50, "new topic")]);
+    assert.equal(requests.length, 2);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 50), false);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), true);
+
+    // One arriving while that refresh is in flight, which may predate
+    // it, waits for another one, requested once the first lands.
+    ykphone_threads.on_new_messages([stream_message(51, "another topic")]);
+    assert.equal(requests.length, 2);
+    requests[1].success({threads: [thread_dict(0)], participated_topics: []});
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 50), true);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 51), false);
+    assert.equal(requests.length, 3);
+
+    // If that one fails, the topics count as what is known of them.
+    ykphone_threads.on_new_messages([stream_message(52, "a third topic")]);
+    requests[2].error({status: 403});
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 51), true);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 52), true);
+    assert.equal(requests.length, 3);
+});
+
+run_test("messages arriving during the first load", ({override}) => {
+    reset();
+    override(message_lists, "all_rendered_message_lists", () => []);
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+
+    ykphone_threads.load_stream_threads(verona_id);
+    // Someone opens a thread and replies while the first list is on its
+    // way; the answer may predate it, so another one is fetched.
+    ykphone_threads.on_new_messages([stream_message(60, "opened meanwhile")]);
+    assert.equal(requests.length, 1);
+    requests[0].success({threads: [], participated_topics: []});
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 60), false);
+    assert.equal(requests.length, 2);
+    requests[1].success({
+        threads: [{...thread_dict(1), topic_name: "opened meanwhile"}],
+        participated_topics: [],
+    });
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 60), true);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, "opened meanwhile").reply_count,
+        1,
+    );
+});
+
+run_test("retrying a failed load", ({override}) => {
+    reset();
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+    const timers = [];
+    set_global("setTimeout", (f, delay) => {
+        timers.push({f, delay});
+    });
+
+    ykphone_threads.load_stream_threads(verona_id);
+    ykphone_threads.on_new_messages([stream_message(70, "while failing")]);
+    // A transient failure waits and tries again; nothing else asks in
+    // the meantime, and nothing counts as known yet.
+    requests[0].error({status: 502});
+    assert.deepEqual(
+        timers.map((timer) => timer.delay),
+        [2000],
+    );
+    ykphone_threads.load_stream_threads(verona_id);
+    ykphone_threads.load_stream_threads(verona_id, true);
+    assert.equal(requests.length, 1);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), false);
+    timers[0].f();
+    assert.equal(requests.length, 2);
+    // The rate limit is retried too, with a longer wait each time.
+    requests[1].error({status: 429});
+    timers[1].f();
+    requests[2].error({status: 0});
+    timers[2].f();
+    assert.deepEqual(
+        timers.map((timer) => timer.delay),
+        [2000, 10_000, 30_000],
+    );
+    // Then it gives up quietly: the channel counts as what is known.
+    requests[3].error({status: 504});
+    assert.equal(timers.length, 3);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 5), true);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 70), true);
+    ykphone_threads.load_stream_threads(verona_id);
+    assert.equal(requests.length, 4);
+
+    // A forced load starts over, and a success resets the attempts.
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[4].error({status: 503});
+    timers[3].f();
+    requests[5].success({threads: [], participated_topics: []});
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[6].error({status: 503});
+    assert.equal(timers.at(-1).delay, 2000);
+});
+
+run_test("merging a thread list", ({override}) => {
+    reset();
+    override(message_lists, "all_rendered_message_lists", () => []);
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+    const other = {...thread_dict(0), root_message_id: 40, topic_name: "Other"};
+
+    ykphone_threads.load_stream_threads(verona_id);
+    requests[0].success({threads: [thread_dict(1), other], participated_topics: []});
+    // The user's own reply lands while a refresh is in flight whose
+    // answer predates it; taking part is not revoked.
+    ykphone_threads.load_stream_threads(verona_id, true);
+    ykphone_threads.on_new_messages([{...reply, id: 41, sender_id: me_id}]);
+    assert.equal(ykphone_threads.get_thread(root.id).user_participated, true);
+    // A thread renamed on the server loses its old name, and one that
+    // is no longer listed (deleted, or moved away) is forgotten.
+    requests[1].success({
+        threads: [{...thread_dict(1), topic_name: "✔ Shall we ship on Friday?"}],
+        participated_topics: [],
+    });
+    assert.equal(ykphone_threads.get_thread(root.id).user_participated, true);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, "Shall we ship on Friday?"),
+        undefined,
+    );
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, "✔ shall we ship on friday?")
+            .root_message_id,
+        root.id,
+    );
+    assert.equal(ykphone_threads.get_thread(40), undefined);
+    assert.equal(ykphone_threads.get_thread_for_topic(verona_id, "Other"), undefined);
+
+    // Two threads that swapped names keep each other's.
+    const third = {...thread_dict(0), root_message_id: 42, topic_name: "Third"};
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[2].success({
+        threads: [{...thread_dict(1), topic_name: "✔ Shall we ship on Friday?"}, third],
+        participated_topics: [],
+    });
+    ykphone_threads.load_stream_threads(verona_id, true);
+    requests[3].success({
+        threads: [
+            {...third, topic_name: "✔ Shall we ship on Friday?"},
+            {...thread_dict(1), topic_name: "Third"},
+        ],
+        participated_topics: [],
+    });
+    assert.equal(ykphone_threads.get_thread_for_topic(verona_id, "third").root_message_id, root.id);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, "✔ Shall we ship on Friday?")
+            .root_message_id,
+        42,
+    );
+});
+
+run_test("topics the user takes part in", ({override}) => {
+    reset();
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+    let changes = 0;
+    ykphone_threads.on_threads_changed(() => {
+        changes += 1;
+    });
+
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "Mobile topic"), false);
+    ykphone_threads.load_stream_threads(verona_id);
+    requests[0].success({threads: [], participated_topics: ["Mobile topic"]});
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "MOBILE topic"), true);
+    assert.equal(changes, 0);
+
+    // Someone else's message changes nothing; the user's own message or
+    // a mention of them makes the topic theirs.
+    ykphone_threads.on_new_messages([stream_message(80, "Elsewhere")]);
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "Elsewhere"), false);
+    ykphone_threads.on_new_messages([{...stream_message(81, "Elsewhere"), sender_id: me_id}]);
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "Elsewhere"), true);
+    ykphone_threads.on_new_messages([{...stream_message(82, "Asked"), mentioned: true}]);
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "Asked"), true);
+    assert.equal(changes, 2);
+    ykphone_threads.on_new_messages([{...stream_message(83, "Asked"), mentioned: true}]);
+    assert.equal(changes, 2);
+
+    // A later answer that does not list a topic yet keeps it.
+    requests.at(-1).success({threads: [], participated_topics: []});
+    assert.equal(ykphone_threads.user_takes_part_in_topic(verona_id, "Asked"), true);
+});
+
+run_test("on_messages_moved", ({override}) => {
+    reset();
+    const rerendered = [];
+    override(message_lists, "all_rendered_message_lists", () => [
+        {
+            view: {
+                rerender_messages(messages) {
+                    rerendered.push(messages.map((message) => message.id));
+                },
+            },
+        },
+    ]);
+    const requests = [];
+    override(channel, "get", (opts) => {
+        requests.push(opts);
+    });
+    let changes = 0;
+    ykphone_threads.on_threads_changed(() => {
+        changes += 1;
+    });
+    const topic = "Shall we ship on Friday?";
+    const denmark_id = 4;
+
+    ykphone_threads.load_stream_threads(verona_id);
+    requests[0].success({threads: [thread_dict(1)], participated_topics: ["Mobile topic"]});
+    rerendered.length = 0;
+
+    // Content edits and events without a channel are not moves.
+    ykphone_threads.on_messages_moved([
+        {message_ids: [11], rendering_only: false},
+        {message_ids: [11], stream_id: verona_id, rendering_only: false},
+    ]);
+    assert.equal(changes, 0);
+    assert.equal(requests.length, 1);
+
+    // Resolving the whole topic moves the thread at once, and the list
+    // is fetched again to confirm; the moved messages wait for it.
+    ykphone_threads.on_messages_moved([
+        {
+            message_ids: [11],
+            stream_id: verona_id,
+            orig_subject: topic,
+            subject: `✔ ${topic}`,
+            propagate_mode: "change_all",
+        },
+    ]);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, `✔ ${topic}`).root_message_id,
+        root.id,
+    );
+    assert.equal(ykphone_threads.get_thread_for_topic(verona_id, topic), undefined);
+    assert.deepEqual(rerendered, [[root.id]]);
+    assert.equal(ykphone_threads.is_message_classified(verona_id, 11), false);
+    assert.equal(requests.length, 2);
+    assert.equal(changes, 1);
+
+    // Moving part of a topic to a channel whose list was never fetched
+    // leaves the cache to the refresh.
+    ykphone_threads.on_messages_moved([
+        {
+            message_ids: [11],
+            stream_id: verona_id,
+            new_stream_id: denmark_id,
+            orig_subject: `✔ ${topic}`,
+            propagate_mode: "change_one",
+        },
+    ]);
+    assert.equal(
+        ykphone_threads.get_thread_for_topic(verona_id, `✔ ${topic}`).stream_id,
+        verona_id,
+    );
+    assert.equal(requests.length, 2);
+
+    // A whole topic moved into another thread's topic joins that thread.
+    requests[1].success({
+        threads: [
+            {...thread_dict(1), topic_name: `✔ ${topic}`},
+            {...thread_dict(0), root_message_id: 40, topic_name: "Other"},
+        ],
+        participated_topics: [],
+    });
+    ykphone_threads.on_messages_moved([
+        {
+            message_ids: [11],
+            stream_id: verona_id,
+            orig_subject: `✔ ${topic}`,
+            subject: "Other",
+            propagate_mode: "change_all",
+        },
+    ]);
+    assert.equal(ykphone_threads.get_thread(root.id), undefined);
+    assert.equal(ykphone_threads.get_thread_for_topic(verona_id, "other").root_message_id, 40);
+
+    // Taking part in a plain topic follows it to another channel.
+    ykphone_threads.on_messages_moved([
+        {
+            message_ids: [12],
+            stream_id: verona_id,
+            new_stream_id: denmark_id,
+            orig_subject: "Mobile topic",
+            propagate_mode: "change_all",
+        },
+    ]);
+    assert.equal(ykphone_threads.user_takes_part_in_topic(denmark_id, "Mobile topic"), true);
 });
 
 run_test("on_messages_removed", ({override}) => {
@@ -298,7 +636,7 @@ run_test("on_messages_removed", ({override}) => {
     });
 
     ykphone_threads.load_stream_threads(verona_id);
-    requests[0].success({threads: [thread_dict(2, reply.timestamp)]});
+    requests[0].success({threads: [thread_dict(2, reply.timestamp)], participated_topics: []});
     assert.deepEqual(loaded_streams, [verona_id]);
     rerendered.length = 0;
 
@@ -324,8 +662,14 @@ run_test("on_messages_removed", ({override}) => {
     assert.equal(ykphone_threads.get_thread(root.id).last_reply_timestamp, null);
 
     // Deleting the root forgets the thread, even in the same batch as
-    // one of its replies.
+    // one of its replies, and says so.
+    let changes = 0;
+    ykphone_threads.on_threads_changed(() => {
+        changes += 1;
+    });
+    assert.equal(changes, 0);
     ykphone_threads.on_messages_removed([reply.id, root.id]);
+    assert.equal(changes, 1);
     assert.equal(ykphone_threads.get_thread(root.id), undefined);
     assert.equal(
         ykphone_threads.get_thread_for_topic(verona_id, "Shall we ship on Friday?"),

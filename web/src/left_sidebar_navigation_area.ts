@@ -14,6 +14,7 @@ import * as settings_config from "./settings_config.ts";
 import type {NarrowTerm} from "./state_data.ts";
 import * as ui_util from "./ui_util.ts";
 import * as unread from "./unread.ts";
+import * as ykphone_unread_badges from "./ykphone_unread_badges.ts";
 
 let last_mention_count = 0;
 const ls_key = "left_sidebar_views_state";
@@ -86,6 +87,7 @@ export let update_dom_with_unread_counts = function (
     }
 
     last_mention_count = counts.mentioned_message_count;
+    ykphone_unread_badges.update_navigation();
 };
 
 export function rewire_update_dom_with_unread_counts(

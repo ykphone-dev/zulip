@@ -9,6 +9,11 @@ const $ = require("./lib/zjquery.cjs");
 mock_esm("../src/resize", {
     resize_stream_filters_container() {},
 });
+// The fork's Threads row and rail badges are tested in
+// ykphone_unread_badges.test.cjs.
+mock_esm("../src/ykphone_unread_badges", {
+    update_navigation() {},
+});
 
 const {Filter} = zrequire("../src/filter");
 const left_sidebar_navigation_area = zrequire("left_sidebar_navigation_area");
