@@ -23,10 +23,10 @@ import type {Message} from "./message_store.ts";
 import * as message_store from "./message_store.ts";
 import * as people from "./people.ts";
 import * as sub_store from "./sub_store.ts";
+import * as timerender from "./timerender.ts";
 import * as topic_link_util from "./topic_link_util.ts";
 import type {ForwardCard} from "./ykphone_forward.ts";
 import * as ykphone_forward from "./ykphone_forward.ts";
-import * as ykphone_time from "./ykphone_time.ts";
 
 // Upstream waits this long for the raw markdown before falling back, so
 // that a slow or offline server does not block quoting.
@@ -37,7 +37,14 @@ export function card_context(message: Message): ForwardCard {
         message_id: message.id,
         sender_name: message.sender_full_name,
         avatar_url: people.small_avatar_url(message),
-        time_label: ykphone_time.hour_and_minute(message.timestamp * 1000),
+        // The same format ykphone_quote_card puts on the rendered
+        // card, so the preview and the result agree. A forward often
+        // carries a message from days ago, which a bare clock would
+        // misdate.
+        time_label: timerender.get_localized_date_or_time_for_format(
+            new Date(message.timestamp * 1000),
+            "dayofyear_time",
+        ),
         content: message.content,
     };
 }

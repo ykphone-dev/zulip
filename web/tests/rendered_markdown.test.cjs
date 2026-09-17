@@ -27,6 +27,12 @@ class Clipboard {
 mock_cjs("clipboard", Clipboard);
 
 const realm_playground = mock_esm("../src/realm_playground");
+mock_esm("../src/ykphone_quote_card", {
+    // The fork rewrites a forwarded quote into a card at the end of
+    // update_elements. That works on real DOM nodes, which zjquery
+    // does not provide; it is covered by ykphone_quote_card.test.cjs.
+    update_quote_blocks: noop,
+});
 const copied_tooltip = mock_esm("../src/copied_tooltip");
 
 const rm = zrequire("rendered_markdown");

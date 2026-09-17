@@ -95,6 +95,10 @@ function add_mount_points(): void {
     // composer's own area; its container is mounted once so that the
     // card can be rendered and dropped without touching the form.
     $("#send_message_form").before($("<div>").attr("id", "ykphone-forward-card-container"));
+    // Slack fills a conversation from the bottom; this empty first
+    // child of the feed takes whatever height the messages leave over
+    // (see "Message feed" in the theme).
+    $("#main_div").prepend($("<div>").attr("id", "ykphone-feed-spacer"));
     // The conversation intro takes the place of upstream's logo.
     $(".top-messages-logo").before(
         $("<div>")
@@ -110,6 +114,7 @@ export function initialize(): void {
     ykphone_rail.mount();
     ykphone_layout.reorder_left_sidebar_sections();
     ykphone_layout.hide_member_list_by_default();
+    ykphone_layout.track_feed_bottom();
     ykphone_pane_header.mount();
     ykphone_compose.mount();
     ykphone_compose_narrow.initialize();

@@ -88,7 +88,6 @@ const read_receipts = mock_esm("../src/read_receipts");
 const search = mock_esm("../src/search");
 const settings_data = mock_esm("../src/settings_data");
 const sidebar_ui = mock_esm("../src/sidebar_ui");
-const stream_popover = mock_esm("../src/stream_popover");
 const stream_settings_ui = mock_esm("../src/stream_settings_ui");
 const user_status_ui = mock_esm("../src/user_status_ui");
 const ykphone_forward_ui = mock_esm("../src/ykphone_forward_ui");
@@ -555,10 +554,10 @@ test_while_not_editing_text("misc", ({override}) => {
     override(narrow_state, "narrowed_by_pm_reply", () => false);
     assert_mapping("s", message_view, "narrow_by_topic");
 
-    override(message_edit, "can_move_message", () => true);
-    assert_mapping("m", stream_popover, "build_move_topic_to_stream_popover");
-
-    override(message_edit, "can_move_message", () => false);
+    // The 옆커폰 fork has no topics to move a message between, so "m"
+    // is unbound and message_edit.can_move_message is never consulted
+    // for it. A rebase that restores the KEYDOWN_MAPPINGS entry must
+    // fail here.
     assert_unmapped("m");
 
     assert_mapping("V", read_receipts, "show_user_list", true);

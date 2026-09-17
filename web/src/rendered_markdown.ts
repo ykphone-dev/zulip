@@ -26,6 +26,7 @@ import * as timerender from "./timerender.ts";
 import * as user_groups from "./user_groups.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_quote_card from "./ykphone_quote_card.ts";
 
 /*
     rendered_markdown
@@ -394,4 +395,6 @@ export const update_elements = ($content: JQuery): void => {
             .contents()
             .unwrap();
     }
+
+    ykphone_quote_card.update_quote_blocks($content.toArray());
 };

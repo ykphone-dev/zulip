@@ -147,6 +147,17 @@
     );
     --navbar-fixed-height: calc(var(--yk-navbar-bottom) + var(--yk-frame-gap));
 
+    /* The height of the compose box, which is fixed over the bottom of
+       the feed and is what the feed reserves below the last message.
+       ykphone_layout observes the box and keeps this current as it
+       grows with the text; the value here is the fork's own two-row
+       composer, rounded up, so that a browser without ResizeObserver
+       reserves a little too much rather than too little — too little
+       would leave the box over the last message. */
+    --yk-compose-height: calc(10.5 * var(--base-font-size-px)); /* 147px */
+    /* Space left between the last message and the compose box. */
+    --yk-feed-bottom-gap: calc(0.5714 * var(--base-font-size-px)); /* 8px */
+
     /* ---- Global token overrides ---- */
 
     --color-background: var(--yk-pane-bg);
@@ -522,6 +533,14 @@ body {
 }
 
 #left-sidebar {
+    /* Upstream's sidebar rows put their icon in a 1em column, which is
+       wide enough for a glyph but not for Slack's 20px DM avatar: `img`
+       has `max-width: 100%`, so the avatar was clamped to 14px wide
+       while keeping its 20px height, and the picture was cropped to a
+       tall sliver. The column is widened for every row of the sidebar
+       at once, so the channel, navigation and DM labels stay level. */
+    --left-sidebar-icon-column-width: 1.4286em; /* 20px at 14px/em */
+
     /* Section titles in Slack's normal case at row size. */
     .left-sidebar-title {
         font-size: 1.0714em; /* 15px at 14px/em */
@@ -674,6 +693,32 @@ body {
     display: none;
 }
 
+/* The navigation rows (초안 및 전송됨, 예약 메시지, 저장한 메시지,
+   리마인더, …) show their count as plain text in the row's own colour,
+   as Slack's "Drafts & sent  2" does. Upstream subdues a quiet count
+   and the theme's muted shell colour made it read only under the
+   pointer; a normal count's white pill would hide shell-coloured text,
+   so it goes too. On the selected row the label and the count are both
+   white (the shell text colour is 3.7:1 on the blue, white is 6.3:1). Channel and direct-message rows are not navigation rows
+   and keep their own treatment above. */
+#left-sidebar-navigation-list .top_left_row .unread_count {
+    &.quiet-count,
+    &.normal-count {
+        background-color: transparent;
+        box-shadow: none;
+        color: var(--yk-shell-text);
+        opacity: 1;
+    }
+}
+
+#left-sidebar-navigation-list .top_left_row.top-left-active-filter {
+    .left-sidebar-navigation-label,
+    .unread_count.quiet-count,
+    .unread_count.normal-count {
+        color: var(--yk-shell-text-strong);
+    }
+}
+
 /* ---- Icon rail ---- */
 
 body:has(#ykphone-rail) {
@@ -779,8 +824,21 @@ body:has(#ykphone-rail) {
     text-decoration: none;
     cursor: pointer;
 
+    /* Slack's rail reads as a set of friendly buttons rather than a
+       row of hairline glyphs: the icon is large, the inactive items
+       are held back and come up to full strength under the pointer,
+       and the current one wears a rounded tile. The icon set has no
+       filled counterpart for house, bell, file-text or gear, so the
+       active item is marked by that tile and full-opacity white
+       instead of by a second glyph. */
+    opacity: 0.7;
+    transition:
+        opacity 120ms ease,
+        background-color 120ms ease;
+
     &:hover,
     &:focus-visible {
+        opacity: 1;
         background-color: var(--yk-shell-row-hover);
         color: var(--yk-shell-text-strong);
         text-decoration: none;
@@ -792,12 +850,35 @@ body:has(#ykphone-rail) {
     }
 
     &.active {
-        background-color: hsl(0deg 0% 100% / 18%);
+        opacity: 1;
+        border-radius: var(--yk-radius-md);
+        background-color: hsl(0deg 0% 100% / 24%);
         color: var(--yk-shell-text-strong);
     }
 
+    /* Ink heights differ by a third across these five glyphs
+       (message-square-text is 0.67em where gear is 0.97em), so the
+       size is set per icon to give each about 20px of ink, as the
+       composer's toolbar is normalised. */
     .zulip-icon {
-        font-size: 1.4286em; /* 20px at 14px/em */
+        line-height: 1;
+    }
+
+    .zulip-icon-house,
+    .zulip-icon-file-text {
+        font-size: 1.543em; /* 21.6px at 14px/em */
+    }
+
+    .zulip-icon-bell {
+        font-size: 1.514em; /* 21.2px at 14px/em */
+    }
+
+    .zulip-icon-gear {
+        font-size: 1.471em; /* 20.6px at 14px/em */
+    }
+
+    .zulip-icon-message-square-text {
+        font-size: 2.136em; /* 29.9px at 14px/em */
     }
 }
 
@@ -806,8 +887,9 @@ body:has(#ykphone-rail) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.7857em; /* 11px at 14px/em */
+    font-size: 0.7143em; /* 10px at 14px/em */
     line-height: 1.2;
+    letter-spacing: 0.02em;
 }
 
 .ykphone-rail-bottom {
@@ -1314,6 +1396,79 @@ a.ykphone-pane-header-channel {
 }
 
 /* ---- Message feed ---- */
+
+/* Slack fills a conversation from the bottom: a channel with two
+   messages shows them just above the compose box with the empty space
+   above them, not at the top of an empty pane, and a long one ends at
+   the compose box rather than well above it.
+ *
+ * Two things do that. The feed scrolls with the page (upstream's
+ * scroll container is the root element), so #main_div is given the
+ * height of the visible pane as a minimum and an empty first child
+ * takes up whatever the conversation leaves over. And
+ * #bottom_whitespace — the space Zulip keeps below the feed so that
+ * the compose box, which is fixed over it, never covers the last
+ * message — is cut from a flat 40% of the window to the box's
+ * measured height plus --yk-feed-bottom-gap, so that scrolling to the
+ * end of the document puts the last message just above the box instead
+ * of 40vh above it.
+ * The box can still grow to 40vh (resize.ts caps the textarea at
+ * that); the reserve grows with it, and ykphone_layout scrolls the
+ * window along so the conversation stays pinned to the bottom.
+ *
+ * Only a conversation — a channel's general chat, a thread, a direct
+ * message — is filled from the bottom (body.ykphone-conversation, set
+ * by ykphone_conversation on every narrow). Search results, saved
+ * messages, mentions, the Combined feed and the other lists read top
+ * down and keep upstream's layout; they still get the smaller reserve.
+ * An empty conversation sits at the bottom too, as Slack's does: the
+ * intro and upstream's "no messages" notice come after the spacer.
+ *
+ * Everything but the spacer keeps its natural height, so nothing is
+ * squashed once the conversation is long enough to make the minimum
+ * inert. The conversation intro and the thread root come after the
+ * spacer in the DOM, so they ride down with the messages and stay
+ * directly above the first one.
+ *
+ * Nothing here moves an element the scroll maths reads:
+ * #bottom_whitespace keeps its place at the end of the feed, and the
+ * messages keep theirs. */
+body.ykphone-conversation #main_div {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(
+        var(--full-height-dynamic-viewport) - var(--navbar-fixed-height) -
+            var(--header-padding-bottom)
+    );
+
+    > * {
+        flex: none;
+    }
+
+    > #ykphone-feed-spacer {
+        flex: 1 1 auto;
+    }
+}
+
+body:has(#ykphone-rail) #bottom_whitespace {
+    /* The box plus a small gap, so that at the end of the document —
+       whether the conversation is short or scrolled to its end — the
+       last message sits just above the box. */
+    height: calc(var(--yk-compose-height) + var(--yk-feed-bottom-gap));
+}
+
+/* Upstream keeps an invisible copy of the mark-as-read banner below the
+   feed whenever the real banner is hidden, so that the document's
+   height does not change when the banner comes and goes. That copy is a
+   permanent blank band between the last message and the compose box
+   (62px at 14px), which is exactly what Slack does not have. The fork
+   drops it; when the real banner appears, ykphone_layout scrolls a
+   reader who was at the bottom along by its height, so it is not left
+   under the compose box, and when it goes the browser's own scroll
+   clamping brings the last message back down to the box. */
+body:has(#ykphone-rail) #mark_read_on_scroll_state_banner_place_holder {
+    display: none;
+}
 
 .message-feed .recipient_row {
     border-radius: 0;
@@ -1964,6 +2119,18 @@ body.ykphone-pins-open #ykphone-pins-panel {
     min-height: 0;
     overflow-y: auto;
     padding: 0.5em 0;
+    /* A short thread sits at the bottom of the panel, as in the feed.
+       The space is taken by an auto margin on the first message
+       rather than by justify-content, which in a scrolling flex
+       column puts overflowing content past the top padding edge where
+       it cannot be scrolled to. The loading and error lines keep the
+       top, where a status belongs. */
+    display: flex;
+    flex-direction: column;
+
+    > :first-child:not(.ykphone-thread-panel-status) {
+        margin-top: auto;
+    }
 }
 
 .ykphone-thread-panel-status,
@@ -2181,15 +2348,8 @@ body.ykphone-pins-open #ykphone-pins-panel {
         }
 
         .date_row_text {
-            /* 15px of line plus 1.5px of padding and 1px of border on
-               each side is a 20px pill. */
-            padding: 0.125em 0.9em;
-            line-height: 1.25;
-            border: 1px solid var(--color-border-message-group-spacer-line);
-            border-radius: 999px;
-            background-color: var(--color-background);
-            color: var(--color-text-default);
-            font-weight: 700;
+            /* The pill itself is the shared rule in "Date pills". */
+            flex: none;
         }
     }
 }
@@ -2404,9 +2564,12 @@ body.ykphone-pins-open #ykphone-pins-panel {
     }
 }
 
-/* Slack's "⋯" is horizontal; the icon set has the vertical one. */
+/* Slack's "⋯" is horizontal; the icon set has the vertical one, whose
+   ink is 0.8em long, so its size is set here rather than with the rest
+   of the optical corrections below. */
 #compose .ykphone-compose-more {
     transform: rotate(90deg);
+    font-size: calc(1.25 * var(--base-font-size-px));
 
     &.active {
         background-color: var(--yk-composer-bg);
@@ -2416,9 +2579,136 @@ body.ykphone-pins-open #ykphone-pins-panel {
 
 #compose .compose_control_button {
     border-radius: 4px;
+    /* Upstream sizes the button box in ems of its own font size, so
+       changing a glyph's size would change its button. The box is a
+       multiple of the base font size instead (28px at 14px, the same
+       as upstream's default), which leaves the font size free to
+       carry the optical correction below. */
+    width: calc(2 * var(--base-font-size-px));
+    height: calc(2 * var(--base-font-size-px));
     transition:
         background-color 100ms ease,
         opacity 100ms ease;
+}
+
+/* Optical sizes for the composer's icons.
+ *
+ * Every button is the same 28px box at the same font size, but the
+ * glyphs of Zulip's icon set fill their em very differently — the ink
+ * of "unordered-list" is 0.46em tall where "spoiler" is 0.75em — so
+ * the row read as a jumble of sizes. Each glyph's ink box was
+ * measured (rendered at a known size and its opaque extent read back)
+ * and its font size chosen so that every icon's ink is 12.5px tall at
+ * a 14px base, with a cap of 18px of ink width so that the wide
+ * glyphs (math, the lists, the call icons) do not turn into bars.
+ * The sizes are multiples of the base font size, not ems, because the
+ * buttons sit at two different inherited sizes.
+ *
+ * Reading: the number is the measured ink height (and, where the
+ * width cap decides it, the width) as a fraction of the em. */
+#compose {
+    /* Formatting row: link 0.68, bold/italic 0.555, strikethrough
+       0.605, numbered 0.61, bulleted w 0.71, quote 0.655, code 0.735,
+       spoiler 0.745, math w 1.0. */
+    .formatting_button {
+        &[data-format-type="bold"],
+        &[data-format-type="italic"] {
+            font-size: calc(1.607 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="strikethrough"] {
+            font-size: calc(1.479 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="link"] {
+            font-size: calc(1.314 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="numbered"] {
+            font-size: calc(1.464 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="bulleted"] {
+            font-size: calc(1.814 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="quote"] {
+            font-size: calc(1.364 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="code"] {
+            font-size: calc(1.214 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="spoiler"] {
+            font-size: calc(1.2 * var(--base-font-size-px));
+        }
+
+        &[data-format-type="latex"] {
+            font-size: calc(1.264 * var(--base-font-size-px));
+        }
+    }
+
+    /* Insert row: plus 0.635, "Aa" 0.855, emoji 0.705, at-sign 0.925,
+       video w 0.9, voice 0.62; the rotated "⋯" is sized above. */
+    .compose_upload_file {
+        font-size: calc(1.407 * var(--base-font-size-px));
+    }
+
+    .ykphone-compose-formatting-toggle {
+        font-size: calc(1.043 * var(--base-font-size-px));
+    }
+
+    .emoji_map {
+        font-size: calc(1.264 * var(--base-font-size-px));
+    }
+
+    .ykphone-compose-mention {
+        font-size: calc(0.964 * var(--base-font-size-px));
+    }
+
+    .video_link {
+        font-size: calc(1.429 * var(--base-font-size-px));
+    }
+
+    .audio_link {
+        font-size: calc(1.443 * var(--base-font-size-px));
+    }
+
+    /* The "더 보기" extras: time 0.675, GIF 0.705, snippet 0.67,
+       poll 0.55, to-do w 0.75, help 0.57, preview w 0.8,
+       exit preview 0.75. */
+    .time_pick {
+        font-size: calc(1.321 * var(--base-font-size-px));
+    }
+
+    .compose-gif-icon {
+        font-size: calc(1.264 * var(--base-font-size-px));
+    }
+
+    .saved_snippets_widget {
+        font-size: calc(1.336 * var(--base-font-size-px));
+    }
+
+    .add-poll {
+        font-size: calc(1.621 * var(--base-font-size-px));
+    }
+
+    .add-todo-list {
+        font-size: calc(1.714 * var(--base-font-size-px));
+    }
+
+    .compose_help_button {
+        font-size: calc(1.564 * var(--base-font-size-px));
+    }
+
+    .markdown_preview {
+        font-size: calc(1.607 * var(--base-font-size-px));
+    }
+
+    .undo_markdown_preview {
+        font-size: calc(1.193 * var(--base-font-size-px));
+    }
 }
 
 /* Send controls: the send button and the send-options chevron form
@@ -2448,6 +2738,9 @@ body.ykphone-pins-open #ykphone-pins-panel {
     transition: background-color 100ms ease;
 
     .zulip-icon-send {
+        /* The send glyph's ink is 0.875em tall, so 16px gives it 14px
+           of ink: one step above the 12.5px the toolbar icons are
+           normalised to, which is what a primary action should be. */
         font-size: 1.1429em; /* 16px at 14px/em */
     }
 }
@@ -2469,7 +2762,10 @@ body.ykphone-pins-open #ykphone-pins-panel {
     }
 
     .zulip-icon {
-        font-size: 0.8571em; /* 12px at 14px/em */
+        /* A chevron is 0.59em wide and 0.34em tall, so 12px drew a
+           7px mark beside a 16px paper plane; 15px gives it the 9px
+           width Slack's send-options chevron has. */
+        font-size: 1.0714em; /* 15px at 14px/em */
     }
 }
 
@@ -2516,7 +2812,89 @@ body.ykphone-pins-open #ykphone-pins-panel {
     }
 }
 
-/* ---- Forwarding ---- */
+/* ---- Forwarding and quote cards ---- */
+
+/* Slack shows a quoted or forwarded message as the message itself: a
+   bordered box with the sender's picture, name and time above what
+   they wrote. The same markup is used in three places — the card
+   above the compose box while a forward is being written
+   (ykphone_forward_card.hbs), the rendered message that forward
+   becomes (ykphone_quote_card rewrites the server's blockquote into
+   it), and any other quote whose header matches that shape — so that
+   the preview and the result read the same. */
+.ykphone-quote-card {
+    margin: 0.4em 0;
+    padding: 0.4em 0.6em;
+    border: 1px solid var(--yk-border);
+    border-radius: var(--yk-radius-md);
+    background-color: var(--color-background);
+}
+
+.ykphone-quote-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.2em;
+}
+
+.ykphone-quote-card-avatar {
+    flex: 0 0 auto;
+    width: 1.4286em; /* 20px at 14px/em */
+    height: auto;
+    aspect-ratio: 1;
+    border-radius: var(--yk-radius-sm);
+    object-fit: cover;
+}
+
+/* In a rendered message the name is the server's silent mention, which
+   upstream draws as a pill; in the card it is simply the name. */
+.ykphone-quote-card-sender {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 900;
+
+    &.user-mention {
+        padding: 0;
+        background-color: transparent;
+        color: var(--color-text-default);
+        font-size: inherit;
+        line-height: inherit;
+    }
+}
+
+.ykphone-quote-card-time {
+    flex: 0 0 auto;
+    color: var(--yk-text-muted);
+    font-size: 0.7857em; /* 11px at 14px/em */
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+/* Where the quoted message was: the header's own link to the channel
+   or topic, moved into the card. */
+.ykphone-quote-card-context {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--yk-text-muted);
+    font-size: 0.7857em; /* 11px at 14px/em */
+}
+
+.ykphone-quote-card-body {
+    > :first-child {
+        margin-top: 0;
+    }
+
+    > :last-child {
+        margin-bottom: 0;
+    }
+}
 
 /* Forwarding shows the message as a card above the compose box, as
    Slack does, and leaves the box itself for the sender's own note;
@@ -2527,6 +2905,10 @@ body.ykphone-pins-open #ykphone-pins-panel {
     border: 1px solid var(--yk-border);
     border-radius: var(--yk-radius-md);
     background-color: var(--yk-composer-bg);
+
+    .ykphone-quote-card {
+        margin-bottom: 0;
+    }
 }
 
 .ykphone-forward-card-header {
@@ -2572,60 +2954,23 @@ body.ykphone-pins-open #ykphone-pins-panel {
     }
 }
 
-.ykphone-forward-card-message {
-    display: flex;
-    gap: 0.5em;
-    /* A hairline in the gutter marks the quote, as in the rendered
-       message the forward becomes. */
-    margin-top: 0.4em;
-    padding-left: 0.5em;
-    border-left: 3px solid var(--yk-border);
-}
-
-.ykphone-forward-card-avatar {
-    flex: 0 0 auto;
-    width: 1.4286em; /* 20px at 14px/em */
-    height: 1.4286em;
-    border-radius: var(--yk-radius-sm);
-    object-fit: cover;
-}
-
-.ykphone-forward-card-body {
-    min-width: 0;
-    flex: 1 1 auto;
-}
-
-.ykphone-forward-card-sender {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5em;
-}
-
-.ykphone-forward-card-sender-name {
-    font-weight: 900;
-}
-
-.ykphone-forward-card-time {
-    color: var(--yk-text-muted);
-    font-size: 0.7857em; /* 11px at 14px/em */
-}
-
-.ykphone-forward-card-content {
-    /* Long forwards stay a preview rather than pushing the compose
-       box off the screen. */
+.ykphone-forward-card .ykphone-quote-card-body {
+    /* Long forwards stay a preview rather than growing the fixed
+       compose box (and the feed's reserve below it) without limit. */
     max-height: 8em;
     overflow-y: auto;
-
-    > :first-child {
-        margin-top: 0;
-    }
-
-    > :last-child {
-        margin-bottom: 0;
-    }
 }
 
 /* ---- Popovers, tooltips, modals, buttons ---- */
+
+/* "m" no longer opens the move-message dialog (the fork has no
+   topics to move a message between), so the keyboard-shortcuts
+   reference stops advertising it. Upstream hides the neighbouring
+   edit row from ui_init the same way; this row is plain reference
+   text with no focus or menu semantics, so the theme can do it. */
+#move-message-hotkey-help {
+    display: none;
+}
 
 .tippy-box[data-theme="popover-menu"],
 .tippy-box[data-theme="dropdown-widget"],
@@ -2755,23 +3100,62 @@ body.ykphone-conversation .message-feed .message_header {
     }
 
     .recipient_row_date {
-        display: block;
+        /* The pill itself is the shared rule in "Date pills". */
         position: static;
         margin: 0;
-        padding: 0.2em 0.9em;
-        border: 1px solid var(--yk-hairline);
-        border-radius: 999px;
-        background-color: var(--color-background);
-        color: var(--color-text-default);
-        font-size: 0.8571em; /* 12px at 14px/em */
-        font-weight: 700;
-        line-height: 1.5;
-        text-transform: none;
+
+        /* Upstream hides a date that repeats the bar above (and the one
+           the sticky bar is currently showing); the pill rule's display
+           must not bring them back. */
+        &.recipient_row_date_unchanged,
+        &.hide-date-separator-header {
+            display: none;
+        }
     }
 
     &.sticky_header {
         box-shadow: none;
+
+        /* The sticky bar does show an unchanged date, as upstream's does. */
+        .recipient_row_date.recipient_row_date_unchanged {
+            display: flex;
+        }
     }
+}
+
+/* ---- Date pills ---- */
+
+/* A date reads as the same pill wherever it appears: the divider
+   between two days in an interleaved view, the one that replaces a
+   recipient bar inside a conversation, and the sticky copy of that
+   bar. Only the row around them differs.
+
+   The two pills inherit different font sizes (the feed's 14px and the
+   recipient bar's 15px), so an em would make them different sizes;
+   the height and the font size are multiples of the base font size
+   instead, which resolves the same everywhere and still follows the
+   user's font-size preference. The height is set rather than left to
+   the line box because the divider's pill is a flex item whose row
+   takes its height from it. */
+.message_feed_divider:has(.date-divider-content)
+    .date-divider-content
+    .date_row_text,
+body.ykphone-conversation .message-feed .message_header .recipient_row_date {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(1.4286 * var(--base-font-size-px)); /* 20px at 14px */
+    padding: 0 0.75em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: 999px;
+    background-color: var(--color-background);
+    color: var(--color-text-default);
+    font-size: calc(0.8571 * var(--base-font-size-px)); /* 12px at 14px */
+    font-weight: 700;
+    line-height: 1;
+    text-transform: none;
+    white-space: nowrap;
 }
 
 /* Upstream toggles the logo with inline styles. */
@@ -2850,7 +3234,13 @@ body.ykphone-conversation .top-messages-logo {
         grid-area: starting-anchor-element;
         place-self: center;
         width: 1.4286em; /* 20px at 14px/em */
-        height: 1.4286em;
+        /* Height follows the width rather than being set, so that a
+           column narrower than the avatar (a future layout, a larger
+           font size) makes it a smaller square instead of stretching
+           it. The default profile picture fills its frame, so any
+           mismatch would show as a cropped silhouette. */
+        height: auto;
+        aspect-ratio: 1;
         border-radius: var(--yk-radius-sm);
         object-fit: cover;
     }
@@ -2869,18 +3259,22 @@ body.ykphone-conversation .top-messages-logo {
 /* ---- Presence dots ---- */
 
 /* Slack draws presence as a small dot at the bottom-right corner of
-   the avatar: a filled green dot when the person is active, a hollow
-   ring when they are away or offline, with a ring in the surface
-   colour around it so it reads as a dot rather than a smudge on the
-   picture.
+   the avatar, with a ring in the surface colour around it so it reads
+   as a dot rather than a smudge on the picture.
+
+   Every state is opaque: a dot with a transparent centre shows the
+   avatar through it, which at 8px reads as a dirty smear rather than
+   as "away". Active is a filled green dot, idle upstream's
+   half-filled amber one, offline a filled grey one, and a deactivated
+   user keeps upstream's slashed glyph (which says more than a colour
+   does) over an opaque box.
 
    Upstream draws the dot as a glyph of the icon font; its ring is a
    fraction of a pixel wide at this size, so the glyph is dropped and
-   the dot is the element's own box. A deactivated user keeps
-   upstream's slashed glyph, which says more than a colour does. Each
-   context sets --yk-presence-ring to the surface the dot sits on;
-   places that show the dot inline beside a name (the typeahead, the
-   inbox, the recent view) keep upstream's glyph. */
+   the dot is the element's own box. Each context sets
+   --yk-presence-ring to the surface the dot sits on; places that show
+   the dot inline beside a name (the typeahead, the inbox, the recent
+   view) keep upstream's glyph. */
 #direct-messages-list .dm-list-item .conversation-partners-icon.user-circle,
 #modal-direct-messages-list
     .dm-list-item
@@ -2914,18 +3308,28 @@ body.ykphone-conversation .top-messages-logo {
     }
 
     &.user-circle-idle {
-        /* Upstream's half-faded dot, as a background of the box
-           rather than clipped to the glyph. */
-        background: var(--gradient-user-circle-idle-avatar);
-        background-clip: border-box;
+        /* Upstream's half-filled dot. Its own gradient ends in
+           --color-background, which is the wrong colour on the three
+           surfaces here that are not that, and the avatar would show
+           through anything translucent; the ring colour is the
+           surface by definition, so the empty half uses it. */
+        border: 1.5px solid var(--color-user-circle-idle);
+        background-color: var(--yk-presence-ring, var(--color-background));
+        background-image: linear-gradient(
+            to right,
+            var(--color-user-circle-idle) 0 50%,
+            transparent 50% 100%
+        );
     }
 
     &.user-circle-offline {
-        background-color: transparent;
-        border: 1.5px solid var(--color-user-circle-offline);
+        background-color: var(--color-user-circle-offline);
     }
 
     &.user-circle-deactivated {
+        /* The slashed glyph is drawn with transparent counters, so
+           the box behind it is painted in the surface colour. */
+        background-color: var(--yk-presence-ring, var(--color-background));
         font-size: 8px;
         line-height: 1;
         color: var(--color-user-circle-deactivated);

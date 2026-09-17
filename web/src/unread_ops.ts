@@ -30,6 +30,7 @@ import * as sub_store from "./sub_store.ts";
 import * as unread from "./unread.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as watchdog from "./watchdog.ts";
+import * as ykphone_unread_guard from "./ykphone_unread_guard.ts";
 
 let update_read_flag_banner_displayed = false;
 let unsubscribed_ignored_channels: number[] = [];
@@ -760,7 +761,9 @@ function process_scrolled_to_bottom(): void {
         // return that would appear below the visible part of the
         // feed, so it would not be correct to instead ask the server
         // to mark all messages matching this entire narrow as read.
-        notify_server_messages_read(message_lists.current.all_messages());
+        notify_server_messages_read(
+            ykphone_unread_guard.readable(message_lists.current.all_messages()),
+        );
         return;
     }
 

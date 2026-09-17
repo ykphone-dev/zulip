@@ -235,7 +235,10 @@ test("my_message_all_actions", ({override}) => {
     assert.equal(response.message_id, 1);
     assert.equal(response.stream_id, 1);
     assert.equal(response.editability_menu_item, "translated: Edit message");
-    assert.equal(response.move_message_menu_item, "translated: Move messages");
+    // Moving a message is switched off in the 옆커폰 fork
+    // (ykphone_flags.MOVE_MESSAGE_ENABLED), so the menu never offers
+    // it even where upstream would.
+    assert.equal(response.move_message_menu_item, undefined);
     assert.equal(response.should_display_mark_as_unread, true);
     assert.equal(response.view_source_menu_item, undefined);
     assert.equal(response.should_display_collapse, true);
@@ -326,7 +329,8 @@ test("not_my_message_view_source_and_move", ({override}) => {
     const response = popover_menus_data.get_actions_popover_content_context(1);
     assert.equal(response.view_source_menu_item, "translated: View original message");
     assert.equal(response.editability_menu_item, undefined);
-    assert.equal(response.move_message_menu_item, "translated: Move messages");
+    // See the note above: the fork never offers "Move messages".
+    assert.equal(response.move_message_menu_item, undefined);
 });
 
 // Helper to create a minimal message object with a given timestamp.

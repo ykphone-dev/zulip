@@ -61,6 +61,13 @@ const ui_util = mock_esm("../src/ui_util", {
 const ykphone_activity = mock_esm("../src/ykphone_activity", {
     is_visible: () => false,
 });
+// The header renders inside a scroll-preserving wrapper; the wrapper's
+// arithmetic is covered by ykphone_layout.test.cjs.
+mock_esm("../src/ykphone_layout", {
+    keep_feed_end_in_place(change) {
+        change();
+    },
+});
 const ykphone_pins = mock_esm("../src/ykphone_pins", {
     pin_count: (stream_id) => (stream_id === verona.stream_id ? 2 : 0),
     get_panel_stream_id: () => undefined,

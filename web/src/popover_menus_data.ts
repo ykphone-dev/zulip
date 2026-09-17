@@ -167,7 +167,7 @@ export function get_actions_popover_content_context(message_id: number): ActionP
         view_source_menu_item = $t({defaultMessage: "View original message"});
     }
 
-    if (can_move_message) {
+    if (can_move_message && ykphone_flags.MOVE_MESSAGE_ENABLED) {
         move_message_menu_item = $t({defaultMessage: "Move messages"});
     }
 
@@ -279,8 +279,11 @@ export function get_topic_popover_content_context({
     const topic_unmuted = user_topics.is_topic_unmuted(sub.stream_id, topic_name);
     const has_starred_messages = starred_messages.get_count_in_topic(sub.stream_id, topic_name) > 0;
     const has_unread_messages = num_unread_for_topic(sub.stream_id, topic_name) > 0;
-    const can_move_topic = stream_data.user_can_move_messages_out_of_channel(sub);
+    const can_move_topic =
+        ykphone_flags.MOVE_MESSAGE_ENABLED &&
+        stream_data.user_can_move_messages_out_of_channel(sub);
     const can_rename_topic =
+        ykphone_flags.MOVE_MESSAGE_ENABLED &&
         stream_data.user_can_move_messages_within_channel(sub) &&
         !stream_data.is_empty_topic_only_channel(sub.stream_id);
     const can_resolve_topic = stream_data.can_resolve_topics(sub);

@@ -20,6 +20,7 @@ import * as people from "./people.ts";
 import * as rendered_markdown from "./rendered_markdown.ts";
 import * as stream_data from "./stream_data.ts";
 import * as timerender from "./timerender.ts";
+import * as ykphone_layout from "./ykphone_layout.ts";
 
 export type IntroContext =
     | {
@@ -148,12 +149,17 @@ export function update_intro(msg_list: MessageList): void {
         return;
     }
     const $intro = $("#ykphone-conversation-intro");
-    $intro.html(render_ykphone_conversation_intro(context));
-    if (context.channel !== undefined) {
-        // Channel names, emoji and mentions in the description.
-        rendered_markdown.update_elements($intro.find(".rendered_markdown"));
-    }
-    $intro.show();
+    // Upstream has already scrolled the conversation into place by the
+    // time it knows the start of the history is loaded, so the intro
+    // goes in above messages on screen.
+    ykphone_layout.keep_feed_end_in_place(() => {
+        $intro.html(render_ykphone_conversation_intro(context));
+        if (context.channel !== undefined) {
+            // Channel names, emoji and mentions in the description.
+            rendered_markdown.update_elements($intro.find(".rendered_markdown"));
+        }
+        $intro.show();
+    });
 }
 
 export function handle_narrow_activated(): void {

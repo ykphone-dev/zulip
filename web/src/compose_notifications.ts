@@ -21,6 +21,7 @@ import * as stream_data from "./stream_data.ts";
 import {user_settings} from "./user_settings.ts";
 import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_send_scroll from "./ykphone_send_scroll.ts";
 
 export function notify_unmute(muted_narrow: string, stream_id: number, topic_name: string): void {
     const $unmute_notification = $(
@@ -286,7 +287,7 @@ export function notify_local_mixes(
 
         const jump_to_sent_message_conversation = should_jump_to_sent_message_conversation(message);
         if (!jump_to_sent_message_conversation) {
-            if (need_user_to_scroll) {
+            if (need_user_to_scroll && !ykphone_send_scroll.scroll_to_sent_message(link_msg_id)) {
                 show_scroll_to_view_banner(link_msg_id);
             }
 

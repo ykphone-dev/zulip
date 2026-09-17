@@ -35,6 +35,15 @@ const rendered_markdown = mock_esm("../src/rendered_markdown");
 mock_esm("../src/stream_data", {
     get_sub_by_id: (stream_id) => (stream_id === verona.stream_id ? verona : undefined),
 });
+// The intro is shown inside a scroll-preserving wrapper; the wrapper's
+// own arithmetic is covered by ykphone_layout.test.cjs.
+let feed_end_kept = 0;
+mock_esm("../src/ykphone_layout", {
+    keep_feed_end_in_place(change) {
+        feed_end_kept += 1;
+        change();
+    },
+});
 mock_esm("../src/timerender", {
     get_localized_date_or_time_for_format: (date, format) => `${format}:${date.getTime() / 1000}`,
 });
@@ -182,6 +191,8 @@ run_test("update_intro", ({override, mock_template}) => {
     assert.ok($intro.visible());
     assert.equal(updated.length, 1);
     assert.equal(updated[0][0], $markdown[0]);
+    // Shown without moving the conversation already on screen.
+    assert.equal(feed_end_kept, 1);
 
     // Hidden while older messages may still exist, when the history
     // is limited by the plan, and outside conversations.

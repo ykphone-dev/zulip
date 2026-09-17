@@ -76,11 +76,15 @@ function remove_card(): void {
     $card_container().empty();
 }
 
+// The forwarded message's rendered content inside the card.
+export const CARD_BODY_SELECTOR = "#ykphone-forward-card .ykphone-quote-card-body";
+
 function show_card(forward: PendingForward): void {
     $card_container().html(render_ykphone_forward_card(forward.card));
-    // Post-processing (timestamps, user mentions, spoilers) is applied
-    // once the card is in the document, as the message feed does.
-    rendered_markdown.update_elements($("#ykphone-forward-card .ykphone-forward-card-content"));
+    // Post-processing (timestamps, user mentions, spoilers, a quote card
+    // inside the forwarded message) is applied once the card is in the
+    // document, as the message feed does.
+    rendered_markdown.update_elements($(CARD_BODY_SELECTOR));
 }
 
 export function pending_message_id(): number | undefined {
@@ -119,8 +123,10 @@ export function apply_to_compose(): void {
         return;
     }
     const note = compose_state.message_content();
+    // The note goes above the quote, as Slack puts the forwarder's
+    // words above the card carrying the message they forwarded.
     compose_state.message_content(
-        note === "" ? pending.markdown : `${pending.markdown}\n\n${note}`,
+        note === "" ? pending.markdown : `${note}\n\n${pending.markdown}`,
     );
     compose_ui.autosize_textarea($textarea());
     applied = {forward: pending, note};
@@ -157,6 +163,15 @@ function set_stored_forwards(forwards: Record<string, PendingForward>): void {
     localstorage().set(STORAGE_KEY, Object.fromEntries(kept.map((key) => [key, forwards[key]])));
 }
 
+function without_drafts(
+    forwards: Record<string, PendingForward>,
+    dropped: Set<string>,
+): Record<string, PendingForward> {
+    return Object.fromEntries(
+        Object.entries(forwards).filter(([draft_id]) => !dropped.has(draft_id)),
+    );
+}
+
 // Called whenever the compose box is saved as a draft, so that closing
 // the box, switching conversations or reloading for a new version all
 // keep the forward with the text it belongs to. A box with no forward
@@ -167,10 +182,10 @@ export function remember_for_draft(draft_id: string): void {
         if (forwards[draft_id] === undefined) {
             return;
         }
-        delete forwards[draft_id];
-    } else {
-        forwards[draft_id] = pending;
+        set_stored_forwards(without_drafts(forwards, new Set([draft_id])));
+        return;
     }
+    forwards[draft_id] = pending;
     set_stored_forwards(forwards);
 }
 
@@ -188,10 +203,7 @@ export function forget_drafts(draft_ids: string[]): void {
     if (!draft_ids.some((draft_id) => forwards[draft_id] !== undefined)) {
         return;
     }
-    for (const draft_id of draft_ids) {
-        delete forwards[draft_id];
-    }
-    set_stored_forwards(forwards);
+    set_stored_forwards(without_drafts(forwards, new Set(draft_ids)));
 }
 
 export function clear_for_testing(): void {

@@ -195,7 +195,6 @@ const KEYDOWN_MAPPINGS: Record<string, Hotkey | Hotkey[]> = {
     J: {name: "vim_down", message_view_only: true},
     K: {name: "vim_up", message_view_only: true},
     L: {name: "vim_right", message_view_only: true},
-    M: {name: "move_message", message_view_only: true},
     N: {name: "n_key", message_view_only: false},
     P: {name: "p_key", message_view_only: false},
     Q: {name: "query_streams", message_view_only: true},

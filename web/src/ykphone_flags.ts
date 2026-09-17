@@ -18,6 +18,12 @@ export const HIDDEN_LEFT_SIDEBAR_ROWS_SELECTOR =
 // code paths are left intact behind this flag so a rebase stays cheap.
 export const QUOTE_MESSAGE_ENABLED = false;
 
+// Moving a message is gone from the fork: it exists to put a message
+// under a different topic, and the fork hides topics behind threads.
+// Moving a message to another channel goes with it. As with quoting,
+// upstream's code paths stay intact behind the flag.
+export const MOVE_MESSAGE_ENABLED = false;
+
 // When set, clicking a channel opens its "general chat" topic instead
 // of the topic-based views, so a channel reads as one Slack-style room
 // and threads (topics) stay out of the main feed.

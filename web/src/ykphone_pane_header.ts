@@ -38,6 +38,7 @@ import * as ui_util from "./ui_util.ts";
 import * as util from "./util.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
+import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 
 export type PaneHeaderChannel = {
@@ -155,9 +156,11 @@ export function get_context(filter: Filter | undefined): PaneHeaderContext {
         return {title: $t({defaultMessage: "Combined feed"}), zulip_icon: "all-messages"};
     }
     if (filter.has_operand("is", "starred")) {
-        // Zulip's starred messages are the fork's saved messages; the
-        // sidebar row is named for the view ("Later"), the header for
-        // its contents, as in Slack's "Saved items".
+        // Zulip's starred messages are the fork's saved messages. The
+        // sidebar row, the window title and this header all read
+        // "저장한 메시지"; the header is special-cased only so that the
+        // view gets the bookmark icon rather than the clock upstream's
+        // "Later" would imply.
         return {title: $t({defaultMessage: "Starred messages"}), zulip_icon: "bookmark"};
     }
     if (ykphone_conversation.is_files_narrow(filter)) {
@@ -291,7 +294,15 @@ export function update_members_button(): void {
 export function render(): void {
     const $header = $("#ykphone-pane-header");
     const context = get_context(narrow_state.filter());
-    $header.html(render_ykphone_pane_header({...context, members_label: members_button_label()}));
+    // A channel's header has a tab row that a DM's lacks, and the header
+    // is rendered after upstream has scrolled the new conversation into
+    // place, so the difference would push the conversation down by 30px
+    // and leave its last message under the compose box.
+    ykphone_layout.keep_feed_end_in_place(() => {
+        $header.html(
+            render_ykphone_pane_header({...context, members_label: members_button_label()}),
+        );
+    });
     if (context.channel !== undefined) {
         maybe_fetch_subscribers(context.channel.stream_id);
         if (context.tabs !== undefined && !page_params.is_spectator) {

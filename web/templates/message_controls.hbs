@@ -1,11 +1,9 @@
+{{!-- The 옆커폰 fork shows every message the same hover toolbar, as
+Slack does: editing lives in the ⋮ menu (and on the "e" hotkey)
+so that one's own messages do not get a wider toolbar whose left
+edge sits a slot further left, and moving a message is gone with
+the topics it exists for. --}}
 {{#unless is_archived}}
-    {{#if msg/sent_by_me}}
-        <div class="edit_content message_control_button">
-            <i class="message-controls-icon zulip-icon zulip-icon-edit edit_content_button edit_message_button" role="button" tabindex="0" aria-label="{{t 'Edit message' }} (e)"></i>
-            <i class="message-controls-icon zulip-icon zulip-icon-move-alt move_message_button edit_message_button" role="button" tabindex="0" aria-label="{{t 'Move message' }} (m)"></i>
-        </div>
-    {{/if}}
-
     <div class="reaction_button message_control_button" data-tooltip-template-id="add-emoji-tooltip-template">
         <div class="emoji-message-control-button-container">
             <i class="message-controls-icon zulip-icon zulip-icon-smile" aria-label="{{t 'Add emoji reaction' }} (:)" role="button" aria-haspopup="true" tabindex="0"></i>

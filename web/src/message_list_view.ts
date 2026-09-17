@@ -50,6 +50,7 @@ import * as ui_util from "./ui_util.ts";
 import * as user_topics from "./user_topics.ts";
 import type {AllVisibilityPolicies} from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -258,7 +259,8 @@ export function get_timestr(message: Message): string {
 function get_topic_edit_properties(message: Message): {
     is_topic_editable: boolean;
 } {
-    const is_topic_editable = message_edit.is_topic_editable(message);
+    const is_topic_editable =
+        ykphone_flags.MOVE_MESSAGE_ENABLED && message_edit.is_topic_editable(message);
 
     return {
         is_topic_editable,

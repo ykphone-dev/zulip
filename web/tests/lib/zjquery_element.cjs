@@ -788,6 +788,9 @@ exports.FakeJQuery = class extends RejectMissing {
         }
         return this;
     }
+    toArray() {
+        return [...this];
+    }
     toggleClass(class_names, add) {
         class_names = split_words(class_names);
         for (const element of this) {

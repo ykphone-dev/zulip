@@ -21,8 +21,8 @@ mock_esm("../src/people", {
 mock_esm("../src/sub_store", {
     maybe_get_stream_name: (stream_id) => (stream_id === 5 ? "devel" : undefined),
 });
-mock_esm("../src/ykphone_time", {
-    hour_and_minute: (timestamp) => `time(${timestamp})`,
+mock_esm("../src/timerender", {
+    get_localized_date_or_time_for_format: (date, format) => `${format}(${date.getTime()})`,
 });
 
 const ykphone_forward_ui = zrequire("ykphone_forward_ui");
@@ -46,7 +46,7 @@ run_test("card_context", () => {
         message_id: 11,
         sender_name: "Cordelia",
         avatar_url: "/avatar/7",
-        time_label: "time(1700000000000)",
+        time_label: "dayofyear_time(1700000000000)",
         content: "<p>hello</p>",
     });
 });

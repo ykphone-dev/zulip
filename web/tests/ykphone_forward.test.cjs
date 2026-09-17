@@ -45,7 +45,7 @@ function setup() {
     $.clear_all_elements();
     $.create("#ykphone-forward-card-container");
     $.set_results("#ykphone-forward-card", []);
-    $.set_results("#ykphone-forward-card .ykphone-forward-card-content", []);
+    $.set_results(ykphone_forward.CARD_BODY_SELECTOR, []);
     localstorage().set("ykphone-forwards", {});
     compose_content = "";
     ykphone_forward.clear_for_testing();
@@ -66,6 +66,11 @@ run_test("the quote is folded in just before the send", () => {
     // The card names the message being forwarded.
     const card_html = $("#ykphone-forward-card-container").html();
     assert.ok(card_html.includes("Cordelia"));
+    // The element post-processed (and height-capped by the theme) must
+    // be one the template actually renders; a class renamed on either
+    // side would leave the preview as raw server HTML.
+    const body_class = ykphone_forward.CARD_BODY_SELECTOR.split(" .").at(-1);
+    assert.ok(card_html.includes(`class="${body_class} `));
     assert.ok(card_html.includes('data-message-id="11"'));
 
     // Without a note of their own, the user forwards the quote alone.
@@ -79,11 +84,12 @@ run_test("the quote is folded in just before the send", () => {
     ykphone_forward.apply_to_compose();
     assert.equal(compose_content, "quote(11)");
 
-    // With a note, the quote goes in front of it.
+    // With a note, the note goes above the quote, as Slack puts the
+    // forwarder's words above the card they forwarded.
     ykphone_forward.arm(make_forward());
     compose_content = "look at this";
     ykphone_forward.apply_to_compose();
-    assert.equal(compose_content, "quote(11)\n\nlook at this");
+    assert.equal(compose_content, "look at this\n\nquote(11)");
 });
 
 run_test("a message that is not sent keeps its card", () => {
@@ -94,14 +100,14 @@ run_test("a message that is not sent keeps its card", () => {
     ykphone_forward.arm(make_forward());
     compose_content = "look at this";
     ykphone_forward.apply_to_compose();
-    assert.equal(compose_content, "quote(11)\n\nlook at this");
+    assert.equal(compose_content, "look at this\n\nquote(11)");
     ykphone_forward.restore();
     assert.equal(compose_content, "look at this");
     assert.equal(ykphone_forward.pending_message_id(), 11);
 
     // Sending again folds it exactly once.
     ykphone_forward.apply_to_compose();
-    assert.equal(compose_content, "quote(11)\n\nlook at this");
+    assert.equal(compose_content, "look at this\n\nquote(11)");
 
     // Restoring a send that carried no forward changes nothing.
     ykphone_forward.clear();

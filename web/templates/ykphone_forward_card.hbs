@@ -1,40 +1,34 @@
-{{! The message being forwarded, shown above the compose box; the note the user adds goes in the box itself. }}
+{{! The message being forwarded, shown above the compose box; the note the user adds goes in the box itself. The inner card is the same markup ykphone_quote_card builds in a rendered message, so the preview and the result read the same. }}
 <div
-    id="ykphone-forward-card"
-    class="ykphone-forward-card"
-    data-message-id="{{message_id}}"
->
+  id="ykphone-forward-card"
+  class="ykphone-forward-card"
+  data-message-id="{{message_id}}"
+  >
     <div class="ykphone-forward-card-header">
         <i class="zulip-icon zulip-icon-forward-message" aria-hidden="true"></i>
         <span class="ykphone-forward-card-label">{{t
                 "Forwarding this message"
             }}</span>
         <button
-            type="button"
-            class="ykphone-forward-card-close"
-            aria-label="{{t 'Cancel forwarding'}}"
-            data-tippy-content="{{t 'Cancel forwarding'}}"
-        >
+          type="button"
+          class="ykphone-forward-card-close"
+          aria-label="{{t 'Cancel forwarding'}}"
+          data-tippy-content="{{t 'Cancel forwarding'}}"
+          >
             <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
         </button>
     </div>
-    <div class="ykphone-forward-card-message">
-        <img
-            class="ykphone-forward-card-avatar"
-            src="{{avatar_url}}"
-            alt=""
-            loading="lazy"
-        />
-        <div class="ykphone-forward-card-body">
-            <div class="ykphone-forward-card-sender">
-                <span
-                    class="ykphone-forward-card-sender-name"
-                >{{sender_name}}</span>
-                <span class="ykphone-forward-card-time">{{time_label}}</span>
-            </div>
-            <div
-                class="ykphone-forward-card-content rendered_markdown"
-            >{{rendered_markdown content}}</div>
+    <div class="ykphone-quote-card">
+        <div class="ykphone-quote-card-header">
+            <img
+              class="ykphone-quote-card-avatar"
+              src="{{avatar_url}}"
+              alt=""
+              loading="lazy"
+              />
+            <span class="ykphone-quote-card-sender">{{sender_name}}</span>
+            <span class="ykphone-quote-card-time">{{time_label}}</span>
         </div>
+        <div class="ykphone-quote-card-body rendered_markdown">{{rendered_markdown content}}</div>
     </div>
 </div>

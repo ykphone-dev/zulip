@@ -10,11 +10,15 @@ const ykphone_conversation = mock_esm("../src/ykphone_conversation");
 const ykphone_pins_ui = mock_esm("../src/ykphone_pins_ui");
 const ykphone_rail = mock_esm("../src/ykphone_rail");
 const ykphone_thread_panel = mock_esm("../src/ykphone_thread_panel");
+const ykphone_unread_guard = mock_esm("../src/ykphone_unread_guard");
 
 const ykphone_ui_hooks = zrequire("ykphone_ui_hooks");
 
 run_test("handle_narrow_activated", ({override}) => {
     const calls = [];
+    override(ykphone_unread_guard, "clear", () => {
+        calls.push("unread-guard");
+    });
     override(ykphone_thread_panel, "handle_narrow_activated", () => {
         calls.push("panel");
     });
@@ -32,5 +36,12 @@ run_test("handle_narrow_activated", ({override}) => {
     });
 
     ykphone_ui_hooks.handle_narrow_activated({trigger: "sidebar"});
-    assert.deepEqual(calls, ["panel", "pins", "rail", "conversation", "compose:sidebar"]);
+    assert.deepEqual(calls, [
+        "unread-guard",
+        "panel",
+        "pins",
+        "rail",
+        "conversation",
+        "compose:sidebar",
+    ]);
 });
