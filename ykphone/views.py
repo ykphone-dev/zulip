@@ -7,8 +7,10 @@ from ykphone.lib.threads import (
     thread_activity,
     thread_dict,
     threads_for_stream,
+    unthreaded_participated_topics,
 )
 from zerver.lib.response import json_success
+from zerver.lib.streams import access_stream_by_id
 from zerver.lib.typed_endpoint import PathOnly, typed_endpoint
 from zerver.models import UserProfile
 
@@ -25,7 +27,19 @@ def create_thread(
 def get_threads(
     request: HttpRequest, user_profile: UserProfile, *, stream_id: Json[int]
 ) -> HttpResponse:
-    return json_success(request, data={"threads": threads_for_stream(user_profile, stream_id)})
+    stream, _sub = access_stream_by_id(user_profile, stream_id)
+    return json_success(
+        request,
+        data={
+            "threads": threads_for_stream(user_profile, stream),
+            # Topics other than threads that the user takes part in,
+            # whose unread messages the sidebar counts under Threads.
+            "participated_topics": [
+                topic_name
+                for _stream_id, topic_name in unthreaded_participated_topics(user_profile, [stream])
+            ],
+        },
+    )
 
 
 @typed_endpoint

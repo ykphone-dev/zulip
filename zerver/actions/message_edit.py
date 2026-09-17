@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy
 from django.utils.translation import override as override_language
 from django_stubs_ext import StrPromise
 
+from ykphone.lib.threads import follow_moved_thread_topic
 from zerver.actions.message_delete import DeleteMessagesEvent, do_delete_messages
 from zerver.actions.message_flags import do_update_mobile_push_notification
 from zerver.actions.message_send import (
@@ -1137,6 +1138,7 @@ def do_update_message(
     # Execute the bulk UPDATE of topic/stream/edit_history fields
     # for any propagated messages.
     save_changes_for_propagation_mode()
+    follow_moved_thread_topic(message_edit_request)
 
     # Invalidate the message cache for all changed messages.  They'll
     # be lazily rebuilt from the database on next access.  We defer

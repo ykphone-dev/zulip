@@ -2,7 +2,7 @@ import re
 from typing import Any, TypedDict
 
 from django.db import transaction
-from django.db.models import Count, Exists, Max, OuterRef, Q, QuerySet
+from django.db.models import Count, Exists, F, Max, OuterRef, Q, QuerySet
 from django.db.models.functions import Upper
 from django.utils.translation import gettext as _
 
@@ -13,6 +13,7 @@ from zerver.lib.stream_subscription import get_subscribed_stream_ids_for_user
 from zerver.lib.streams import access_stream_by_id, get_stream_topics_policy
 from zerver.lib.timestamp import datetime_to_timestamp
 from zerver.lib.topic import messages_for_topic
+from zerver.lib.types import StreamMessageEditRequest
 from zerver.models import Message, Stream, UserMessage, UserProfile
 from zerver.models.constants import MAX_TOPIC_NAME_LENGTH
 from zerver.models.streams import StreamTopicsPolicyEnum
@@ -30,6 +31,9 @@ MAX_THREAD_PARTICIPANTS = 3
 MAX_ACTIVITY_MESSAGES = 50
 # How many of the realm's newest threads the Activity view looks at.
 MAX_ACTIVITY_THREADS = 200
+# How far back the user's own messages and mentions are searched for
+# the topics (other than threads) they take part in.
+MAX_PARTICIPATION_MESSAGES = 1000
 
 
 class ThreadDict(TypedDict):
@@ -40,6 +44,11 @@ class ThreadDict(TypedDict):
     last_reply_timestamp: int | None
     # Senders of the newest replies, newest first, distinct.
     participant_user_ids: list[int]
+    # Whether the requesting user wrote the root, started the thread or
+    # replied in it, as Slack follows a thread: the threads whose
+    # replies the Activity view lists (thread_activity) and the sidebar
+    # counts as unread.
+    user_participated: bool
 
 
 def thread_topic_snippet(content: str) -> str:
@@ -142,8 +151,7 @@ def latest_senders(sender_rows: list[tuple[int, int]]) -> list[int]:
     return [sender_id for sender_id, _message_id in sender_rows[:MAX_THREAD_PARTICIPANTS]]
 
 
-def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[ThreadDict]:
-    stream, _sub = access_stream_by_id(user_profile, stream_id)
+def threads_for_stream(user_profile: UserProfile, stream: Stream) -> list[ThreadDict]:
     thread_rows = MessageThread.objects.filter(stream=stream).order_by("root_message_id")
     if not stream.is_history_public_to_subscribers():
         # A thread's name is a snippet of its root, so roots the user
@@ -175,6 +183,15 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
         .values_list("upper_subject", "sender_id", "id")
     ):
         senders_by_topic.setdefault(upper_subject, []).append((sender_id, latest_id))
+    # The same rows hold the user's own replies, if any.
+    replied_topics = {
+        upper_subject
+        for upper_subject, sender_rows in senders_by_topic.items()
+        if any(sender_id == user_profile.id for sender_id, _message_id in sender_rows)
+    }
+    authored_root_thread_ids = set(
+        thread_rows.filter(root_message__sender_id=user_profile.id).values_list("id", flat=True)
+    )
 
     result: list[ThreadDict] = []
     for thread in threads:
@@ -188,6 +205,11 @@ def threads_for_stream(user_profile: UserProfile, stream_id: int) -> list[Thread
                 reply_count=row["reply_count"] if row else 0,
                 last_reply_timestamp=datetime_to_timestamp(row["last_reply"]) if row else None,
                 participant_user_ids=latest_senders(senders_by_topic.get(key, [])),
+                user_participated=(
+                    thread.creator_id == user_profile.id
+                    or thread.id in authored_root_thread_ids
+                    or key in replied_topics
+                ),
             )
         )
     return result
@@ -210,6 +232,11 @@ def thread_dict(user_profile: UserProfile, thread: MessageThread) -> ThreadDict:
             datetime_to_timestamp(stats["last_reply"]) if stats["last_reply"] else None
         ),
         participant_user_ids=latest_senders(sender_rows),
+        user_participated=(
+            thread.creator_id == user_profile.id
+            or any(sender_id == user_profile.id for sender_id, _message_id in sender_rows)
+            or Message.objects.filter(id=thread.root_message_id, sender_id=user_profile.id).exists()
+        ),
     )
 
 
@@ -236,9 +263,114 @@ def topic_filter(topic_names: list[str]) -> Q:
     return condition
 
 
+def participated_topics(user_profile: UserProfile, streams: list[Stream]) -> list[tuple[int, str]]:
+    """(channel id, topic name) of the channel topics other than general
+    chat that the user sent a message to or was mentioned in (directly
+    or through a group), newest first, each once, as far back as the
+    user's newest MAX_PARTICIPATION_MESSAGES of each. Slack follows a
+    thread for exactly these people; the web app counts unread messages
+    in these topics, when they are not threads, under Threads."""
+    stream_ids_by_recipient_id = {stream.recipient_id: stream.id for stream in streams}
+    own = (
+        Message.objects.filter(
+            realm_id=user_profile.realm_id,
+            is_channel_message=True,
+            recipient_id__in=stream_ids_by_recipient_id,
+            sender_id=user_profile.id,
+        )
+        .exclude(subject="")
+        .order_by("-id")
+        .values("id")[:MAX_PARTICIPATION_MESSAGES]
+    )
+    mentioned = (
+        UserMessage.objects.filter(
+            user_profile_id=user_profile.id,
+            message__is_channel_message=True,
+            message__recipient_id__in=stream_ids_by_recipient_id,
+        )
+        .exclude(message__subject="")
+        .annotate(mention_flag=F("flags").bitand(UserMessage.flags.mentioned.mask))
+        .filter(mention_flag__gt=0)
+        .order_by("-message_id")
+        .values("message_id")[:MAX_PARTICIPATION_MESSAGES]
+    )
+    topics: list[tuple[int, str]] = []
+    seen: set[tuple[int, str]] = set()
+    for recipient_id, topic_name in (
+        Message.objects.filter(realm_id=user_profile.realm_id)
+        .filter(Q(id__in=own) | Q(id__in=mentioned))
+        .order_by("-id")
+        .values_list("recipient_id", "subject")
+    ):
+        key = (recipient_id, topic_name.upper())
+        if key not in seen:
+            seen.add(key)
+            topics.append((stream_ids_by_recipient_id[recipient_id], topic_name))
+    return topics
+
+
+def unthreaded_participated_topics(
+    user_profile: UserProfile, streams: list[Stream]
+) -> list[tuple[int, str]]:
+    """participated_topics without the thread topics, which follow their
+    own participation rule (ThreadDict.user_participated)."""
+    topics = participated_topics(user_profile, streams)
+    if not topics:
+        return []
+    thread_topics = {
+        (stream_id, topic_name.upper())
+        for stream_id, topic_name in MessageThread.objects.filter(
+            realm_id=user_profile.realm_id, stream_id__in={stream_id for stream_id, _ in topics}
+        ).values_list("stream_id", "topic_name")
+    }
+    return [
+        (stream_id, topic_name)
+        for stream_id, topic_name in topics
+        if (stream_id, topic_name.upper()) not in thread_topics
+    ]
+
+
+def follow_moved_thread_topic(message_edit_request: StreamMessageEditRequest) -> None:
+    """Keep a thread attached to its replies when their topic is
+    renamed, resolved or unresolved (a rename with a ✔ prefix) or moved
+    to another channel. Called from do_update_message once the messages
+    have moved, in the same transaction. A thread whose topic was only
+    partly moved stays with the replies left behind."""
+    if not message_edit_request.is_message_moved:
+        return
+    orig_stream = message_edit_request.orig_stream
+    orig_topic_name = message_edit_request.orig_topic_name
+    target_stream = message_edit_request.target_stream
+    target_topic_name = message_edit_request.target_topic_name
+    thread = (
+        # The row may be deleted below, so the full lock.
+        MessageThread.objects.select_for_update(no_key=False)
+        .filter(stream=orig_stream, topic_name__iexact=orig_topic_name)
+        .first()
+    )
+    if thread is None:
+        return
+    assert orig_stream.recipient_id is not None
+    if messages_for_topic(orig_stream.realm_id, orig_stream.recipient_id, orig_topic_name).exists():
+        return
+    if (
+        MessageThread.objects.filter(stream=target_stream, topic_name__iexact=target_topic_name)
+        .exclude(id=thread.id)
+        .exists()
+    ):
+        # The replies joined another thread's topic; that thread keeps
+        # them, and this root goes back to being a plain message.
+        thread.delete()
+        return
+    thread.stream = target_stream
+    thread.topic_name = target_topic_name
+    thread.save(update_fields=["stream", "topic_name"])
+
+
 def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list[dict[str, Any]]:
-    """Other people's replies in the threads the user started or
-    replied in, newest first, as message dicts in the shape of GET
+    """Other people's replies in the threads the user wrote the root
+    of, started or replied in, and in the other topics (not general
+    chat) the user sent a message to or was mentioned in, newest first, as message dicts in the shape of GET
     /messages so the Activity view can merge them with its other
     feeds."""
     streams = {stream.id: stream for stream in accessible_streams(user_profile)}
@@ -259,11 +391,17 @@ def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list
         subject__iexact=OuterRef("topic_name"),
     )
     threads = MessageThread.objects.filter(id__in=newest_thread_ids).filter(
-        Q(creator_id=user_profile.id) | Q(Exists(replied))
+        Q(creator_id=user_profile.id)
+        | Q(root_message__sender_id=user_profile.id)
+        | Q(Exists(replied))
     )
     topic_names_by_stream_id: dict[int, list[str]] = {}
     for thread in threads:
         topic_names_by_stream_id.setdefault(thread.stream_id, []).append(thread.topic_name)
+    for stream_id, topic_name in unthreaded_participated_topics(
+        user_profile, list(streams.values())
+    )[:MAX_ACTIVITY_THREADS]:
+        topic_names_by_stream_id.setdefault(stream_id, []).append(topic_name)
 
     # In a channel whose history is not public to subscribers only the
     # messages the user received count (readable_messages' rule, as a

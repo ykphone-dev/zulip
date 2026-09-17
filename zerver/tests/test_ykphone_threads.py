@@ -2,6 +2,7 @@ from typing import Any
 from unittest import mock
 
 import orjson
+from typing_extensions import override
 
 from ykphone.lib.threads import get_or_create_thread, thread_topic_snippet
 from ykphone.models import MessageThread
@@ -58,31 +59,68 @@ class ThreadAPITest(ZulipTestCase):
         self.assertEqual(data["reply_count"], 0)
         self.assertIsNone(data["last_reply_timestamp"])
         self.assertEqual(data["participant_user_ids"], [])
+        # Cordelia started the thread.
+        self.assertTrue(data["user_participated"])
 
-        # Opening the thread again is idempotent.
+        # Opening the thread again is idempotent. Hamlet has neither
+        # started the thread nor replied in it, but wrote its root, which
+        # counts, as Slack follows a thread for the parent's author.
         again = self.assert_json_success(self.create("hamlet", root_id))
         self.assertEqual(again["topic_name"], data["topic_name"])
+        self.assertTrue(again["user_participated"])
+        listed = self.assert_json_success(self.list_threads("hamlet", verona.id))["threads"]
+        self.assertTrue(listed[0]["user_participated"])
+        # Aaron has done none of these.
+        self.assertFalse(
+            self.assert_json_success(self.create("aaron", root_id))["user_participated"]
+        )
+        self.assertFalse(
+            self.assert_json_success(self.list_threads("aaron", verona.id))["threads"][0][
+                "user_participated"
+            ]
+        )
         self.assertEqual(MessageThread.objects.filter(root_message_id=root_id).count(), 1)
 
         reply_id = self.send_stream_message(cordelia, "Verona", "Yes", data["topic_name"])
+        self.send_stream_message(self.example_user("aaron"), "Verona", "Sure", data["topic_name"])
         self.send_stream_message(hamlet, "Verona", "Great", data["topic_name"])
         reply = Message.objects.get(id=reply_id)
 
         listed = self.assert_json_success(self.list_threads("hamlet", verona.id))["threads"]
         self.assert_length(listed, 1)
         self.assertEqual(listed[0]["root_message_id"], root_id)
-        self.assertEqual(listed[0]["reply_count"], 2)
+        self.assertEqual(listed[0]["reply_count"], 3)
         self.assertGreaterEqual(listed[0]["last_reply_timestamp"], int(reply.date_sent.timestamp()))
         # Newest reply's sender first, each sender once.
-        self.assertEqual(listed[0]["participant_user_ids"], [hamlet.id, cordelia.id])
+        self.assertEqual(
+            listed[0]["participant_user_ids"],
+            [hamlet.id, self.example_user("aaron").id, cordelia.id],
+        )
+        # Replying counts as taking part; Othello has done nothing yet.
+        self.assertTrue(
+            self.assert_json_success(self.create("aaron", root_id))["user_participated"]
+        )
+        self.assertTrue(
+            self.assert_json_success(self.list_threads("cordelia", verona.id))["threads"][0][
+                "user_participated"
+            ]
+        )
+        self.assertFalse(
+            self.assert_json_success(self.list_threads("othello", verona.id))["threads"][0][
+                "user_participated"
+            ]
+        )
         self.send_stream_message(cordelia, "Verona", "Again", data["topic_name"])
         self.send_stream_message(self.example_user("iago"), "Verona", "Ok", data["topic_name"])
         self.send_stream_message(self.example_user("othello"), "Verona", "!", data["topic_name"])
-        listed = self.assert_json_success(self.list_threads("hamlet", verona.id))["threads"]
+        listed = self.assert_json_success(self.list_threads("aaron", verona.id))["threads"]
         self.assertEqual(
             listed[0]["participant_user_ids"],
             [self.example_user("othello").id, self.example_user("iago").id, cordelia.id],
         )
+        # Aaron's reply is older than the newest three senders' but
+        # still counts.
+        self.assertTrue(listed[0]["user_participated"])
         again = self.assert_json_success(self.create("hamlet", root_id))
         self.assertEqual(again["participant_user_ids"], listed[0]["participant_user_ids"])
 
@@ -90,6 +128,112 @@ class ThreadAPITest(ZulipTestCase):
         other_root = self.send_stream_message(hamlet, "Verona", "Shall we ship on Friday?", "")
         other = self.assert_json_success(self.create("hamlet", other_root))
         self.assertEqual(other["topic_name"], "Shall we ship on Friday? (2)")
+
+    def test_participated_topics(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        # A new channel, so the sample conversations stay out of it.
+        verona = self.make_stream("ykphone-lab")
+        for user in [hamlet, cordelia, self.example_user("othello")]:
+            self.subscribe(user, verona.name)
+        # Hamlet posts in a topic another client created, is mentioned in
+        # a second one, and neither in a third; general chat and threads
+        # are not listed, and each topic is listed once, newest first.
+        self.send_stream_message(cordelia, verona.name, "hi", "Mobile topic")
+        self.send_stream_message(hamlet, verona.name, "me too", "mobile TOPIC")
+        self.send_stream_message(hamlet, verona.name, "again", "Mobile topic")
+        self.send_stream_message(cordelia, verona.name, "@**King Hamlet** look", "Mentioned here")
+        self.send_stream_message(cordelia, verona.name, "not for hamlet", "Someone else's")
+        self.send_stream_message(hamlet, verona.name, "general chat", "")
+        root_id = self.send_stream_message(hamlet, verona.name, "Root", "")
+        topic = self.assert_json_success(self.create("hamlet", root_id))["topic_name"]
+        self.send_stream_message(hamlet, verona.name, "in my thread", topic)
+
+        result = self.assert_json_success(self.list_threads("hamlet", verona.id))
+        self.assertEqual(result["participated_topics"], ["Mentioned here", "Mobile topic"])
+        self.assertEqual(
+            self.assert_json_success(self.list_threads("othello", verona.id))[
+                "participated_topics"
+            ],
+            [],
+        )
+        with mock.patch("ykphone.lib.threads.MAX_PARTICIPATION_MESSAGES", 1):
+            # Only the newest own message (in the thread, left out) and
+            # the newest mention are searched.
+            self.assertEqual(
+                self.assert_json_success(self.list_threads("hamlet", verona.id))[
+                    "participated_topics"
+                ],
+                ["Mentioned here"],
+            )
+
+    def test_thread_follows_its_topic(self) -> None:
+        iago = self.example_user("iago")
+        hamlet = self.example_user("hamlet")
+        verona = get_stream("Verona", hamlet.realm)
+        denmark = get_stream("Denmark", hamlet.realm)
+        root_id = self.send_stream_message(hamlet, "Verona", "Ship it", "")
+        topic = self.assert_json_success(self.create("hamlet", root_id))["topic_name"]
+        first = self.send_stream_message(hamlet, "Verona", "one", topic)
+        second = self.send_stream_message(iago, "Verona", "two", topic)
+
+        def thread() -> MessageThread:
+            return MessageThread.objects.get(root_message_id=root_id)
+
+        def move(message_id: int, **params: str) -> None:
+            self.assert_json_success(
+                self.api_patch(
+                    iago,
+                    f"/api/v1/messages/{message_id}",
+                    {
+                        "propagate_mode": "change_all",
+                        "send_notification_to_old_thread": "false",
+                        "send_notification_to_new_thread": "false",
+                        **params,
+                    },
+                )
+            )
+
+        # Resolving and unresolving are renames with a prefix.
+        self.assert_json_success(self.resolve_topic_containing_message(iago, first))
+        self.assertEqual(thread().topic_name, "✔ " + topic)
+        move(first, topic=topic)
+        self.assertEqual(thread().topic_name, topic)
+
+        move(first, topic="R9 shipping plan")
+        self.assertEqual((thread().stream_id, thread().topic_name), (verona.id, "R9 shipping plan"))
+        listed = self.assert_json_success(self.list_threads("hamlet", verona.id))["threads"]
+        # The replies, plus Notification Bot's resolved/unresolved notices.
+        self.assertEqual(
+            [(t["topic_name"], t["reply_count"]) for t in listed], [("R9 shipping plan", 4)]
+        )
+
+        move(first, stream_id=str(denmark.id))
+        self.assertEqual(
+            (thread().stream_id, thread().topic_name), (denmark.id, "R9 shipping plan")
+        )
+
+        # Moving only some of the replies leaves the thread with the rest.
+        move(first, topic="R9 split off", propagate_mode="change_one")
+        self.assertEqual(
+            (thread().stream_id, thread().topic_name), (denmark.id, "R9 shipping plan")
+        )
+
+        # Moving the replies into another thread's topic merges them into
+        # that thread; this root is a plain message again.
+        other_root = self.send_stream_message(hamlet, "Denmark", "Other root", "")
+        other_topic = self.assert_json_success(self.create("hamlet", other_root))["topic_name"]
+        self.send_stream_message(hamlet, "Denmark", "other reply", other_topic)
+        move(second, topic=other_topic)
+        self.assertFalse(MessageThread.objects.filter(root_message_id=root_id).exists())
+        self.assertEqual(
+            MessageThread.objects.get(root_message_id=other_root).topic_name, other_topic
+        )
+
+        # Moving a topic that is not a thread changes no thread.
+        plain = self.send_stream_message(hamlet, "Denmark", "plain", "R9 plain topic")
+        move(plain, topic="R9 plain renamed")
+        self.assertEqual(MessageThread.objects.filter(realm=hamlet.realm).count(), 1)
 
     def test_snippet_avoids_existing_topic(self) -> None:
         hamlet = self.example_user("hamlet")
@@ -206,9 +350,21 @@ class ThreadAPITest(ZulipTestCase):
 
 
 class ThreadActivityTest(ZulipTestCase):
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        # The test database's sample conversations include topics the
+        # example users posted or were mentioned in; only what a test
+        # sends itself is looked at.
+        self.first_test_message_id = Message.objects.order_by("-id")[0].id + 1
+
     def activity(self, user_name: str) -> list[dict[str, Any]]:
         result = self.api_get(self.example_user(user_name), "/api/v1/ykphone/threads/activity")
-        return self.assert_json_success(result)["messages"]
+        return [
+            message
+            for message in self.assert_json_success(result)["messages"]
+            if message["id"] >= self.first_test_message_id
+        ]
 
     def start_thread(self, user_name: str, root_id: int) -> str:
         result = self.api_post(
@@ -220,6 +376,7 @@ class ThreadActivityTest(ZulipTestCase):
         hamlet = self.example_user("hamlet")
         cordelia = self.example_user("cordelia")
         othello = self.example_user("othello")
+        iago = self.example_user("iago")
         verona = get_stream("Verona", hamlet.realm)
         root_id = self.send_stream_message(hamlet, "Verona", "Shall we ship on Friday?", "")
         topic = self.start_thread("hamlet", root_id)
@@ -247,20 +404,37 @@ class ThreadActivityTest(ZulipTestCase):
         self.assertEqual([message["id"] for message in self.activity("cordelia")], [mine, two])
         self.assertEqual([message["id"] for message in self.activity("othello")], [mine, one])
 
-        # The root's author is not involved unless they start or join
-        # the thread; nor is anyone else.
+        # The root's author follows the thread without starting or
+        # joining it, as in Slack; nobody else is involved.
         other_root = self.send_stream_message(othello, "Verona", "Lunch?", "")
         other_topic = self.start_thread("cordelia", other_root)
         noodles = self.send_stream_message(hamlet, "Verona", "Noodles", other_topic)
-        self.assertEqual([message["id"] for message in self.activity("othello")], [mine, one])
+        self.assertEqual(
+            [message["id"] for message in self.activity("othello")], [noodles, mine, one]
+        )
         self.assertEqual(self.activity("iago"), [])
 
         # A thread reply by the user counts as joining it; replies that
         # had already been sent before joining are included.
-        self.send_stream_message(othello, "Verona", "Count me in", other_topic)
+        self.send_stream_message(iago, "Verona", "Count me in", other_topic)
+        self.assertEqual([message["id"] for message in self.activity("iago")], [noodles])
+
+    def test_replies_in_topics_i_take_part_in(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        othello = self.example_user("othello")
+        # Topics another client created: Hamlet posted in one and was
+        # mentioned in another; the third is someone else's.
+        self.send_stream_message(hamlet, "Verona", "started here", "Mobile topic")
+        posted = self.send_stream_message(cordelia, "Verona", "reply", "Mobile topic")
+        mention = self.send_stream_message(othello, "Verona", "@**King Hamlet** see", "Asked")
+        after_mention = self.send_stream_message(cordelia, "Verona", "and this", "Asked")
+        self.send_stream_message(cordelia, "Verona", "unrelated", "Someone else's")
         self.assertEqual(
-            [message["id"] for message in self.activity("othello")], [noodles, mine, one]
+            [message["id"] for message in self.activity("hamlet")],
+            [after_mention, mention, posted],
         )
+        self.assertEqual(self.activity("iago"), [])
 
     def test_access_and_protected_history(self) -> None:
         hamlet = self.example_user("hamlet")
@@ -287,9 +461,16 @@ class ThreadActivityTest(ZulipTestCase):
         after = self.send_stream_message(hamlet, private.name, "after", topic)
         self.assertEqual([message["id"] for message in self.activity("cordelia")], [after, before])
 
-        # Hamlet, who received everything, sees nothing here: he neither
-        # started the thread nor replied to anyone else.
+        # Hamlet wrote the root, so he follows the thread, but every reply
+        # so far is his own; Cordelia's first one is listed.
         self.assertEqual(self.activity("hamlet"), [])
+        hers = self.send_stream_message(cordelia, private.name, "noted", topic)
+        self.assertEqual([message["id"] for message in self.activity("hamlet")], [hers])
+        # Without access to the channel, writing the root no longer
+        # counts.
+        self.unsubscribe(hamlet, private.name)
+        self.assertEqual(self.activity("hamlet"), [])
+        self.subscribe(hamlet, private.name)
 
         # An archived channel is left out.
         do_deactivate_stream(private, acting_user=hamlet)
@@ -336,9 +517,10 @@ class ThreadActivityTest(ZulipTestCase):
             self.send_stream_message(cordelia, stream_name, "reply", topic)
         # Session/auth and realm queries, then: subscribed channel ids,
         # accessible channels, newest thread ids, involved threads, the
-        # replies, their UserMessage flags and messages_for_ids; no
-        # per-channel or per-thread queries.
-        with self.assert_database_query_count(16):
+        # topics the user posted or was mentioned in and the threads among
+        # them, the replies, their UserMessage flags and messages_for_ids;
+        # no per-channel or per-thread queries.
+        with self.assert_database_query_count(18):
             messages = self.activity("hamlet")
         self.assert_length(messages, 3)
 
