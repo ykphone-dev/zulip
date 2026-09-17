@@ -4,6 +4,7 @@ from pydantic import Json
 from ykphone.lib.pins import pin_dict, pin_message, pins_for_stream, unpin_message
 from ykphone.lib.threads import (
     get_or_create_thread,
+    my_threads,
     thread_activity,
     thread_dict,
     threads_for_stream,
@@ -11,7 +12,7 @@ from ykphone.lib.threads import (
 )
 from zerver.lib.response import json_success
 from zerver.lib.streams import access_stream_by_id
-from zerver.lib.typed_endpoint import PathOnly, typed_endpoint
+from zerver.lib.typed_endpoint import PathOnly, typed_endpoint, typed_endpoint_without_parameters
 from zerver.models import UserProfile
 
 
@@ -50,6 +51,11 @@ def get_thread_activity(
         request,
         data={"messages": thread_activity(user_profile, client_gravatar=client_gravatar)},
     )
+
+
+@typed_endpoint_without_parameters
+def get_my_threads(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    return json_success(request, data={"threads": my_threads(user_profile)})
 
 
 @typed_endpoint

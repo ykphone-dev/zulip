@@ -1,8 +1,9 @@
 import re
+from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db import transaction
-from django.db.models import Count, Exists, F, Max, OuterRef, Q, QuerySet
+from django.db.models import Count, Exists, F, Max, Min, OuterRef, Q, QuerySet
 from django.db.models.functions import Upper
 from django.utils.translation import gettext as _
 
@@ -34,6 +35,10 @@ MAX_ACTIVITY_THREADS = 200
 # How far back the user's own messages and mentions are searched for
 # the topics (other than threads) they take part in.
 MAX_PARTICIPATION_MESSAGES = 1000
+# The Threads page lists this many of the user's conversations.
+MAX_MY_THREADS = 100
+# A row of the Threads page shows about this much of the root message.
+THREAD_ROW_SNIPPET_LENGTH = 200
 
 
 class ThreadDict(TypedDict):
@@ -51,7 +56,26 @@ class ThreadDict(TypedDict):
     user_participated: bool
 
 
-def thread_topic_snippet(content: str) -> str:
+class ThreadRowDict(TypedDict):
+    """A row of the Threads page: a thread the user follows, or a topic
+    other than general chat that the user took part in, with its first
+    message standing in for the root."""
+
+    root_message_id: int
+    stream_id: int
+    topic_name: str
+    is_thread: bool
+    reply_count: int
+    last_reply_timestamp: int | None
+    root_sender_id: int
+    root_sender_full_name: str
+    root_snippet: str
+    root_timestamp: int
+    # The newest of the root and the last reply, which orders the page.
+    last_activity_timestamp: int
+
+
+def thread_topic_snippet(content: str, max_length: int = THREAD_TOPIC_SNIPPET_LENGTH) -> str:
     """Turn the raw Markdown of a message into a short, plain topic name."""
     first_line = ""
     for line in content.splitlines():
@@ -72,8 +96,8 @@ def thread_topic_snippet(content: str) -> str:
         # Topic names are shared data, so the fallback is not translated
         # into whichever language the creator happens to use.
         return "Thread"
-    if len(text) > THREAD_TOPIC_SNIPPET_LENGTH:
-        text = text[: THREAD_TOPIC_SNIPPET_LENGTH - 1].rstrip() + "…"
+    if len(text) > max_length:
+        text = text[: max_length - 1].rstrip() + "…"
     return text
 
 
@@ -367,17 +391,11 @@ def follow_moved_thread_topic(message_edit_request: StreamMessageEditRequest) ->
     thread.save(update_fields=["stream", "topic_name"])
 
 
-def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list[dict[str, Any]]:
-    """Other people's replies in the threads the user wrote the root
-    of, started or replied in, and in the other topics (not general
-    chat) the user sent a message to or was mentioned in, newest first, as message dicts in the shape of GET
-    /messages so the Activity view can merge them with its other
-    feeds."""
-    streams = {stream.id: stream for stream in accessible_streams(user_profile)}
-    if not streams:
-        return []
-    # Only the newest threads are considered, so the cost is bounded
-    # however many threads the realm has accumulated.
+def followed_threads(user_profile: UserProfile, streams: dict[int, Stream]) -> list[MessageThread]:
+    """The threads in these channels that the user wrote the root of,
+    started or replied in (ThreadDict.user_participated), among the
+    realm's newest MAX_ACTIVITY_THREADS, so the cost is bounded however
+    many threads the realm has accumulated."""
     newest_thread_ids = list(
         MessageThread.objects.filter(realm_id=user_profile.realm_id, stream_id__in=streams)
         .order_by("-root_message_id")
@@ -390,11 +408,182 @@ def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list
         recipient_id=OuterRef("stream__recipient_id"),
         subject__iexact=OuterRef("topic_name"),
     )
-    threads = MessageThread.objects.filter(id__in=newest_thread_ids).filter(
-        Q(creator_id=user_profile.id)
-        | Q(root_message__sender_id=user_profile.id)
-        | Q(Exists(replied))
+    return list(
+        MessageThread.objects.filter(id__in=newest_thread_ids).filter(
+            Q(creator_id=user_profile.id)
+            | Q(root_message__sender_id=user_profile.id)
+            | Q(Exists(replied))
+        )
     )
+
+
+def my_threads(user_profile: UserProfile) -> list[ThreadRowDict]:
+    """The rows of the Threads page: the threads the user follows and
+    the other topics (not general chat) the user posted in or was
+    mentioned in, newest activity first, at most MAX_MY_THREADS, in a
+    fixed number of queries. A topic's first message stands in for the
+    root of a plain topic."""
+    streams = {stream.id: stream for stream in accessible_streams(user_profile)}
+    if not streams:
+        return []
+    recipient_ids: dict[int, int] = {}
+    for stream_id, stream in streams.items():
+        assert stream.recipient_id is not None
+        recipient_ids[stream_id] = stream.recipient_id
+    threads = followed_threads(user_profile, streams)
+    protected_stream_ids = {
+        stream_id
+        for stream_id, stream in streams.items()
+        if not stream.is_history_public_to_subscribers()
+    }
+    protected_root_ids = [
+        thread.root_message_id for thread in threads if thread.stream_id in protected_stream_ids
+    ]
+    if protected_root_ids:
+        # A thread's row shows its root, so roots the user never
+        # received in a channel with protected history are left out.
+        readable_root_ids = set(
+            UserMessage.objects.filter(
+                user_profile_id=user_profile.id, message_id__in=protected_root_ids
+            ).values_list("message_id", flat=True)
+        )
+        threads = [
+            thread
+            for thread in threads
+            if thread.stream_id not in protected_stream_ids
+            or thread.root_message_id in readable_root_ids
+        ]
+    plain_topics = unthreaded_participated_topics(user_profile, list(streams.values()))[
+        :MAX_ACTIVITY_THREADS
+    ]
+
+    topic_names_by_stream_id: dict[int, list[str]] = {}
+    for thread in threads:
+        topic_names_by_stream_id.setdefault(thread.stream_id, []).append(thread.topic_name)
+    for stream_id, topic_name in plain_topics:
+        topic_names_by_stream_id.setdefault(stream_id, []).append(topic_name)
+    if not topic_names_by_stream_id:
+        return []
+
+    # Per topic: how many messages, the newest one's time and the
+    # oldest one's id, in one query per history kind (readable_messages'
+    # rule across channels).
+    open_history = Q()
+    protected_history = Q()
+    for stream_id, topic_names in topic_names_by_stream_id.items():
+        topics = Q(recipient_id=recipient_ids[stream_id]) & topic_filter(topic_names)
+        if stream_id in protected_stream_ids:
+            protected_history |= topics
+        else:
+            open_history |= topics
+    channel_messages = Message.objects.filter(
+        realm_id=user_profile.realm_id, is_channel_message=True
+    )
+    stats: dict[tuple[int, str], dict[str, Any]] = {}
+    for history, queryset in (
+        (open_history, channel_messages),
+        (protected_history, channel_messages.filter(usermessage__user_profile_id=user_profile.id)),
+    ):
+        if not history:
+            continue
+        for row in (
+            queryset.filter(history)
+            .annotate(upper_subject=Upper("subject"))
+            .values("recipient_id", "upper_subject")
+            .annotate(
+                message_count=Count("id"),
+                last_sent=Max("date_sent"),
+                first_id=Min("id"),
+                last_id=Max("id"),
+            )
+        ):
+            stats[(row["recipient_id"], row["upper_subject"])] = row
+
+    # The roots: a thread's root message, a plain topic's first message.
+    root_ids = [thread.root_message_id for thread in threads]
+    plain_root_ids: dict[tuple[int, str], int] = {}
+    for stream_id, topic_name in plain_topics:
+        topic_stats = stats.get((recipient_ids[stream_id], topic_name.upper()))
+        if topic_stats is not None:
+            plain_root_ids[(stream_id, topic_name)] = topic_stats["first_id"]
+            root_ids.append(topic_stats["first_id"])
+    roots = {
+        root_id: (sender_id, sender_full_name, content, date_sent)
+        for root_id, sender_id, sender_full_name, content, date_sent in Message.objects.filter(
+            id__in=root_ids
+        ).values_list("id", "sender_id", "sender__full_name", "content", "date_sent")
+    }
+
+    def row_dict(
+        *,
+        root_id: int,
+        stream_id: int,
+        topic_name: str,
+        is_thread: bool,
+        reply_count: int,
+        last_reply: datetime | None,
+    ) -> ThreadRowDict:
+        sender_id, sender_full_name, content, date_sent = roots[root_id]
+        root_timestamp = datetime_to_timestamp(date_sent)
+        last_reply_timestamp = datetime_to_timestamp(last_reply) if last_reply else None
+        return ThreadRowDict(
+            root_message_id=root_id,
+            stream_id=stream_id,
+            topic_name=topic_name,
+            is_thread=is_thread,
+            reply_count=reply_count,
+            last_reply_timestamp=last_reply_timestamp,
+            root_sender_id=sender_id,
+            root_sender_full_name=sender_full_name,
+            root_snippet=thread_topic_snippet(content, THREAD_ROW_SNIPPET_LENGTH),
+            root_timestamp=root_timestamp,
+            last_activity_timestamp=max(root_timestamp, last_reply_timestamp or 0),
+        )
+
+    # Newest activity first; the newest message's id breaks ties between
+    # rows whose activity falls in the same second.
+    rows: list[tuple[int, int, ThreadRowDict]] = []
+    for thread in threads:
+        if thread.root_message_id not in roots:
+            continue
+        topic_stats = stats.get((recipient_ids[thread.stream_id], thread.topic_name.upper()))
+        thread_row = row_dict(
+            root_id=thread.root_message_id,
+            stream_id=thread.stream_id,
+            topic_name=thread.topic_name,
+            is_thread=True,
+            reply_count=topic_stats["message_count"] if topic_stats else 0,
+            last_reply=topic_stats["last_sent"] if topic_stats else None,
+        )
+        last_id = topic_stats["last_id"] if topic_stats else thread.root_message_id
+        rows.append((thread_row["last_activity_timestamp"], last_id, thread_row))
+    for (stream_id, topic_name), root_id in plain_root_ids.items():
+        topic_stats = stats[(recipient_ids[stream_id], topic_name.upper())]
+        # The first message is the root; a reply is any later one.
+        reply_count = topic_stats["message_count"] - 1
+        topic_row = row_dict(
+            root_id=root_id,
+            stream_id=stream_id,
+            topic_name=topic_name,
+            is_thread=False,
+            reply_count=reply_count,
+            last_reply=topic_stats["last_sent"] if reply_count > 0 else None,
+        )
+        rows.append((topic_row["last_activity_timestamp"], topic_stats["last_id"], topic_row))
+    rows.sort(key=lambda entry: (entry[0], entry[1]), reverse=True)
+    return [thread_row for _timestamp, _last_id, thread_row in rows[:MAX_MY_THREADS]]
+
+
+def thread_activity(user_profile: UserProfile, *, client_gravatar: bool) -> list[dict[str, Any]]:
+    """Other people's replies in the threads the user wrote the root
+    of, started or replied in, and in the other topics (not general
+    chat) the user sent a message to or was mentioned in, newest first, as message dicts in the shape of GET
+    /messages so the Activity view can merge them with its other
+    feeds."""
+    streams = {stream.id: stream for stream in accessible_streams(user_profile)}
+    if not streams:
+        return []
+    threads = followed_threads(user_profile, streams)
     topic_names_by_stream_id: dict[int, list[str]] = {}
     for thread in threads:
         topic_names_by_stream_id.setdefault(thread.stream_id, []).append(thread.topic_name)

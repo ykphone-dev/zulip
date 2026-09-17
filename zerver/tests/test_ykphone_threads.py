@@ -9,6 +9,7 @@ from ykphone.models import MessageThread
 from zerver.actions.streams import do_deactivate_stream, do_set_stream_property
 from zerver.lib.message import access_message
 from zerver.lib.test_classes import ZulipTestCase
+from zerver.lib.timestamp import datetime_to_timestamp
 from zerver.lib.topic import TOPIC_NAME
 from zerver.models import Message
 from zerver.models.streams import StreamTopicsPolicyEnum, get_stream
@@ -535,6 +536,209 @@ class ThreadActivityTest(ZulipTestCase):
 
     def test_login_required(self) -> None:
         result = self.client_get("/json/ykphone/threads/activity")
+        self.assert_json_error(
+            result, "Not logged in: API authentication or user session required", 401
+        )
+
+
+class MyThreadsTest(ZulipTestCase):
+    @override
+    def setUp(self) -> None:
+        super().setUp()
+        # The test database's sample conversations include topics the
+        # example users posted or were mentioned in; only what a test
+        # sends itself is looked at.
+        self.first_test_message_id = Message.objects.order_by("-id")[0].id + 1
+
+    def mine(self, user_name: str) -> list[dict[str, Any]]:
+        result = self.api_get(self.example_user(user_name), "/api/v1/ykphone/threads/mine")
+        return [
+            row
+            for row in self.assert_json_success(result)["threads"]
+            if row["root_message_id"] >= self.first_test_message_id
+        ]
+
+    def start_thread(self, user_name: str, root_id: int) -> str:
+        result = self.api_post(
+            self.example_user(user_name), "/api/v1/ykphone/threads", {"message_id": root_id}
+        )
+        return self.assert_json_success(result)["topic_name"]
+
+    def test_rows(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        othello = self.example_user("othello")
+        verona = get_stream("Verona", hamlet.realm)
+        root_id = self.send_stream_message(hamlet, "Verona", "Shall we **ship** on Friday?", "")
+        topic = self.start_thread("cordelia", root_id)
+
+        # A thread without replies: the creator and the root's author
+        # follow it; nobody else does.
+        rows = self.mine("cordelia")
+        self.assert_length(rows, 1)
+        row = rows[0]
+        self.assertEqual(row["root_message_id"], root_id)
+        self.assertEqual(row["stream_id"], verona.id)
+        self.assertEqual(row["topic_name"], topic)
+        self.assertTrue(row["is_thread"])
+        self.assertEqual(row["reply_count"], 0)
+        self.assertIsNone(row["last_reply_timestamp"])
+        self.assertEqual(row["root_sender_id"], hamlet.id)
+        self.assertEqual(row["root_sender_full_name"], hamlet.full_name)
+        self.assertEqual(row["root_snippet"], "Shall we ship on Friday?")
+        root = Message.objects.get(id=root_id)
+        self.assertEqual(row["root_timestamp"], datetime_to_timestamp(root.date_sent))
+        self.assertEqual(row["last_activity_timestamp"], row["root_timestamp"])
+        self.assertEqual([r["root_message_id"] for r in self.mine("hamlet")], [root_id])
+        self.assertEqual(self.mine("othello"), [])
+
+        # Replying joins the thread; the stats count every reply.
+        reply = self.send_stream_message(othello, "Verona", "Works for me", topic)
+        self.send_stream_message(cordelia, "Verona", "Yes", topic.upper())
+        row = self.mine("othello")[0]
+        self.assertEqual(row["reply_count"], 2)
+        last = Message.objects.get(id=reply + 1)
+        self.assertEqual(row["last_reply_timestamp"], datetime_to_timestamp(last.date_sent))
+        self.assertEqual(row["last_activity_timestamp"], row["last_reply_timestamp"])
+
+    def test_plain_topics_and_order(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        othello = self.example_user("othello")
+        verona = get_stream("Verona", hamlet.realm)
+        # A topic another client created, which Hamlet posted in: its
+        # first message stands in for the root and the rest are replies.
+        first = self.send_stream_message(cordelia, "Verona", "Mobile first", "Mobile topic")
+        self.send_stream_message(hamlet, "Verona", "me too", "Mobile topic")
+        # A topic Hamlet was mentioned in, with no replies yet.
+        mention = self.send_stream_message(othello, "Verona", "@**King Hamlet** see", "Asked")
+        # Someone else's topic.
+        self.send_stream_message(cordelia, "Verona", "unrelated", "Someone else's")
+        # A thread of Hamlet's, older than the plain topics.
+        root_id = self.send_stream_message(hamlet, "Verona", "Root", "")
+        self.start_thread("hamlet", root_id)
+
+        rows = self.mine("hamlet")
+        self.assertEqual(
+            [(row["root_message_id"], row["is_thread"]) for row in rows],
+            [(root_id, True), (mention, False), (first, False)],
+        )
+        asked, mobile = rows[1], rows[2]
+        self.assertEqual(asked["topic_name"], "Asked")
+        self.assertEqual(asked["reply_count"], 0)
+        self.assertIsNone(asked["last_reply_timestamp"])
+        self.assertEqual(asked["root_sender_id"], othello.id)
+        self.assertEqual(asked["root_snippet"], "King Hamlet see")
+        self.assertEqual(mobile["stream_id"], verona.id)
+        self.assertEqual(mobile["reply_count"], 1)
+        self.assertIsNotNone(mobile["last_reply_timestamp"])
+        self.assertEqual(mobile["root_sender_full_name"], cordelia.full_name)
+
+        # A reply moves the topic to the top: newest activity first.
+        self.send_stream_message(cordelia, "Verona", "again", "Mobile topic")
+        self.assertEqual(
+            [row["root_message_id"] for row in self.mine("hamlet")], [first, root_id, mention]
+        )
+        self.assertEqual(self.mine("iago"), [])
+
+    def test_access_and_protected_history(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        private = self.make_stream(
+            "protected-lab", invite_only=True, history_public_to_subscribers=False
+        )
+        othello = self.example_user("othello")
+        self.subscribe(hamlet, private.name)
+        self.subscribe(cordelia, private.name)
+        root_id = self.send_stream_message(hamlet, private.name, "Salary bands", "")
+        topic = self.start_thread("cordelia", root_id)
+        self.assertEqual([row["root_message_id"] for row in self.mine("cordelia")], [root_id])
+        # Othello joins after the root was sent and replies, which makes
+        # him follow the thread, but he never received the root the row
+        # would show, so the row is not listed for him.
+        self.subscribe(othello, private.name)
+        self.send_stream_message(othello, private.name, "joining", topic)
+        self.assertEqual(self.mine("othello"), [])
+        # Without access to the channel nothing is listed.
+        self.unsubscribe(hamlet, private.name)
+        self.assertEqual(self.mine("hamlet"), [])
+        self.subscribe(hamlet, private.name)
+
+        # Replies sent while unsubscribed are never received and stay
+        # out of the counts.
+        self.unsubscribe(cordelia, private.name)
+        self.send_stream_message(hamlet, private.name, "meanwhile", topic)
+        self.subscribe(cordelia, private.name)
+        self.send_stream_message(hamlet, private.name, "after", topic)
+        row = self.mine("hamlet")[0]
+        self.assertEqual(row["reply_count"], 3)
+        self.assertEqual(self.mine("cordelia")[0]["reply_count"], 2)
+        # A plain topic Cordelia posts in counts only what she received.
+        self.send_stream_message(cordelia, private.name, "mine", "Plain")
+        self.unsubscribe(cordelia, private.name)
+        self.send_stream_message(hamlet, private.name, "unseen", "Plain")
+        self.subscribe(cordelia, private.name)
+        seen = self.send_stream_message(hamlet, private.name, "seen", "Plain")
+        rows = self.mine("cordelia")
+        self.assertEqual(
+            [(row["topic_name"], row["reply_count"]) for row in rows],
+            [("Plain", 1), ("Salary bands", 2)],
+        )
+        self.assertEqual(
+            rows[0]["last_activity_timestamp"],
+            datetime_to_timestamp(Message.objects.get(id=seen).date_sent),
+        )
+
+        # An archived channel is left out.
+        do_deactivate_stream(private, acting_user=hamlet)
+        self.assertEqual(self.mine("cordelia"), [])
+        self.assertEqual(self.mine("hamlet"), [])
+
+    def test_guest_leaving_a_public_channel(self) -> None:
+        hamlet = self.example_user("hamlet")
+        polonius = self.example_user("polonius")
+        self.subscribe(polonius, "Verona")
+        root_id = self.send_stream_message(hamlet, "Verona", "Guests welcome", "")
+        self.start_thread("polonius", root_id)
+        self.assertEqual([row["root_message_id"] for row in self.mine("polonius")], [root_id])
+        self.unsubscribe(polonius, "Verona")
+        self.assertEqual(self.mine("polonius"), [])
+
+    def test_query_count(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        for stream_name in ["Verona", "Denmark", "Scotland"]:
+            self.subscribe(hamlet, stream_name)
+            self.subscribe(cordelia, stream_name)
+            root_id = self.send_stream_message(hamlet, stream_name, f"Root in {stream_name}", "")
+            topic = self.start_thread("hamlet", root_id)
+            self.send_stream_message(cordelia, stream_name, "reply", topic)
+            self.send_stream_message(hamlet, stream_name, "plain", f"Plain in {stream_name}")
+        # Session/auth and realm queries, then: subscribed channel ids,
+        # accessible channels, newest thread ids, followed threads, the
+        # participated topics and the threads among them, one stats
+        # query and the roots; no per-channel or per-topic queries.
+        with self.assert_database_query_count(12):
+            rows = self.mine("hamlet")
+        self.assert_length(rows, 6)
+        # The same number of queries for one channel (the others
+        # archived): nothing is queried per channel or per topic.
+        do_deactivate_stream(get_stream("Denmark", hamlet.realm), acting_user=hamlet)
+        do_deactivate_stream(get_stream("Scotland", hamlet.realm), acting_user=hamlet)
+        with self.assert_database_query_count(12):
+            rows = self.mine("hamlet")
+        self.assert_length(rows, 2)
+
+    def test_cap(self) -> None:
+        hamlet = self.example_user("hamlet")
+        roots = [self.send_stream_message(hamlet, "Verona", f"Root {n}", "") for n in range(3)]
+        for root_id in roots:
+            self.start_thread("hamlet", root_id)
+        with mock.patch("ykphone.lib.threads.MAX_MY_THREADS", 2):
+            self.assertEqual([row["root_message_id"] for row in self.mine("hamlet")], roots[:0:-1])
+
+    def test_login_required(self) -> None:
+        result = self.client_get("/json/ykphone/threads/mine")
         self.assert_json_error(
             result, "Not logged in: API authentication or user session required", 401
         )

@@ -4,6 +4,7 @@ from django.urls.resolvers import URLPattern, URLResolver
 from ykphone.views import (
     add_pin,
     create_thread,
+    get_my_threads,
     get_pins,
     get_thread_activity,
     get_threads,
@@ -16,6 +17,7 @@ from zerver.lib.rest import rest_path
 v1_api_and_json_patterns = [
     rest_path("ykphone/threads", GET=get_threads, POST=create_thread),
     rest_path("ykphone/threads/activity", GET=get_thread_activity),
+    rest_path("ykphone/threads/mine", GET=get_my_threads),
     rest_path("ykphone/pins", GET=get_pins, POST=add_pin),
     rest_path("ykphone/pins/<int:message_id>", DELETE=remove_pin),
 ]
