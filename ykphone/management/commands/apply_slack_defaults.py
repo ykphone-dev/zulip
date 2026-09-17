@@ -18,8 +18,10 @@ class Command(ZulipBaseCommand):
 
 Sets the organization's defaults so that new users send with Enter
 (Shift+Enter inserts a newline), read at a compact font size, see a
-count rather than a list of names on an emoji reaction, and get the
-neutral default profile picture instead of a generated pattern.
+count rather than a list of names on an emoji reaction, see only
+direct messages and mentions in the unread count of the browser tab
+and app icon, and get the neutral default profile picture instead of
+a generated pattern.
 With --existing-users the settings are also applied to every active
 human user of the organization, and the generated pattern pictures
 those users still have are replaced by the default one."""
@@ -48,6 +50,18 @@ those users still have are replaced by the default one."""
         do_set_realm_user_default_setting(
             realm_user_default, "display_emoji_reaction_users", False, acting_user=None
         )
+        # The tab title and app icon count what the sidebar and rail count
+        # in numbers: direct messages and mentions (Slack's red badge).
+        # The option with followed topics would also count every general
+        # chat the user has posted in, since Zulip follows the topics one
+        # sends to and general chat is a topic; the sidebar shows those
+        # channels in bold, without a number.
+        do_set_realm_user_default_setting(
+            realm_user_default,
+            "desktop_icon_count_display",
+            UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION,
+            acting_user=None,
+        )
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_GRAVATAR, acting_user=None
         )
@@ -65,6 +79,13 @@ those users still have are replaced by the default one."""
             )
             bulk_change_user_setting(
                 realm, users, "display_emoji_reaction_users", False, acting_user=None
+            )
+            bulk_change_user_setting(
+                realm,
+                users,
+                "desktop_icon_count_display",
+                UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION,
+                acting_user=None,
             )
             patterned = [
                 user for user in users if user.avatar_source == UserProfile.AVATAR_FROM_JDENTICON

@@ -54,6 +54,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
     def realm_default_reaction_users(self) -> bool:
         return RealmUserDefault.objects.get(realm=get_realm("zulip")).display_emoji_reaction_users
 
+    def realm_default_icon_count(self) -> int:
+        return RealmUserDefault.objects.get(realm=get_realm("zulip")).desktop_icon_count_display
+
     def realm_default_avatar_source(self) -> str:
         return Realm.objects.get(string_id="zulip").default_avatar_source
 
@@ -62,6 +65,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         self.assertFalse(self.realm_default())
         self.assertEqual(self.realm_default_font_size(), 16)
         self.assertTrue(self.realm_default_reaction_users())
+        self.assertEqual(
+            self.realm_default_icon_count(), UserProfile.DESKTOP_ICON_COUNT_DISPLAY_MESSAGES
+        )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_JDENTICON)
         self.assertFalse(hamlet.enter_sends)
 
@@ -70,10 +76,16 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         self.assertTrue(self.realm_default())
         self.assertEqual(self.realm_default_font_size(), 14)
         self.assertFalse(self.realm_default_reaction_users())
+        self.assertEqual(
+            self.realm_default_icon_count(), UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION
+        )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_GRAVATAR)
         # Existing users are untouched without --existing-users.
         hamlet.refresh_from_db()
         self.assertFalse(hamlet.enter_sends)
+        self.assertEqual(
+            hamlet.desktop_icon_count_display, UserProfile.DESKTOP_ICON_COUNT_DISPLAY_MESSAGES
+        )
         self.assertEqual(hamlet.web_font_size_px, 16)
         self.assertTrue(hamlet.display_emoji_reaction_users)
         self.assertEqual(hamlet.avatar_source, UserProfile.AVATAR_FROM_JDENTICON)
@@ -113,6 +125,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             self.assertTrue(user.enter_sends)
             self.assertEqual(user.web_font_size_px, 14)
             self.assertFalse(user.display_emoji_reaction_users)
+            self.assertEqual(
+                user.desktop_icon_count_display, UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION
+            )
         self.assertEqual(hamlet.avatar_source, UserProfile.AVATAR_FROM_GRAVATAR)
         self.assertEqual(hamlet.avatar_version, hamlet_avatar_version + 1)
         self.assertEqual(cordelia.avatar_source, UserProfile.AVATAR_FROM_USER)
@@ -122,6 +137,9 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             self.assertFalse(user.enter_sends)
             self.assertEqual(user.web_font_size_px, 16)
             self.assertTrue(user.display_emoji_reaction_users)
+            self.assertEqual(
+                user.desktop_icon_count_display, UserProfile.DESKTOP_ICON_COUNT_DISPLAY_MESSAGES
+            )
         self.assertEqual(othello.avatar_source, UserProfile.AVATAR_FROM_JDENTICON)
 
     def test_unknown_realm(self) -> None:
