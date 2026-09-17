@@ -4,6 +4,8 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from typing_extensions import override
 
+from ykphone.lib.preferences import do_set_shell_theme, get_shell_theme
+from ykphone.models import RealmPreference, UserPreference
 from zerver.actions.realm_settings import do_set_realm_property, do_set_realm_user_default_setting
 from zerver.actions.user_settings import do_change_avatar_fields, do_change_user_setting
 from zerver.actions.users import do_deactivate_user
@@ -146,6 +148,38 @@ class ApplySlackDefaultsTest(ZulipTestCase):
                 user.desktop_icon_count_display, UserProfile.DESKTOP_ICON_COUNT_DISPLAY_MESSAGES
             )
         self.assertEqual(othello.avatar_source, UserProfile.AVATAR_FROM_JDENTICON)
+
+    def test_shell_theme(self) -> None:
+        hamlet = self.example_user("hamlet")
+        iago = self.example_user("iago")
+        do_set_shell_theme(iago, "forest")
+
+        # Without the option the theme is left alone.
+        output = self.run_command("--realm=zulip")
+        self.assertNotIn("theme", output)
+        self.assertFalse(RealmPreference.objects.exists())
+
+        output = self.run_command("--realm=zulip", "--shell-theme=navy")
+        self.assertIn("Set the default theme to navy", output)
+        self.assertEqual(
+            RealmPreference.objects.get(realm=get_realm("zulip")).default_shell_theme, "navy"
+        )
+        self.assertEqual(get_shell_theme(hamlet), "navy")
+        self.assertEqual(get_shell_theme(iago), "forest")
+        self.assertEqual(get_shell_theme(self.lear_user("king")), "ykphone")
+
+        # Applied to existing users, it removes their own choices, so that
+        # a later default without --existing-users reaches them too.
+        self.run_command("--realm=zulip", "--shell-theme=sand", "--existing-users")
+        self.assertEqual(get_shell_theme(hamlet), "sand")
+        self.assertEqual(get_shell_theme(iago), "sand")
+        self.assertFalse(UserPreference.objects.filter(user__realm=get_realm("zulip")).exists())
+        self.run_command("--realm=zulip", "--shell-theme=ocean")
+        self.assertEqual(get_shell_theme(hamlet), "ocean")
+        self.assertEqual(get_shell_theme(iago), "ocean")
+
+        with self.assertRaisesRegex(CommandError, "invalid choice: 'pink'"):
+            self.run_command("--realm=zulip", "--shell-theme=pink")
 
     def test_unknown_realm(self) -> None:
         with self.assertRaisesRegex(CommandError, "There is no realm with id 'nope'"):

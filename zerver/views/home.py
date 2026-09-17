@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils.cache import patch_cache_control
 from django.utils.timezone import now as timezone_now
 
+from ykphone.lib.preferences import shell_theme_for_page_load
 from zerver.actions.user_settings import (
     do_change_tos_version,
     do_change_user_date_joined,
@@ -270,6 +271,7 @@ def home_real(request: HttpRequest) -> HttpResponse:
             "page_params": page_params,
             "csp_nonce": csp_nonce,
             "color_scheme": user_permission_info.color_scheme,
+            "ykphone_shell_theme": shell_theme_for_page_load(user_profile, realm),
             "enable_gravatar": settings.ENABLE_GRAVATAR,
             "is_firefox_android": is_firefox_android,
             "s3_avatar_public_url_prefix": settings.S3_AVATAR_PUBLIC_URL_PREFIX

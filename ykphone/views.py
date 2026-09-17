@@ -2,6 +2,7 @@ from django.http import HttpRequest, HttpResponse
 from pydantic import Json
 
 from ykphone.lib.pins import pin_dict, pin_message, pins_for_stream, unpin_message
+from ykphone.lib.preferences import check_shell_theme, do_set_shell_theme, get_shell_theme
 from ykphone.lib.threads import (
     get_or_create_thread,
     my_threads,
@@ -77,4 +78,17 @@ def remove_pin(
     request: HttpRequest, user_profile: UserProfile, *, message_id: PathOnly[int]
 ) -> HttpResponse:
     unpin_message(user_profile, message_id)
+    return json_success(request)
+
+
+@typed_endpoint_without_parameters
+def get_preferences(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    return json_success(request, data={"shell_theme": get_shell_theme(user_profile)})
+
+
+@typed_endpoint
+def update_preferences(
+    request: HttpRequest, user_profile: UserProfile, *, shell_theme: str
+) -> HttpResponse:
+    do_set_shell_theme(user_profile, check_shell_theme(shell_theme))
     return json_success(request)

@@ -2071,8 +2071,9 @@ def apply_event(
                 ]
         else:
             raise AssertionError("Unexpected event type {type}/{op}".format(**event))
-    elif event["type"] == "ykphone_pin":
-        # The 옆커폰 fork's pins are not part of the register-time state.
+    elif event["type"] in ("ykphone_pin", "ykphone_preference"):
+        # The 옆커폰 fork's pins and preferences are not part of the
+        # register-time state.
         pass
     else:
         raise AssertionError("Unexpected event type {}".format(event["type"]))

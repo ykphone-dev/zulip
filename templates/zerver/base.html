@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang='{{LANGUAGE_CODE}}' {% if color_scheme == 1 %} class="color-scheme-automatic" {% elif color_scheme == 2 %} class="dark-theme" {% endif %}>
+<html lang='{{LANGUAGE_CODE}}' {% if color_scheme == 1 %} class="color-scheme-automatic" {% elif color_scheme == 2 %} class="dark-theme" {% endif %} {% if ykphone_shell_theme %}data-yk-theme="{{ ykphone_shell_theme }}"{% endif %}>
 
     {# Base template for the whole site. #}
 

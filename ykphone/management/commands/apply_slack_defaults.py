@@ -3,6 +3,7 @@ from typing import Any
 
 from typing_extensions import override
 
+from ykphone.lib.preferences import SHELL_THEMES, do_set_realm_default_shell_theme
 from zerver.actions.realm_settings import do_set_realm_property, do_set_realm_user_default_setting
 from zerver.actions.user_settings import bulk_change_user_setting, set_avatar_to_default
 from zerver.lib.management import ZulipBaseCommand
@@ -22,9 +23,13 @@ count rather than a list of names on an emoji reaction, see only
 direct messages and mentions in the unread count of the browser tab
 and app icon, get the neutral default profile picture instead of a
 generated pattern, and see a preview card under links, as in Slack.
-With --existing-users the settings are also applied to every active
-human user of the organization, and the generated pattern pictures
-those users still have are replaced by the default one."""
+With --shell-theme the organization's default colour theme of the
+shell (rail, sidebar and navbar) is set too; users who have not
+picked a theme see it. With --existing-users the settings are also
+applied to every active human user of the organization, and the
+generated pattern pictures those users still have are replaced by the
+default one; for --shell-theme that means their own theme choices are
+removed, so that they follow the organization's default from then on."""
 
     @override
     def add_arguments(self, parser: ArgumentParser) -> None:
@@ -33,6 +38,12 @@ those users still have are replaced by the default one."""
             "--existing-users",
             action="store_true",
             help="Also apply the defaults to all active human users.",
+        )
+        parser.add_argument(
+            "--shell-theme",
+            choices=SHELL_THEMES,
+            help="The organization's default theme for the rail, sidebar and navbar; "
+            "with --existing-users, users' own theme choices are removed.",
         )
 
     @override
@@ -69,6 +80,17 @@ those users still have are replaced by the default one."""
         # them for every link.
         do_set_realm_property(realm, "inline_url_embed_preview", True, acting_user=None)
         self.stdout.write(f"Applied the Slack defaults for new users of {realm.string_id}.")
+
+        if options["shell_theme"] is not None:
+            changed_user_ids = do_set_realm_default_shell_theme(
+                realm,
+                options["shell_theme"],
+                apply_to_existing_users=options["existing_users"],
+            )
+            self.stdout.write(
+                f"Set the default theme to {options['shell_theme']}; "
+                f"{len(changed_user_ids)} users see a new theme."
+            )
 
         if options["existing_users"]:
             users = list(

@@ -45,3 +45,22 @@ class PinnedMessage(models.Model):
     message = models.OneToOneField(Message, on_delete=CASCADE, related_name="ykphone_pin")
     pinned_by = models.ForeignKey(UserProfile, null=True, on_delete=models.SET_NULL)
     date_pinned = models.DateTimeField(default=timezone_now)
+
+
+class UserPreference(models.Model):
+    """A user's own choices for the 옆커폰 web app, synced across their
+    devices. ``shell_theme`` names one of the colour themes of the
+    shell (rail, sidebar and navbar) in ykphone.lib.preferences; a user
+    without a row sees their organization's default."""
+
+    user = models.OneToOneField(UserProfile, on_delete=CASCADE, related_name="ykphone_preference")
+    shell_theme = models.CharField(max_length=32)
+
+
+class RealmPreference(models.Model):
+    """Organization-wide defaults of the 옆커폰 web app, like Zulip's
+    RealmUserDefault: what a user sees until they choose for themself
+    (and what spectators of the organization see)."""
+
+    realm = models.OneToOneField(Realm, on_delete=CASCADE, related_name="ykphone_preference")
+    default_shell_theme = models.CharField(max_length=32)
