@@ -22,6 +22,7 @@ import * as message_view from "./message_view.ts";
 import * as rows from "./rows.ts";
 import * as sidebar_ui from "./sidebar_ui.ts";
 import * as stream_popover from "./stream_popover.ts";
+import * as ykphone_channel_create_ui from "./ykphone_channel_create_ui.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
 import * as ykphone_compose_narrow from "./ykphone_compose_narrow.ts";
 import * as ykphone_conversation from "./ykphone_conversation.ts";
@@ -124,6 +125,7 @@ export function initialize(): void {
     ykphone_compose_narrow.initialize();
     ykphone_pins_ui.initialize();
     ykphone_favorites_ui.initialize();
+    ykphone_channel_create_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
     document.documentElement.style.setProperty(

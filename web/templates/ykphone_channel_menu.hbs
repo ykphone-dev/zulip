@@ -1,0 +1,17 @@
+{{! The small menu behind the sidebar's "+" (the 옆커폰 fork): Slack's "Create a channel" and "Browse channels". The folder the "+" belongs to is remembered by the click handler, not the markup. }}
+<div class="popover-menu" data-simplebar data-simplebar-tab-index="-1">
+    <ul role="menu" class="popover-menu-list">
+        <li role="none" class="link-item popover-menu-list-item">
+            <a role="menuitem" class="ykphone-channel-menu-create popover-menu-link" tabindex="0">
+                <i class="popover-menu-icon zulip-icon zulip-icon-square-plus" aria-hidden="true"></i>
+                <span class="popover-menu-label">{{t "Create a channel" }}</span>
+            </a>
+        </li>
+        <li role="none" class="link-item popover-menu-list-item">
+            <a href="#channels/all" role="menuitem" class="popover-menu-link navigate_and_close_popover navigate-link-on-enter" tabindex="0">
+                <i class="popover-menu-icon zulip-icon zulip-icon-browse-channels" aria-hidden="true"></i>
+                <span class="popover-menu-label">{{t "Browse channels" }}</span>
+            </a>
+        </li>
+    </ul>
+</div>

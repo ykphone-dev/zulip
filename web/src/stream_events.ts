@@ -44,6 +44,7 @@ import {group_setting_value_schema} from "./types.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as user_group_edit from "./user_group_edit.ts";
 import * as user_profile from "./user_profile.ts";
+import * as ykphone_channel_create from "./ykphone_channel_create.ts";
 
 // In theory, this function should apply the account-level defaults,
 // however, they are only called after a manual override, so
@@ -270,6 +271,7 @@ export function mark_subscribed(
     subscribers: number[],
     color: string | undefined,
 ): void {
+    ykphone_channel_create.on_subscribed(sub);
     if (sub.subscribed) {
         return;
     }

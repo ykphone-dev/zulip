@@ -3436,11 +3436,13 @@ body.ykphone-pins-open #ykphone-pins-panel {
 /* ---- Popovers, tooltips, modals, buttons ---- */
 
 /* "m" no longer opens the move-message dialog (the fork has no
-   topics to move a message between), so the keyboard-shortcuts
-   reference stops advertising it. Upstream hides the neighbouring
-   edit row from ui_init the same way; this row is plain reference
-   text with no focus or menu semantics, so the theme can do it. */
-#move-message-hotkey-help {
+   topics to move a message between) and "Y" no longer opens a
+   channel's list of topics, so the keyboard-shortcuts reference stops
+   advertising them. Upstream hides the neighbouring edit row from
+   ui_init the same way; these rows are plain reference text with no
+   focus or menu semantics, so the theme can do it. */
+#move-message-hotkey-help,
+#list-of-topics-hotkey-help {
     display: none;
 }
 
@@ -3718,13 +3720,49 @@ body.ykphone-conversation .top-messages-logo {
     }
 
     /* The dot itself is drawn by the presence section below; here it
-       is only placed over the avatar's bottom-right corner. */
+       is only placed over the avatar's bottom-right corner. The cell
+       is as tall as the row, so the dot is centred like the avatar
+       and pushed down by the avatar's height less its own, plus the
+       1px it overlaps the corner by. The dot's own font-size is 0,
+       so this is in px like the dot. */
     .conversation-partners-icon.user-circle {
         --yk-presence-ring: var(--yk-card-bg);
 
-        place-self: end;
+        place-self: center end;
         z-index: 1;
-        margin: 0 -1px -1px 0;
+        margin: 14px -1px 0 0; /* 20px avatar - 8px dot + 2px */
+    }
+
+    /* A group's icon: upstream put it at the top of the cell for the
+       two-line label; the label is one line now. */
+    .conversation-partners-icon:not(.user-circle) {
+        place-self: center;
+    }
+
+    /* Slack keeps every sidebar row on one line. Channel and
+       navigation rows already cut a long name with an ellipsis;
+       upstream let a direct message row wrap to two lines, which
+       pushed the avatar to the top and the presence dot out of the
+       row. The full name is the row's title. The label and the
+       unread pill sit on the row's centre line rather than on
+       upstream's baseline, which a wrapped name needed. */
+    .conversation-partners,
+    .dm-markers-and-unreads {
+        align-self: center;
+    }
+
+    .conversation-partners {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .conversation-partners-list {
+        /* Upstream's two-line clamp is a -webkit-box; inline text
+           takes the parent's ellipsis instead. */
+        display: inline;
+        padding-top: 0;
+        line-height: inherit;
     }
 }
 
@@ -4185,6 +4223,261 @@ body.ykphone-keyboard-nav
 
         &:hover {
             background-color: var(--yk-row-hover);
+        }
+    }
+}
+
+/* ---- Channel creation ---- */
+
+/* The sidebar's "+" buttons open a small menu (Create a channel /
+   Browse channels, ykphone_channel_create_ui). A section's "+" icon
+   is shown on hover only; it stays while its menu is open. */
+#streams_list
+    .add-stream-icon-container.ykphone-channel-menu-open
+    .add_stream_icon {
+    visibility: visible;
+}
+
+/* Slack's "Create a channel" modal: 520px wide (upstream's width),
+   8px corners, an 18px title, 20px of padding, inputs with a 1px
+   border and 4px corners, the two visibility choices as bordered
+   cards and the green primary button on the right. The same dialog
+   turns into "Add people" once the channel exists. The modal skin
+   above is a nested selector list that the build flattens with a
+   specificity bump (.micromodal:not(#does-not-exist) .modal__container),
+   so this selector has to weigh as much and come later. */
+.micromodal #ykphone-channel-create-modal.modal__container {
+    border-radius: var(--yk-radius-md);
+
+    .modal__title {
+        font-size: 1.2857em; /* 18px at 14px/em */
+    }
+
+    .modal__content {
+        padding: 1.4286em; /* 20px at 14px/em */
+    }
+
+    .modal__content + .modal__footer {
+        padding: 0.8571em 1.4286em 1.4286em; /* 12px 20px 20px at 14px/em */
+    }
+
+    .ykphone-channel-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4286em; /* 6px at 14px/em */
+        margin: 0 0 1.1429em; /* 16px at 14px/em */
+        padding: 0;
+        border: 0;
+        min-width: 0;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        > label,
+        > legend {
+            margin: 0;
+            padding: 0;
+            font-size: 1em;
+            font-weight: 700;
+            line-height: 1.4;
+            color: var(--yk-text);
+        }
+    }
+
+    .ykphone-channel-optional {
+        font-weight: 400;
+        color: var(--yk-text-muted);
+    }
+
+    .ykphone-channel-input {
+        box-sizing: border-box;
+        width: 100%;
+        height: 2.5714em; /* 36px at 14px/em */
+        margin: 0;
+        padding: 0 0.7143em; /* 10px at 14px/em */
+        border: 1px solid var(--yk-border);
+        border-radius: 4px;
+        background-color: var(--color-background-modal);
+        color: var(--yk-text);
+        font-family: inherit;
+        font-size: 1em;
+        line-height: normal;
+
+        &:focus {
+            outline: 2px solid var(--yk-blue-selected);
+            outline-offset: -1px;
+        }
+    }
+
+    .ykphone-channel-name-error {
+        display: none;
+        font-size: 0.9286em; /* 13px at 14px/em */
+        line-height: 1.4;
+        color: var(--yk-red);
+
+        &:not(:empty) {
+            display: block;
+        }
+    }
+
+    /* Under the conflict message: the way to the channel that has
+       the name, once the dialog is closed. */
+    .ykphone-channel-open-existing {
+        align-self: flex-start;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        font-size: 0.9286em; /* 13px at 14px/em */
+        color: var(--yk-link);
+        cursor: pointer;
+
+        &:hover,
+        &:focus-visible {
+            text-decoration: underline;
+        }
+
+        &[hidden] {
+            display: none;
+        }
+    }
+
+    .ykphone-radio-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5714em; /* 8px at 14px/em */
+    }
+
+    .ykphone-radio-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2857em; /* 4px at 14px/em */
+        margin: 0;
+        padding: 0.8571em; /* 12px at 14px/em */
+        border: 1px solid var(--yk-border);
+        border-radius: var(--yk-radius-md);
+        font-weight: 400;
+        line-height: 1.4;
+        color: var(--yk-text);
+        cursor: pointer;
+        transition:
+            border-color 100ms ease,
+            box-shadow 100ms ease;
+
+        &:has(input:checked) {
+            border-color: var(--yk-blue-selected);
+            box-shadow: inset 0 0 0 1px var(--yk-blue-selected);
+        }
+
+        &:has(input:focus-visible) {
+            outline: 2px solid var(--yk-blue-selected);
+            outline-offset: 2px;
+        }
+
+        /* A choice the user has no permission for: greyed, with the
+           hint explaining why instead of describing it. */
+        &.disabled {
+            color: var(--yk-text-muted);
+            cursor: not-allowed;
+        }
+    }
+
+    .ykphone-radio-card-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5714em; /* 8px at 14px/em */
+
+        input {
+            margin: 0;
+        }
+    }
+
+    .ykphone-radio-card-title {
+        font-weight: 700;
+    }
+
+    .ykphone-radio-card-hint {
+        font-size: 0.9286em; /* 13px at 14px/em */
+        color: var(--yk-text-muted);
+    }
+
+    .ykphone-channel-people .pill-container {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 2.5714em; /* 36px at 14px/em */
+        border-color: var(--yk-border);
+
+        &:has(.input:focus) {
+            outline: 2px solid var(--yk-blue-selected);
+            outline-offset: -1px;
+        }
+    }
+
+    .ykphone-channel-add-everyone {
+        display: flex;
+        align-items: center;
+        gap: 0.5714em; /* 8px at 14px/em */
+        margin: 0.8571em 0 0; /* 12px at 14px/em */
+        font-weight: 400;
+        cursor: pointer;
+
+        &[hidden] {
+            display: none;
+        }
+
+        input {
+            margin: 0;
+        }
+    }
+
+    .dialog_submit_button {
+        background-color: var(--yk-green);
+
+        &:hover,
+        &:focus-visible {
+            background-color: var(--yk-green-hover);
+        }
+    }
+
+    /* "Skip" reads as a link beside the green button, as in Slack. */
+    .dialog_exit_button.ykphone-channel-skip {
+        border-color: transparent;
+        background: transparent;
+        color: var(--yk-link);
+
+        &:hover,
+        &:focus-visible {
+            background: transparent;
+            text-decoration: underline;
+        }
+    }
+}
+
+@media (width <= 480px) {
+    .micromodal #ykphone-channel-create-modal.modal__container {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+
+        .ykphone-radio-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .modal__footer {
+            flex-direction: column-reverse;
+            align-items: stretch;
+            gap: 0.5714em; /* 8px at 14px/em */
+        }
+
+        .dialog_submit_button_container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dialog_submit_button {
+            margin-left: 0;
         }
     }
 }

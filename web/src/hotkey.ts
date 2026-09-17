@@ -74,6 +74,7 @@ import * as user_status_ui from "./user_status_ui.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as util from "./util.ts";
 import * as ykphone_compose from "./ykphone_compose.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 import * as ykphone_forward_ui from "./ykphone_forward_ui.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
@@ -1266,6 +1267,9 @@ function process_hotkey(e: JQuery.KeyDownEvent, hotkey: Hotkey): boolean {
             }
             return false;
         case "list_of_channel_topics":
+            if (ykphone_flags.channels_open_in_general_chat()) {
+                return false;
+            }
             if (recent_view_ui.is_in_focus()) {
                 const msg = recent_view_ui.get_focused_row_message();
                 if (msg?.type === "stream") {

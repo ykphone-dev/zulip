@@ -8,7 +8,7 @@
         <span class="conversation-partners-icon zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle"></span>
         {{/if}}
 
-        <span class="conversation-partners">
+        <span class="conversation-partners" title="{{recipients}}">
             <span class="conversation-partners-list">{{recipients}}
                 {{#if is_current_user}}<span class="my_user_status">{{t '(you)'}}</span>{{/if}}
                 {{> status_emoji status_emoji_info}}

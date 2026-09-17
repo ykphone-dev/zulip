@@ -47,6 +47,7 @@ import * as unread from "./unread.ts";
 import * as unread_ops from "./unread_ops.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_flags from "./ykphone_flags.ts";
 
 // In this module, we manage stream popovers
 // that pop up from the left sidebar.
@@ -114,11 +115,13 @@ export function build_stream_popover(opts: {
     const is_triggered_from_inbox = elt.classList.contains("inbox-stream-menu");
     const stream_hash = hash_util.channel_url_by_user_setting(stream_id);
     const show_go_to_channel_feed =
+        !ykphone_flags.channels_open_in_general_chat() &&
         (is_triggered_from_inbox ||
             user_settings.web_channel_default_view !==
                 web_channel_default_view_values.channel_feed.code) &&
         !stream_data.is_empty_topic_only_channel(stream_id);
     const show_go_to_list_of_topics =
+        !ykphone_flags.channels_open_in_general_chat() &&
         (is_triggered_from_inbox ||
             user_settings.web_channel_default_view !==
                 web_channel_default_view_values.list_of_topics.code) &&

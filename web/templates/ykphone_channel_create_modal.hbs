@@ -1,0 +1,71 @@
+{{! Slack's two-step "Create a channel" modal body (the 옆커폰 fork): the form, then "Add people" in the same dialog. }}
+<div class="ykphone-channel-modal">
+    <form id="ykphone-channel-create-form" class="ykphone-channel-step ykphone-channel-step-1">
+        <div class="ykphone-channel-field">
+            <label for="ykphone-channel-name">{{t "Name" }}</label>
+            <input type="text" id="ykphone-channel-name" name="ykphone-channel-name" class="ykphone-channel-input" autocomplete="off" maxlength="{{max_stream_name_length}}" placeholder="{{t 'e.g. marketing' }}" />
+            <div class="ykphone-channel-name-error" aria-live="polite"></div>
+            <button type="button" class="ykphone-channel-open-existing" hidden>{{t "Open the existing channel" }}</button>
+        </div>
+        <div class="ykphone-channel-field">
+            <label for="ykphone-channel-description">{{t "Description" }} <span class="ykphone-channel-optional">{{t "(optional)" }}</span></label>
+            <input type="text" id="ykphone-channel-description" name="ykphone-channel-description" class="ykphone-channel-input" autocomplete="off" maxlength="{{max_stream_description_length}}" placeholder="{{t 'What is this channel about?' }}" />
+        </div>
+        <fieldset class="ykphone-channel-field ykphone-channel-privacy">
+            <legend>{{t "Visibility" }}</legend>
+            <div class="ykphone-radio-cards">
+                <label class="ykphone-radio-card{{#unless can_create_public}} disabled{{/unless}}">
+                    <span class="ykphone-radio-card-row">
+                        <input type="radio" name="ykphone-channel-privacy" value="public"{{#unless invite_only}} checked{{/unless}}{{#unless can_create_public}} disabled{{/unless}} />
+                        <span class="ykphone-radio-card-title"><i class="zulip-icon zulip-icon-hashtag" aria-hidden="true"></i> {{t "Public" }}</span>
+                    </span>
+                    <span class="ykphone-radio-card-hint">
+                        {{#if can_create_public}}
+                            {{t "Anyone in the organization can see this channel." }}
+                        {{else}}
+                            {{t "You do not have permission to create public channels." }}
+                        {{/if}}
+                    </span>
+                </label>
+                <label class="ykphone-radio-card{{#unless can_create_private}} disabled{{/unless}}">
+                    <span class="ykphone-radio-card-row">
+                        <input type="radio" name="ykphone-channel-privacy" value="private"{{#if invite_only}} checked{{/if}}{{#unless can_create_private}} disabled{{/unless}} />
+                        <span class="ykphone-radio-card-title"><i class="zulip-icon zulip-icon-lock" aria-hidden="true"></i> {{t "Private" }}</span>
+                    </span>
+                    <span class="ykphone-radio-card-hint">
+                        {{#if can_create_private}}
+                            {{t "Only invited people can see this channel." }}
+                        {{else}}
+                            {{t "You do not have permission to create private channels." }}
+                        {{/if}}
+                    </span>
+                </label>
+            </div>
+        </fieldset>
+        {{#if has_folders}}
+        <div class="ykphone-channel-field">
+            <label for="ykphone-channel-folder">{{t "Folder" }}</label>
+            <select id="ykphone-channel-folder" name="ykphone-channel-folder" class="ykphone-channel-input">
+                <option value="">{{t "No folder" }}</option>
+                {{#each folders}}
+                <option value="{{id}}"{{#if selected}} selected{{/if}}>{{name}}</option>
+                {{/each}}
+            </select>
+        </div>
+        {{/if}}
+    </form>
+    <div class="ykphone-channel-step ykphone-channel-step-2" hidden>
+        <div class="ykphone-channel-field ykphone-channel-people">
+            <label for="ykphone-channel-people-input">{{t "Search for people or groups" }}</label>
+            <div class="pill-container person_picker">
+                <div class="input" contenteditable="true" id="ykphone-channel-people-input" data-placeholder="{{t 'Enter a name or user group' }}">
+                    {{~! Squash whitespace so that placeholder is displayed when empty. ~}}
+                </div>
+            </div>
+        </div>
+        <label class="ykphone-channel-add-everyone" hidden>
+            <input type="checkbox" id="ykphone-channel-add-everyone" />
+            <span class="ykphone-channel-add-everyone-label"></span>
+        </label>
+    </div>
+</div>

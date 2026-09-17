@@ -137,6 +137,7 @@ message_lists.current = {
 const emoji = zrequire("emoji");
 const emoji_codes = zrequire("../../static/generated/emoji/emoji_codes.json");
 const hotkey = zrequire("hotkey");
+const ykphone_flags = zrequire("ykphone_flags");
 
 emoji.initialize({
     realm_emoji: {},
@@ -457,6 +458,20 @@ test_while_not_editing_text("basic mappings", () => {
     assert_mapping("P", message_view, "show", true);
     assert_mapping("g", gear_menu, "toggle");
     assert_mapping("Y", user_status_ui, "open_user_status_modal", true);
+});
+
+test_while_not_editing_text("Y is a no-op while channels open in general chat", () => {
+    // The 옆커폰 fork hides topics behind threads, so the list of
+    // topics is not somewhere to send the user.
+    stubbing(browser_history, "go_to_location", (stub) => {
+        assert.ok(process("Y"));
+        assert.equal(stub.num_calls, 1);
+
+        ykphone_flags.set_channels_open_in_general_chat(true);
+        assert.equal(process("Y"), false);
+        assert.equal(stub.num_calls, 1);
+        ykphone_flags.set_channels_open_in_general_chat(false);
+    });
 });
 
 test_while_not_editing_text("drafts open", ({override}) => {
