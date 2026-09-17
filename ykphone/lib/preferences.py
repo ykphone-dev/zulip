@@ -52,7 +52,9 @@ def get_shell_theme(user_profile: UserProfile) -> str:
     """One query, since the home page calls this on every load."""
     user_theme, realm_default = (
         UserProfile.objects.filter(id=user_profile.id)
-        .values_list("ykphone_preference__shell_theme", "realm__ykphone_preference__default_shell_theme")
+        .values_list(
+            "ykphone_preference__shell_theme", "realm__ykphone_preference__default_shell_theme"
+        )
         .get()
     )
     return effective_shell_theme(user_theme, realm_default)

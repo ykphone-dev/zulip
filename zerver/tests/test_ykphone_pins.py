@@ -104,9 +104,7 @@ class PinAPITest(ZulipTestCase):
         self.assert_json_error(self.list_pins("iago", private.id), "Invalid channel ID")
         self.assert_json_error(self.list_pins("hamlet", 999999), "Invalid channel ID")
         self.assert_json_error(self.pin("hamlet", 999999), "Invalid message(s)")
-        self.assertEqual(
-            orjson.loads(self.list_pins("hamlet", private.id).content)["pins"], []
-        )
+        self.assertEqual(orjson.loads(self.list_pins("hamlet", private.id).content)["pins"], [])
 
     def test_protected_history(self) -> None:
         hamlet = self.example_user("hamlet")
@@ -148,13 +146,9 @@ class PinAPITest(ZulipTestCase):
         self.assert_json_success(self.pin("hamlet", message_id))
         self.assertTrue(PinnedMessage.objects.filter(message_id=message_id).exists())
 
-        do_delete_messages(
-            hamlet.realm, [Message.objects.get(id=message_id)], acting_user=hamlet
-        )
+        do_delete_messages(hamlet.realm, [Message.objects.get(id=message_id)], acting_user=hamlet)
         self.assertFalse(PinnedMessage.objects.filter(message_id=message_id).exists())
-        self.assertEqual(
-            self.assert_json_success(self.list_pins("hamlet", verona.id))["pins"], []
-        )
+        self.assertEqual(self.assert_json_success(self.list_pins("hamlet", verona.id))["pins"], [])
         self.assert_json_error(self.pin("hamlet", message_id), "Invalid message(s)")
 
     def test_requires_login(self) -> None:
@@ -219,11 +213,11 @@ class PinAPITest(ZulipTestCase):
 
         # The old channel no longer lists the pin; the new one does, with
         # its own channel id, and only for those who may read it.
-        self.assertEqual(
-            self.assert_json_success(self.list_pins("hamlet", verona.id))["pins"], []
-        )
+        self.assertEqual(self.assert_json_success(self.list_pins("hamlet", verona.id))["pins"], [])
         listed = self.assert_json_success(self.list_pins("iago", private.id))["pins"]
-        self.assertEqual([(pin["message_id"], pin["stream_id"]) for pin in listed], [(message_id, private.id)])
+        self.assertEqual(
+            [(pin["message_id"], pin["stream_id"]) for pin in listed], [(message_id, private.id)]
+        )
         self.assert_json_error(self.list_pins("hamlet", private.id), "Invalid channel ID")
         self.assert_json_error(self.pin("hamlet", message_id), "Invalid message(s)")
         self.assert_json_error(self.unpin("hamlet", message_id), "Invalid message(s)")

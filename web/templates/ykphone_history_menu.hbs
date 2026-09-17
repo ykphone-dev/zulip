@@ -25,8 +25,9 @@
                     <span class="ykphone-history-menu-time">{{time_label}}</span>
                 </a>
             </li>
-        {{else}}
-            <li role="none" class="ykphone-history-menu-empty">{{t "No history yet." }}</li>
         {{/each}}
+        {{#unless has_items}}
+            <li role="none" class="ykphone-history-menu-empty">{{t "No history yet." }}</li>
+        {{/unless}}
     </ul>
 </div>

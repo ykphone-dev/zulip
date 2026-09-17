@@ -72,6 +72,10 @@ class ShellThemeAPITest(ZulipTestCase):
                 "id", flat=True
             )
         )
+        # Neither a bot nor a deactivated account is one of the users a
+        # new organization default reaches.
+        self.assertNotIn(bot.id, humans)
+        self.assertNotIn(othello.id, humans)
         do_set_shell_theme(iago, "forest")
 
         # Users who never chose follow the new default; iago keeps his.
@@ -100,9 +104,7 @@ class ShellThemeAPITest(ZulipTestCase):
         # organization are affected.
         UserPreference.objects.create(user=othello, shell_theme="navy")
         with self.capture_send_event_calls(expected_num_events=1) as events:
-            changed = do_set_realm_default_shell_theme(
-                realm, "ocean", apply_to_existing_users=True
-            )
+            changed = do_set_realm_default_shell_theme(realm, "ocean", apply_to_existing_users=True)
         self.assertEqual(set(changed), {iago.id, hamlet.id})
         self.assertEqual(set(events[0]["users"]), {iago.id, hamlet.id})
         self.assertEqual(get_shell_theme(iago), "ocean")
@@ -127,7 +129,9 @@ class ShellThemeAPITest(ZulipTestCase):
             )
         self.assertEqual(changed, [])
         self.assertEqual(RealmPreference.objects.get(realm=realm).default_shell_theme, "midnight")
-        self.assertFalse(UserPreference.objects.filter(user__realm=realm, user__is_active=True).exists())
+        self.assertFalse(
+            UserPreference.objects.filter(user__realm=realm, user__is_active=True).exists()
+        )
 
     def test_unknown_stored_theme(self) -> None:
         # A theme removed from the code falls through to the default.

@@ -22,6 +22,7 @@
             <span class="ykphone-quick-switcher-kind">{{kind_label}}</span>
         {{/if}}
     </li>
-{{else}}
-    <li class="ykphone-quick-switcher-empty" role="presentation">{{t "No results." }}</li>
 {{/each}}
+{{#unless has_items}}
+    <li class="ykphone-quick-switcher-empty" role="presentation">{{t "No results." }}</li>
+{{/unless}}

@@ -1,5 +1,5 @@
 {{! The rows of the channel details dialog's 멤버 tab; re-rendered as the
-    search text changes and as people are added or removed. }}
+search text changes and as people are added or removed. }}
 {{#if loading}}
 <div class="ykphone-channel-details-empty">{{t 'Loading…' }}</div>
 {{else if no_results}}
@@ -7,21 +7,21 @@
 {{else}}
 <ul class="ykphone-channel-details-members">
     {{#each rows}}
-    <li class="ykphone-channel-details-member" data-user-id="{{this.user_id}}">
-        <img class="ykphone-channel-details-member-avatar" src="{{this.avatar_url}}" alt="" loading="lazy" />
-        <span class="ykphone-channel-details-member-name">
-            {{this.full_name}}
-            {{#if this.is_me}}<span class="ykphone-channel-details-member-you">{{t '(you)' }}</span>{{/if}}
-        </span>
-        {{#if this.role}}
-        <span class="ykphone-channel-details-member-role">{{this.role}}</span>
-        {{/if}}
-        {{#if this.can_remove}}
-        <button type="button" class="ykphone-channel-details-member-remove" aria-label="{{#if this.is_me}}{{t 'Leave channel' }}{{else}}{{t 'Remove from channel' }}{{/if}}" data-tippy-content="{{#if this.is_me}}{{t 'Leave channel' }}{{else}}{{t 'Remove from channel' }}{{/if}}">
-            <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
-        </button>
-        {{/if}}
-    </li>
+        <li class="ykphone-channel-details-member" data-user-id="{{this.user_id}}">
+            <img class="ykphone-channel-details-member-avatar" src="{{this.avatar_url}}" alt="" loading="lazy" />
+            <span class="ykphone-channel-details-member-name">
+                {{this.full_name}}
+                {{#if this.is_me}}<span class="ykphone-channel-details-member-you">{{t '(you)' }}</span>{{/if}}
+            </span>
+            {{#if this.role}}
+            <span class="ykphone-channel-details-member-role">{{this.role}}</span>
+            {{/if}}
+            {{#if this.can_remove}}
+            <button type="button" class="ykphone-channel-details-member-remove" aria-label="{{#if this.is_me}}{{t 'Leave channel' }}{{else}}{{t 'Remove from channel' }}{{/if}}" data-tippy-content="{{#if this.is_me}}{{t 'Leave channel' }}{{else}}{{t 'Remove from channel' }}{{/if}}">
+                <i class="zulip-icon zulip-icon-close" aria-hidden="true"></i>
+            </button>
+            {{/if}}
+        </li>
     {{/each}}
 </ul>
 {{/if}}

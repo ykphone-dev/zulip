@@ -218,6 +218,9 @@ js_rules = RuleList(
                 "web/tests/compose_paste.test.cjs",
                 "web/tests/postprocess_content.test.cjs",
                 "web/tests/lib/zjquery_element.cjs",
+                # Like compose_paste's, these are pasted HTML the
+                # 옆커폰 rich composer has to strip, not markup we write.
+                "web/tests/ykphone_rich_schema.test.cjs",
             },
             "good_lines": ["#my-style {color: blue;}", "const style =", 'some_style = "test"'],
             "bad_lines": ['<p style="color: blue;">Foo</p>', 'style = "color: blue;"'],
@@ -592,6 +595,8 @@ html_rules: list["Rule"] = [
             # We have URL template and Pygments language name as placeholders
             # in the below template which we don't want to be translatable.
             "web/templates/settings/playground_settings_admin.hbs",
+            # The 옆커폰 link popover's placeholder is a URL scheme.
+            "web/templates/ykphone_rich_link_popover.hbs",
         },
         "good_lines": [
             '<input class="left-sidebar-search-input" type="text" placeholder="{{ _(\'Filter left sidebar\') }}" />'
@@ -984,6 +989,24 @@ svg_rules = RuleList(
             "pattern": r"fill-rule=(['\"])(.*?)\1",
             "description": "System icons ignore fill-rule values, so do not include the fill-rule property.",
             "include_only": {"web/icons/"},
+            # The 옆커폰 icons are drawn as strokes and traced to filled
+            # outlines for the icon font, which keeps their cutouts (a
+            # door, the dots, the gear's hole) only with the even-odd
+            # rule; without it they build as solid shapes.
+            "exclude": {
+                "web/icons/bell.svg",
+                "web/icons/ykphone-palette.svg",
+                "web/icons/ykphone-rail-bell.svg",
+                "web/icons/ykphone-rail-bell-filled.svg",
+                "web/icons/ykphone-rail-dm.svg",
+                "web/icons/ykphone-rail-dm-filled.svg",
+                "web/icons/ykphone-rail-file.svg",
+                "web/icons/ykphone-rail-file-filled.svg",
+                "web/icons/ykphone-rail-gear.svg",
+                "web/icons/ykphone-rail-gear-filled.svg",
+                "web/icons/ykphone-rail-house.svg",
+                "web/icons/ykphone-rail-house-filled.svg",
+            },
         },
         {
             "pattern": "fill-rule:",
