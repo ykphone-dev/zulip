@@ -6,19 +6,19 @@
 {{else if has_rows}}
 <ul class="ykphone-activity-list">
     {{#each rows}}
-    <li class="ykphone-activity-item">
-        <a class="ykphone-activity-row" href="{{url}}" data-message-id="{{message_id}}">
-            <img class="ykphone-activity-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
-            <span class="ykphone-activity-main">
-                <span class="ykphone-activity-meta">
-                    <span class="ykphone-activity-sender">{{sender_name}}</span>
-                    <span class="ykphone-activity-context">{{context_label}}</span>
+        <li class="ykphone-activity-item">
+            <a class="ykphone-activity-row" href="{{url}}" data-message-id="{{message_id}}">
+                <img class="ykphone-activity-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                <span class="ykphone-activity-main">
+                    <span class="ykphone-activity-meta">
+                        <span class="ykphone-activity-sender">{{sender_name}}</span>
+                        <span class="ykphone-activity-context">{{context_label}}</span>
+                    </span>
+                    <span class="ykphone-activity-snippet">{{snippet}}</span>
                 </span>
-                <span class="ykphone-activity-snippet">{{snippet}}</span>
-            </span>
-            <span class="ykphone-activity-time">{{time_label}}</span>
-        </a>
-    </li>
+                <span class="ykphone-activity-time">{{time_label}}</span>
+            </a>
+        </li>
     {{/each}}
 </ul>
 {{else}}

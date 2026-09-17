@@ -3,22 +3,22 @@
 <div class="ykphone-thread-panel-empty">{{empty_label}}</div>
 {{/if}}
 {{#each pins}}
-<div class="ykphone-pins-panel-item" data-message-id="{{message_id}}">
-    <div class="ykphone-pin-line">
-        <i class="zulip-icon zulip-icon-pin" aria-hidden="true"></i>
-        <span class="ykphone-pin-line-text">{{pinned_by_label}}</span>
-    </div>
-    <div class="ykphone-thread-panel-message ykphone-thread-panel-message-with-sender" data-message-id="{{message_id}}" data-sender-name="{{sender_name}}">
-        <img class="ykphone-thread-panel-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
-        <div class="ykphone-thread-panel-sender">
-            <span class="ykphone-thread-panel-sender-name">{{sender_name}}</span>
-            <span class="ykphone-thread-panel-time">{{time_label}}</span>
+    <div class="ykphone-pins-panel-item" data-message-id="{{message_id}}">
+        <div class="ykphone-pin-line">
+            <i class="zulip-icon zulip-icon-pin" aria-hidden="true"></i>
+            <span class="ykphone-pin-line-text">{{pinned_by_label}}</span>
         </div>
-        <div class="ykphone-thread-panel-content rendered_markdown">{{rendered_markdown content}}</div>
+        <div class="ykphone-thread-panel-message ykphone-thread-panel-message-with-sender" data-message-id="{{message_id}}" data-sender-name="{{sender_name}}">
+            <img class="ykphone-thread-panel-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+            <div class="ykphone-thread-panel-sender">
+                <span class="ykphone-thread-panel-sender-name">{{sender_name}}</span>
+                <span class="ykphone-thread-panel-time">{{time_label}}</span>
+            </div>
+            <div class="ykphone-thread-panel-content rendered_markdown">{{rendered_markdown content}}</div>
+        </div>
+        <div class="ykphone-pins-panel-actions">
+            <a class="ykphone-pins-panel-jump" href="{{jump_url}}">{{t 'Go to message' }}</a>
+            <button type="button" class="ykphone-pins-panel-unpin">{{t 'Unpin' }}</button>
+        </div>
     </div>
-    <div class="ykphone-pins-panel-actions">
-        <a class="ykphone-pins-panel-jump" href="{{jump_url}}">{{t 'Go to message' }}</a>
-        <button type="button" class="ykphone-pins-panel-unpin">{{t 'Unpin' }}</button>
-    </div>
-</div>
 {{/each}}
