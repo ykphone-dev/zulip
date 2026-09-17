@@ -23,6 +23,8 @@ count rather than a list of names on an emoji reaction, see only
 direct messages and mentions in the unread count of the browser tab
 and app icon, get the neutral default profile picture instead of a
 generated pattern, and see a preview card under links, as in Slack.
+Messages can be edited and deleted at any time after sending, as in
+Slack (who may delete still follows the organization's permissions).
 With --shell-theme the organization's default colour theme of the
 shell (rail, sidebar and navbar) is set too; users who have not
 picked a theme see it. With --existing-users the settings are also
@@ -79,6 +81,10 @@ removed, so that they follow the organization's default from then on."""
         # Zulip's organizations start with link previews off; Slack shows
         # them for every link.
         do_set_realm_property(realm, "inline_url_embed_preview", True, acting_user=None)
+        # Zulip's organizations lock a message 10 minutes after it is
+        # sent; Slack has no such limit. None means no limit.
+        do_set_realm_property(realm, "message_content_edit_limit_seconds", None, acting_user=None)
+        do_set_realm_property(realm, "message_content_delete_limit_seconds", None, acting_user=None)
         self.stdout.write(f"Applied the Slack defaults for new users of {realm.string_id}.")
 
         if options["shell_theme"] is not None:

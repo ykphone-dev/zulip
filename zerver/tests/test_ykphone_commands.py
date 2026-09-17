@@ -37,6 +37,8 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_JDENTICON, acting_user=None
         )
+        do_set_realm_property(realm, "message_content_edit_limit_seconds", 600, acting_user=None)
+        do_set_realm_property(realm, "message_content_delete_limit_seconds", 600, acting_user=None)
         for name in ["hamlet", "othello"]:
             do_change_avatar_fields(
                 self.example_user(name), UserProfile.AVATAR_FROM_JDENTICON, acting_user=None
@@ -65,6 +67,13 @@ class ApplySlackDefaultsTest(ZulipTestCase):
     def realm_link_previews(self) -> bool:
         return Realm.objects.get(string_id="zulip").inline_url_embed_preview
 
+    def realm_message_time_limits(self) -> tuple[int | None, int | None]:
+        realm = Realm.objects.get(string_id="zulip")
+        return (
+            realm.message_content_edit_limit_seconds,
+            realm.message_content_delete_limit_seconds,
+        )
+
     def test_realm_default(self) -> None:
         hamlet = self.example_user("hamlet")
         self.assertFalse(self.realm_default())
@@ -75,10 +84,32 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_JDENTICON)
         self.assertFalse(self.realm_link_previews())
+        self.assertEqual(self.realm_message_time_limits(), (600, 600))
         self.assertFalse(hamlet.enter_sends)
 
-        output = self.run_command("--realm=zulip")
+        with self.capture_send_event_calls(expected_num_events=8) as events:
+            output = self.run_command("--realm=zulip")
         self.assertIn("for new users of zulip", output)
+        # Open clients learn about the lifted time limits.
+        realm_events = [event["event"] for event in events if event["event"]["type"] == "realm"]
+        self.assertIn(
+            dict(
+                type="realm",
+                op="update_dict",
+                property="default",
+                data={"message_content_edit_limit_seconds": None},
+            ),
+            realm_events,
+        )
+        self.assertIn(
+            dict(
+                type="realm",
+                op="update",
+                property="message_content_delete_limit_seconds",
+                value=None,
+            ),
+            realm_events,
+        )
         self.assertTrue(self.realm_default())
         self.assertEqual(self.realm_default_font_size(), 14)
         self.assertFalse(self.realm_default_reaction_users())
@@ -87,6 +118,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         )
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_GRAVATAR)
         self.assertTrue(self.realm_link_previews())
+        self.assertEqual(self.realm_message_time_limits(), (None, None))
         # Existing users are untouched without --existing-users.
         hamlet.refresh_from_db()
         self.assertFalse(hamlet.enter_sends)
@@ -100,6 +132,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         # Running it again is harmless.
         self.run_command("--realm=zulip")
         self.assertTrue(self.realm_default())
+        self.assertEqual(self.realm_message_time_limits(), (None, None))
 
     def test_existing_users(self) -> None:
         hamlet = self.example_user("hamlet")
