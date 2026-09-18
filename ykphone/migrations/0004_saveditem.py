@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("ykphone", "0003_userpreference_realmpreference"),
         ("zerver", "0801_realmexport_backfill_export_from_prior_server_status"),

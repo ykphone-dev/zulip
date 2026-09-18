@@ -35,7 +35,7 @@ const unread = mock_esm("../src/unread", {
     },
     get_unread_pm: () => ({pm_dict: new Map([...known_dms.keys()].map((key) => [key, {}]))}),
     get_unread_message_ids: (ids) => ids.filter((id) => !read_ids.has(id)),
-    num_unread_for_topic: (stream_id, topic) => (topic.toLowerCase() === "plans" ? 9 : 0),
+    num_unread_for_topic: (_stream_id, topic) => (topic.toLowerCase() === "plans" ? 9 : 0),
     num_unread_for_user_ids_string: () => 0,
     get_msg_ids_for_topic: (stream_id, topic) =>
         known_topics.get(`${stream_id}:${topic}`) ?? [1, 2],

@@ -30,9 +30,9 @@
             </a>
             <span class="ykphone-row-actions">
                 {{#each actions}}
-                <button type="button" class="ykphone-row-action{{#if (and ../is_menu_open (eq id "due"))}} ykphone-row-action-open{{/if}}" data-ykphone-action="{{id}}" data-message-id="{{../message_id}}" aria-label="{{label}}" title="{{label}}">
-                    <i class="zulip-icon zulip-icon-{{icon}}" aria-hidden="true"></i>
-                </button>
+                    <button type="button" class="ykphone-row-action{{#if (and ../is_menu_open (eq id "due"))}} ykphone-row-action-open{{/if}}" data-ykphone-action="{{id}}" data-message-id="{{../message_id}}" aria-label="{{label}}" title="{{label}}">
+                        <i class="zulip-icon zulip-icon-{{icon}}" aria-hidden="true"></i>
+                    </button>
                 {{/each}}
             </span>
         </li>

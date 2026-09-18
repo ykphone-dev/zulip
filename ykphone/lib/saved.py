@@ -152,7 +152,9 @@ def saved_items(user_profile: UserProfile) -> SavedList:
         offset = 0
         in_state: list[SavedItem] = []
         while True:
-            chunk = list(items.order_by("-date_created", "-message_id")[offset : offset + chunk_size])
+            chunk = list(
+                items.order_by("-date_created", "-message_id")[offset : offset + chunk_size]
+            )
             if len(chunk) == 0:
                 break
             readable = readable_ids(user_profile, chunk)
@@ -172,7 +174,9 @@ def saved_items(user_profile: UserProfile) -> SavedList:
 
 
 def get_saved_item(user_profile: UserProfile, message_id: int) -> SavedItem:
-    item = SavedItem.objects.select_for_update().filter(user=user_profile, message_id=message_id)
+    item = SavedItem.objects.select_for_update(no_key=True).filter(
+        user=user_profile, message_id=message_id
+    )
     found = item.first()
     if found is None:
         raise JsonableError(_("This message is not saved."))
@@ -207,7 +211,7 @@ def save_message(user_profile: UserProfile, message_id: int, due: int | None = N
     with transaction.atomic(durable=True):
         # A message starred before the fork's table existed has no item
         # yet, and starring it again changed nothing.
-        item, created = SavedItem.objects.select_for_update().get_or_create(
+        item, created = SavedItem.objects.select_for_update(no_key=True).get_or_create(
             user=user_profile, message_id=message_id
         )
         if created:

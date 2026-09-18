@@ -19,20 +19,20 @@
             </div>
             <a class="ykphone-split-row ykphone-unreads-group-link{{#if is_active}} active{{/if}}" href="{{url}}" data-ykphone-group="{{key}}" {{#if is_active}}aria-current="page"{{/if}}>
                 {{#each messages}}
-                <span class="ykphone-unreads-message{{#if is_continuation}} continuation{{/if}}">
-                    {{#unless is_continuation}}
-                    <img class="ykphone-split-avatar-small" src="{{avatar_url}}" alt="" loading="lazy" />
-                    {{/unless}}
-                    <span class="ykphone-unreads-message-text">
+                    <span class="ykphone-unreads-message{{#if is_continuation}} continuation{{/if}}">
                         {{#unless is_continuation}}
-                        <span class="ykphone-split-meta">
-                            <span class="ykphone-unreads-sender">{{sender_name}}</span>
-                            <span class="ykphone-split-time">{{time_label}}</span>
-                        </span>
+                        <img class="ykphone-split-avatar-small" src="{{avatar_url}}" alt="" loading="lazy" />
                         {{/unless}}
-                        <span class="ykphone-unreads-snippet">{{snippet}}</span>
+                        <span class="ykphone-unreads-message-text">
+                            {{#unless is_continuation}}
+                            <span class="ykphone-split-meta">
+                                <span class="ykphone-unreads-sender">{{sender_name}}</span>
+                                <span class="ykphone-split-time">{{time_label}}</span>
+                            </span>
+                            {{/unless}}
+                            <span class="ykphone-unreads-snippet">{{snippet}}</span>
+                        </span>
                     </span>
-                </span>
                 {{/each}}
                 {{#if has_more}}
                 <span class="ykphone-unreads-more">{{more_label}}</span>

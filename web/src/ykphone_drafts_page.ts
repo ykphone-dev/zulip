@@ -39,7 +39,8 @@ export type PageDraft = {content: string; updatedAt: number} & (
 );
 
 export function is_drafts_tab(value: string | undefined): value is DraftsTab {
-    return DRAFTS_TABS.some((tab) => tab === value);
+    const tabs: readonly (string | undefined)[] = DRAFTS_TABS;
+    return tabs.includes(value);
 }
 
 export function tab_label(tab: DraftsTab): string {

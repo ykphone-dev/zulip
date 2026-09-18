@@ -59,7 +59,8 @@ const messages = new Map<number, RawMessage>();
 const listeners: (() => void)[] = [];
 
 export function is_saved_state(value: string | undefined): value is SavedState {
-    return SAVED_STATES.some((state) => state === value);
+    const states: readonly (string | undefined)[] = SAVED_STATES;
+    return states.includes(value);
 }
 
 export function state_label(state: SavedState): string {

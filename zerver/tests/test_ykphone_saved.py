@@ -194,9 +194,7 @@ class SavedItemTest(ZulipTestCase):
         dm_id = self.send_personal_message(othello, cordelia, "private")
         self.assert_json_error(self.save(hamlet, dm_id), "Invalid message(s)")
         self.assert_json_success(self.save(cordelia, dm_id))
-        self.assert_json_error(
-            self.patch(hamlet, dm_id, state="completed"), "Invalid message(s)"
-        )
+        self.assert_json_error(self.patch(hamlet, dm_id, state="completed"), "Invalid message(s)")
         self.assert_json_error(self.remove(hamlet, dm_id), "Invalid message(s)")
         # Nobody else's list shows cordelia's item.
         self.assertEqual(self.listed(hamlet), [])
@@ -316,7 +314,9 @@ class SavedItemTest(ZulipTestCase):
 
     def test_login_required(self) -> None:
         result = self.client_get("/json/ykphone/saved")
-        self.assert_json_error(result, "Not logged in: API authentication or user session required", 401)
+        self.assert_json_error(
+            result, "Not logged in: API authentication or user session required", 401
+        )
 
     def test_apply_events_ignores_saved_events(self) -> None:
         hamlet = self.example_user("hamlet")
