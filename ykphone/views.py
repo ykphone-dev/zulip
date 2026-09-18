@@ -3,6 +3,13 @@ from pydantic import Json
 
 from ykphone.lib.pins import pin_dict, pin_message, pins_for_stream, unpin_message
 from ykphone.lib.preferences import check_shell_theme, do_set_shell_theme, get_shell_theme
+from ykphone.lib.saved import (
+    remove_saved_item,
+    save_message,
+    saved_dict,
+    saved_items,
+    update_saved_item,
+)
 from ykphone.lib.threads import (
     get_or_create_thread,
     my_threads,
@@ -91,4 +98,42 @@ def update_preferences(
     request: HttpRequest, user_profile: UserProfile, *, shell_theme: str
 ) -> HttpResponse:
     do_set_shell_theme(user_profile, check_shell_theme(shell_theme))
+    return json_success(request)
+
+
+@typed_endpoint_without_parameters
+def get_saved_items(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    return json_success(request, data=dict(saved_items(user_profile)))
+
+
+@typed_endpoint
+def add_saved_item(
+    request: HttpRequest,
+    user_profile: UserProfile,
+    *,
+    message_id: Json[int],
+    due: Json[int] | None = None,
+) -> HttpResponse:
+    return json_success(request, data=saved_dict(save_message(user_profile, message_id, due)))
+
+
+@typed_endpoint
+def patch_saved_item(
+    request: HttpRequest,
+    user_profile: UserProfile,
+    *,
+    message_id: PathOnly[int],
+    state: str | None = None,
+    due: Json[int] | None = None,
+    clear_due: Json[bool] = False,
+) -> HttpResponse:
+    item = update_saved_item(user_profile, message_id, state=state, due=due, clear_due=clear_due)
+    return json_success(request, data=saved_dict(item))
+
+
+@typed_endpoint
+def delete_saved_item(
+    request: HttpRequest, user_profile: UserProfile, *, message_id: PathOnly[int]
+) -> HttpResponse:
+    remove_saved_item(user_profile, message_id)
     return json_success(request)

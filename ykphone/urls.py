@@ -3,12 +3,16 @@ from django.urls.resolvers import URLPattern, URLResolver
 
 from ykphone.views import (
     add_pin,
+    add_saved_item,
     create_thread,
+    delete_saved_item,
     get_my_threads,
     get_pins,
     get_preferences,
+    get_saved_items,
     get_thread_activity,
     get_threads,
+    patch_saved_item,
     remove_pin,
     update_preferences,
 )
@@ -22,6 +26,8 @@ v1_api_and_json_patterns = [
     rest_path("ykphone/threads/mine", GET=get_my_threads),
     rest_path("ykphone/pins", GET=get_pins, POST=add_pin),
     rest_path("ykphone/pins/<int:message_id>", DELETE=remove_pin),
+    rest_path("ykphone/saved", GET=get_saved_items, POST=add_saved_item),
+    rest_path("ykphone/saved/<int:message_id>", PATCH=patch_saved_item, DELETE=delete_saved_item),
     rest_path("ykphone/preferences", GET=get_preferences, PATCH=update_preferences),
 ]
 

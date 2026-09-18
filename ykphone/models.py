@@ -64,3 +64,32 @@ class RealmPreference(models.Model):
 
     realm = models.OneToOneField(Realm, on_delete=CASCADE, related_name="ykphone_preference")
     default_shell_theme = models.CharField(max_length=32)
+
+
+class SavedItem(models.Model):
+    """A message in a user's Later list (Slack's saved items).
+
+    Kept in step with Zulip's star flag by ykphone.lib.saved: starring
+    a message adds an item in progress and unstarring removes it, so
+    Zulip's own clients and the fork agree on what is saved. The state
+    and the due date are the fork's own; archiving unstars the message
+    and keeps the item under Archived.
+    """
+
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    ARCHIVED = "archived"
+    STATES = (IN_PROGRESS, COMPLETED, ARCHIVED)
+
+    user = models.ForeignKey(UserProfile, on_delete=CASCADE, related_name="ykphone_saved_items")
+    message = models.ForeignKey(Message, on_delete=CASCADE, related_name="ykphone_saved_items")
+    state = models.CharField(max_length=16, default=IN_PROGRESS)
+    due = models.DateTimeField(null=True)
+    date_created = models.DateTimeField(default=timezone_now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "message"], name="ykphone_saveditem_user_message"
+            ),
+        ]

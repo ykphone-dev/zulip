@@ -8,6 +8,7 @@ from django.utils.timezone import now as timezone_now
 from django.utils.translation import gettext as _
 
 from analytics.lib.counts import COUNT_STATS, do_increment_logging_stat
+from ykphone.lib.saved import sync_saved_items_with_star
 from zerver.lib.exceptions import JsonableError
 from zerver.lib.message import (
     bulk_access_messages,
@@ -436,6 +437,8 @@ def do_update_message_flags(
             )
 
         send_event_on_commit(user_profile.realm, event, [user_profile.id])
+        if flag == "starred":
+            sync_saved_items_with_star(user_profile, messages, is_adding)
 
         if flag == "read" and is_adding:
             event_time = timezone_now()
