@@ -23,9 +23,9 @@ import type {NarrowCanonicalTerm, NarrowTerm, NarrowTermSuggestion} from "./stat
 import * as stream_data from "./stream_data.ts";
 import * as timerender from "./timerender.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
-import * as ykphone_highlight from "./ykphone_highlight.ts";
 import type {FileFilters, FilterOption} from "./ykphone_files.ts";
 import {NO_FILE_FILTERS} from "./ykphone_files.ts";
+import * as ykphone_highlight from "./ykphone_highlight.ts";
 
 export type SearchTab = "messages" | "files" | "channels" | "people";
 export const SEARCH_TABS: SearchTab[] = ["messages", "files", "channels", "people"];
@@ -52,7 +52,8 @@ export function tab_label(tab: SearchTab): string {
 }
 
 export function is_search_tab(value: string | undefined): value is SearchTab {
-    return SEARCH_TABS.some((tab) => tab === value);
+    const tabs: readonly (string | undefined)[] = SEARCH_TABS;
+    return tabs.includes(value);
 }
 
 // ---- The query in the hash ----
@@ -179,18 +180,19 @@ function collapse(text: string, marks: boolean[]): {text: string; marks: boolean
     let out = "";
     const out_marks: boolean[] = [];
     let after_space = true;
-    for (let index = 0; index < text.length; index += 1) {
+    // One mark per UTF-16 code unit of the text.
+    for (const [index, mark] of marks.entries()) {
         const character = text[index]!;
         if (character === " ") {
             if (!after_space) {
                 out += " ";
-                out_marks.push(marks[index] === true);
+                out_marks.push(mark);
             }
             after_space = true;
             continue;
         }
         out += character;
-        out_marks.push(marks[index] === true);
+        out_marks.push(mark);
         after_space = false;
     }
     if (out.endsWith(" ")) {
@@ -214,9 +216,7 @@ export function highlighted_runs(
     for (const [index, piece] of pieces.entries()) {
         const piece_text = ykphone_highlight.plain_text(piece);
         flat += piece_text;
-        for (let offset = 0; offset < piece_text.length; offset += 1) {
-            flat_marks.push(index % 2 === 1);
-        }
+        flat_marks.push(...Array.from({length: piece_text.length}, () => index % 2 === 1));
     }
     const {text, marks} = collapse(flat, flat_marks);
     const first_mark = marks.indexOf(true);
@@ -763,7 +763,8 @@ export function date_options(range: DateRange): FilterOption[] {
 }
 
 export function is_date_range(value: string): value is DateRange {
-    return DATE_RANGES.some((range) => range === value);
+    const ranges: readonly string[] = DATE_RANGES;
+    return ranges.includes(value);
 }
 
 export function sort_options(order: SortOrder): FilterOption[] {

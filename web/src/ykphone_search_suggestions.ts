@@ -51,18 +51,15 @@ export type SuggestionRow = {
 const section_order: SuggestionSection[] = ["query", "recent", "channel", "person", "filter"];
 
 function section_label(section: SuggestionSection): string | undefined {
-    switch (section) {
-        case "recent":
-            return $t({defaultMessage: "Recent searches"});
-        case "channel":
-            return $t({defaultMessage: "Channels"});
-        case "person":
-            return $t({defaultMessage: "People"});
-        case "filter":
-            return $t({defaultMessage: "Search filters"});
-        case "query":
-            return undefined;
-    }
+    const labels: Record<SuggestionSection, string | undefined> = {
+        // The typed words need no heading.
+        query: undefined,
+        recent: $t({defaultMessage: "Recent searches"}),
+        channel: $t({defaultMessage: "Channels"}),
+        person: $t({defaultMessage: "People"}),
+        filter: $t({defaultMessage: "Search filters"}),
+    };
+    return labels[section];
 }
 
 // ---- What the fork leaves out ----
@@ -361,8 +358,12 @@ export function term_label(term: NarrowTermSuggestion): string {
             return term.operand;
         case "channel":
             return sign + channel_label(term.operand);
-        case "sender":
-            return sign + $t({defaultMessage: "From {name}"}, {name: person_label(term.operand)});
+        case "sender": {
+            const name = person_label(term.operand);
+            return term.negated === true
+                ? $t({defaultMessage: "Not from {name}"}, {name})
+                : $t({defaultMessage: "From {name}"}, {name});
+        }
         case "dm":
         case "dm-including":
             return sign + person_label(term.operand);
@@ -504,7 +505,10 @@ function row_for(
         section_label: undefined,
         icon: view.icon,
         avatar_url: view.avatar_url,
-        label: view.label + (last.negated === true ? ` ${$t({defaultMessage: "(excluded)"})}` : ""),
+        label:
+            last.negated === true
+                ? $t({defaultMessage: "{label} (excluded)"}, {label: view.label})
+                : view.label,
         description: view.description,
     };
 }

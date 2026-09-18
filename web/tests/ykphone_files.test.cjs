@@ -2,11 +2,11 @@
 
 const assert = require("node:assert/strict");
 
+const render_file_rows = require("../templates/ykphone_file_rows.hbs");
+
 const {make_user} = require("./lib/example_user.cjs");
 const {mock_esm, zrequire} = require("./lib/namespace.cjs");
 const {run_test} = require("./lib/test.cjs");
-
-const render_file_rows = require("../templates/ykphone_file_rows.hbs");
 
 const me = make_user({user_id: 5});
 const verona_id = 3;

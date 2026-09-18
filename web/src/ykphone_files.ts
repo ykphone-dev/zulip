@@ -106,7 +106,8 @@ export function extension_of(name: string): string {
 }
 
 export function is_file_kind(value: string): value is FileKind {
-    return FILE_KINDS.some((kind) => kind === value);
+    const kinds: readonly string[] = FILE_KINDS;
+    return kinds.includes(value);
 }
 
 export function kind_of(name: string): FileKind {

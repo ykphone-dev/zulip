@@ -133,24 +133,6 @@ run_test("what a term reads as", () => {
     ]) {
         assert.equal(describe(term), undefined, JSON.stringify(term));
     }
-    ykphone_flags.rewire_SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY(false);
-    assert.deepEqual(line({operator: "is", operand: "unread"})[1], "translated: Unread");
-    assert.deepEqual(line({operator: "has", operand: "reaction"})[1], "translated: Has reaction");
-    assert.deepEqual(line({operator: "channels", operand: "public"}), [
-        "filter",
-        "translated: Channels to search",
-        "channels:public",
-    ]);
-    assert.deepEqual(line({operator: "id", operand: "5"}), [
-        "filter",
-        "id:5",
-        "translated: A message by its id",
-    ]);
-    assert.equal(line({operator: "near", operand: "5"})[1], "near:5");
-    assert.equal(line({operator: "with", operand: "5"})[1], "with:5");
-    // A topic operator stays hidden whichever way that flag is set.
-    assert.equal(describe({operator: "topic", operand: "Plans"}), undefined);
-    ykphone_flags.rewire_SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY(true);
 
     // The icon says what kind of channel it is, and a person's row
     // carries their avatar when it is one person.
@@ -186,10 +168,39 @@ run_test("what a term reads as", () => {
     }
 });
 
+run_test("what a term reads as without Slack's operators only", ({override_rewire}) => {
+    const describe = (term) => ykphone_search_suggestions.describe_term(term);
+    const line = (term) => {
+        const view = describe(term);
+        return view === undefined ? undefined : [view.section, view.label, view.description];
+    };
+    override_rewire(ykphone_flags, "SEARCH_DROPDOWN_SLACK_OPERATORS_ONLY", false);
+    assert.deepEqual(line({operator: "is", operand: "unread"})[1], "translated: Unread");
+    assert.deepEqual(line({operator: "has", operand: "reaction"})[1], "translated: Has reaction");
+    assert.deepEqual(line({operator: "channels", operand: "public"}), [
+        "filter",
+        "translated: Channels to search",
+        "channels:public",
+    ]);
+    assert.deepEqual(line({operator: "id", operand: "5"}), [
+        "filter",
+        "id:5",
+        "translated: A message by its id",
+    ]);
+    assert.equal(line({operator: "near", operand: "5"})[1], "near:5");
+    assert.equal(line({operator: "with", operand: "5"})[1], "with:5");
+    // A topic operator stays hidden whichever way that flag is set.
+    assert.equal(describe({operator: "topic", operand: "Plans"}), undefined);
+});
+
 run_test("a recent search reads as its own line", () => {
     assert.equal(
         ykphone_search_suggestions.search_label("channel:11 sender:7 예산"),
         "#devel translated: From Othello 예산",
+    );
+    assert.equal(
+        ykphone_search_suggestions.search_label("-sender:7"),
+        "translated: Not from Othello",
     );
     assert.equal(ykphone_search_suggestions.search_label("dm:7"), "Othello");
     assert.equal(ykphone_search_suggestions.search_label("-channel:11"), "-#devel");
@@ -323,7 +334,7 @@ run_test("the dropdown", () => {
             "translated: Search filters",
             "filter",
             "-has:link",
-            "translated: Has link translated: (excluded)",
+            "translated: translated: Has link (excluded)",
         ],
     ]);
     window.localStorage.clear();
