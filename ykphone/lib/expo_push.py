@@ -23,6 +23,7 @@ import re
 from typing import Any
 
 from django.utils.timezone import now as timezone_now
+from django.utils.translation import gettext as _
 
 from ykphone.lib.notification_pause import get_pause, skip_paused_notification
 from ykphone.models import ExpoPushToken
@@ -43,7 +44,7 @@ QUEUE_EVENT_TYPE = "ykphone_expo_push"
 
 def check_expo_token(token: str) -> str:
     if not EXPO_TOKEN_RE.match(token):
-        raise JsonableError("Invalid Expo push token.")
+        raise JsonableError(_("Invalid Expo push token."))
     return token
 
 
