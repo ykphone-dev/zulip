@@ -2,6 +2,11 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.translation import gettext as _
 from pydantic import Json
 
+from ykphone.lib.expo_push import (
+    check_expo_token,
+    register_expo_push_token,
+    unregister_expo_push_token,
+)
 from ykphone.lib.notification_pause import (
     check_schedule,
     do_set_notification_pause,
@@ -202,4 +207,24 @@ def set_status_expiry(
     request: HttpRequest, user_profile: UserProfile, *, clear_at: Json[int | None]
 ) -> HttpResponse:
     do_set_status_expiry(user_profile, clear_at)
+    return json_success(request)
+
+
+@human_users_only
+@typed_endpoint
+def add_expo_push_token(
+    request: HttpRequest, user_profile: UserProfile, *, token: str
+) -> HttpResponse:
+    """Called by the 옆커폰 chat app from the logged-in page once it has
+    an Expo push token (ykphone.lib.expo_push)."""
+    register_expo_push_token(user_profile, check_expo_token(token))
+    return json_success(request)
+
+
+@human_users_only
+@typed_endpoint
+def remove_expo_push_token(
+    request: HttpRequest, user_profile: UserProfile, *, token: str
+) -> HttpResponse:
+    unregister_expo_push_token(user_profile, check_expo_token(token))
     return json_success(request)

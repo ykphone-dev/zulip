@@ -324,3 +324,8 @@ AUTH_LDAP_USER_ATTR_MAP = {
 # upstream test suite is written against Gravatar fallbacks; keep the
 # tests on upstream behavior instead of rewriting their expectations.
 ENABLE_GRAVATAR = True
+
+# Upstream tests count queue events and queries per message sent; the
+# fork's per-message Expo push would add one of each, so it is off here
+# and turned on by test_ykphone_expo_push.
+YKPHONE_EXPO_PUSH = False

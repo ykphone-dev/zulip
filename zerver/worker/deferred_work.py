@@ -10,6 +10,8 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
 from typing_extensions import override
 
+from ykphone.lib.expo_push import QUEUE_EVENT_TYPE as YKPHONE_EXPO_PUSH
+from ykphone.lib.expo_push import send_expo_push
 from zerver.actions.data_import import import_slack_data
 from zerver.actions.message_flags import do_mark_stream_messages_as_read
 from zerver.actions.message_send import internal_send_private_message
@@ -193,6 +195,8 @@ class DeferredWorker(QueueProcessingWorker):
                 scrub_deactivated_realm(realm)
         elif event["type"] == "import_slack_data":
             import_slack_data(event)
+        elif event["type"] == YKPHONE_EXPO_PUSH:
+            send_expo_push(event)
 
         end = time.time()
         logger.info(
