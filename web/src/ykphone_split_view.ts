@@ -1,5 +1,6 @@
-// Slack's DM, Activity, Threads and search results pages for the 옆커폰
-// fork: the state and data of the split-pane shell.
+// Slack's DM, Activity, Threads, search results, Drafts & sent, Later
+// and All unreads pages for the 옆커폰 fork: the state and data of the
+// split-pane shell.
 //
 // Each page is two columns inside the middle pane: a list on the left
 // (this module's rows) and the selected conversation on the right,
@@ -10,9 +11,13 @@
 // upstream's, untouched. The hashes are #ykphone/dms[/<user ids>],
 // #ykphone/activity[/<tab>[/<message id>]],
 // #ykphone/threads[/<root message id>] and
-// #ykphone/search/<query>[/<tab>[/<result>]]. The DOM side lives in
-// ykphone_split_view_ui.ts; the search page's own data (the query, the
-// results, the filters) lives in ykphone_search.ts.
+// #ykphone/search/<query>[/<tab>[/<result>]],
+// #ykphone/drafts[/<tab>[/<draft, scheduled message or message id>]],
+// #ykphone/saved[/<state>[/<message id>]] and
+// #ykphone/unreads[/<message id>]. The DOM side lives in
+// ykphone_split_view_ui.ts; the search page's own data lives in
+// ykphone_search.ts, and the last three pages' in
+// ykphone_drafts_page.ts, ykphone_saved.ts and ykphone_unreads.ts.
 
 import assert from "minimalistic-assert";
 import * as z from "zod/mini";
@@ -33,24 +38,37 @@ import * as timerender from "./timerender.ts";
 import * as unread from "./unread.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
 import type {ActivityItem, ActivityTab} from "./ykphone_activity.ts";
+import * as ykphone_drafts_page from "./ykphone_drafts_page.ts";
+import type {DraftsTab} from "./ykphone_drafts_page.ts";
 import * as ykphone_files from "./ykphone_files.ts";
+import * as ykphone_saved from "./ykphone_saved.ts";
+import type {SavedState} from "./ykphone_saved.ts";
 import * as ykphone_search from "./ykphone_search.ts";
 import type {DateRange, SearchTab, SortOrder} from "./ykphone_search.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
+import * as ykphone_unreads from "./ykphone_unreads.ts";
 
-export type SplitPage = "dms" | "activity" | "threads" | "search";
+export type SplitPage = "dms" | "activity" | "threads" | "search" | "drafts" | "saved" | "unreads";
 
-// The Activity page's filters and the search results page's tabs are
-// the same row of chips in the list header.
-export type SplitTab = ActivityTab | SearchTab;
+// The Activity page's filters, the search results page's tabs and the
+// Drafts & sent and Later pages' tabs are the same row of chips in the
+// list header.
+export type SplitTab = ActivityTab | SearchTab | DraftsTab | SavedState;
+
+// The pages whose tab is part of the hash (#ykphone/<page>/<tab>/…).
+function has_tab_in_hash(page: SplitPage): boolean {
+    return page === "activity" || page === "drafts" || page === "saved";
+}
 
 export type SplitRoute = {
     page: SplitPage;
     // Pages without tabs carry "all".
     tab: SplitTab;
     // The list row shown on the right: a DM's user ids ("7" or "7,9"),
-    // an activity item's message id, a thread's root message id, or a
-    // search result (a message id, "c<channel id>", "u<user id>").
+    // an activity item's message id, a thread's root message id, a
+    // search result (a message id, "c<channel id>", "u<user id>"), a
+    // draft's id, a scheduled message's id, or a message id (sent,
+    // saved, or the first listed message of an unread conversation).
     selection: string | undefined;
     // The search results page only: the Zulip search string, and the
     // two view choices that belong in the URL with it.
@@ -116,11 +134,7 @@ export function is_narrow_shown_for(current: SplitRoute): boolean {
 // A thread (a channel topic) is the conversation on the right of a
 // split page: the composer and the pane header call it a thread.
 export function is_thread_shown(): boolean {
-    return (
-        route?.selection !== undefined &&
-        !placeholder_visible &&
-        (route.page === "threads" || route.page === "activity" || route.page === "search")
-    );
+    return route?.selection !== undefined && !placeholder_visible && route.page !== "dms";
 }
 
 function non_empty(part: string | undefined): string | undefined {
@@ -165,6 +179,20 @@ export function parse_hash(parts: string[]): SplitRoute | undefined {
             }
             return {page: "activity", tab, selection: non_empty(rest[1])};
         }
+        case "drafts":
+            return {
+                page: "drafts",
+                tab: ykphone_drafts_page.is_drafts_tab(rest[0]) ? rest[0] : "drafts",
+                selection: non_empty(rest[1]),
+            };
+        case "saved":
+            return {
+                page: "saved",
+                tab: ykphone_saved.is_saved_state(rest[0]) ? rest[0] : "in_progress",
+                selection: non_empty(rest[1]),
+            };
+        case "unreads":
+            return {page: "unreads", tab: "all", selection: non_empty(rest[0])};
         case "search": {
             // #ykphone/search/<query>[/<tab>[/<sort>-<range>[/<result>]]]
             const query = ykphone_search.decode_query(rest[0] ?? "");
@@ -210,8 +238,8 @@ export function page_hash(
         }
         return hash;
     }
-    if (page === "activity" && (opts.tab !== undefined || opts.selection !== undefined)) {
-        hash += `/${opts.tab ?? "all"}`;
+    if (has_tab_in_hash(page) && (opts.tab !== undefined || opts.selection !== undefined)) {
+        hash += `/${opts.tab ?? default_tab(page)}`;
     }
     if (opts.selection !== undefined) {
         hash += `/${opts.selection}`;
@@ -221,7 +249,7 @@ export function page_hash(
 
 export function route_hash(current: SplitRoute, selection: string | undefined): string {
     return page_hash(current.page, {
-        tab: current.page === "activity" || current.page === "search" ? current.tab : undefined,
+        tab: has_tab_in_hash(current.page) || current.page === "search" ? current.tab : undefined,
         selection,
         query: current.query,
         sort: current.sort,
@@ -235,6 +263,9 @@ export function page_title(page: SplitPage): string {
         activity: $t({defaultMessage: "Activity"}),
         threads: $t({defaultMessage: "Threads"}),
         search: $t({defaultMessage: "Search results"}),
+        drafts: $t({defaultMessage: "Drafts & sent"}),
+        saved: $t({defaultMessage: "Later"}),
+        unreads: $t({defaultMessage: "Unread messages"}),
     };
     return titles[page];
 }
@@ -245,8 +276,59 @@ export function page_icon(page: SplitPage): string {
         activity: "ykphone-rail-bell",
         threads: "threads",
         search: "search",
+        drafts: "drafts",
+        saved: "bookmark",
+        unreads: "unread",
     };
     return icons[page];
+}
+
+function default_tab(page: SplitPage): SplitTab {
+    if (page === "drafts") {
+        return "drafts";
+    }
+    if (page === "saved") {
+        return "in_progress";
+    }
+    return "all";
+}
+
+export type PageTabLink = {
+    id: SplitTab;
+    label: string;
+    // Shown after the label (the Later page's count in progress).
+    count: string;
+    active: boolean;
+    url: string;
+};
+
+// The chips of the Drafts & sent and Later pages. Switching a tab
+// drops the selection, whose meaning is the tab's (a draft id is not a
+// scheduled message's).
+export function page_tab_links(current: SplitRoute): PageTabLink[] {
+    if (current.page === "drafts") {
+        return ykphone_drafts_page.DRAFTS_TABS.map((tab) => ({
+            id: tab,
+            label: ykphone_drafts_page.tab_label(tab),
+            count: "",
+            active: tab === current.tab,
+            url: page_hash("drafts", {tab}),
+        }));
+    }
+    if (current.page === "saved") {
+        return ykphone_saved.SAVED_STATES.map((state) => ({
+            id: state,
+            label: ykphone_saved.state_label(state),
+            // The server's count: the list itself is capped.
+            count:
+                state === "in_progress"
+                    ? (ykphone_saved.in_progress_count()?.toString() ?? "")
+                    : "",
+            active: state === current.tab,
+            url: page_hash("saved", {tab: state}),
+        }));
+    }
+    return [];
 }
 
 // ---- Direct messages ----
@@ -496,6 +578,18 @@ let activity_items: ActivityItem[] = [];
 // Whether the current page's feed has answered (a selection that names
 // nothing in it is stale only once it has).
 let activity_loaded = false;
+// Slack's "Unread only" switch of the Activity page: a view of the
+// same feed, kept while the page is open (like the search page's file
+// facets) and off again when it is opened anew.
+let activity_unread_only = false;
+
+export function is_activity_unread_only(): boolean {
+    return activity_unread_only;
+}
+
+export function set_activity_unread_only(value: boolean): void {
+    activity_unread_only = value;
+}
 
 export function get_activity_items(): ActivityItem[] {
     return activity_items;
@@ -509,6 +603,7 @@ export function set_activity_items(items: ActivityItem[]): void {
 export function clear_activity_items(): void {
     activity_items = [];
     activity_loaded = false;
+    activity_unread_only = false;
 }
 
 export function find_activity_item(message_id: number): ActivityItem | undefined {
@@ -580,19 +675,80 @@ export function listed_activity_items(): ActivityItem[] {
     );
 }
 
+function is_activity_item_unread(item: ActivityItem): boolean {
+    // A reaction has no unread state of its own.
+    return (
+        item.source !== "reactions" && unread.get_unread_message_ids([item.message.id]).length > 0
+    );
+}
+
+// The items with a row under the current switch.
+export function shown_activity_items(): ActivityItem[] {
+    const listed = listed_activity_items();
+    return activity_unread_only ? listed.filter((item) => is_activity_item_unread(item)) : listed;
+}
+
+// What "Mark all as read" marks on a tab: every unread message of the
+// tab's kind, not only the ones the feed has loaded. Mentions and
+// direct messages are marked by their narrow on the server; thread
+// replies have no narrow, and unread.ts knows every one of them.
+// Reactions carry no unread state.
+export type ActivityMarkReadPlan = {
+    narrows: NarrowTerm[][];
+    message_ids: number[];
+    // How many unread direct messages the plan marks (전체 asks first).
+    direct_message_count: number;
+};
+
+const UNREAD_TERM: NarrowTerm = {operator: "is", operand: "unread"};
+
+export function thread_reply_unread_ids(): number[] {
+    const ids: number[] = [];
+    for (const [stream_id, topics] of unread.get_unread_topics().topic_counts) {
+        for (const topic of topics.keys()) {
+            if (
+                topic !== "" &&
+                (ykphone_threads.user_takes_part_in_topic(stream_id, topic) ||
+                    ykphone_threads.get_thread_for_topic(stream_id, topic)?.user_participated ===
+                        true)
+            ) {
+                ids.push(...unread.get_msg_ids_for_topic(stream_id, topic));
+            }
+        }
+    }
+    return ids;
+}
+
+export function activity_mark_read_plan(tab: SplitTab): ActivityMarkReadPlan {
+    const mentions: NarrowTerm[] = [{operator: "is", operand: "mentioned"}, UNREAD_TERM];
+    switch (tab) {
+        case "mentions":
+            return {narrows: [mentions], message_ids: [], direct_message_count: 0};
+        case "threads":
+            return {narrows: [], message_ids: thread_reply_unread_ids(), direct_message_count: 0};
+        case "all":
+            return {
+                narrows: [mentions, [{operator: "is", operand: "dm"}, UNREAD_TERM]],
+                message_ids: thread_reply_unread_ids(),
+                direct_message_count: unread.get_msg_ids_for_private().length,
+            };
+        default:
+            return {narrows: [], message_ids: [], direct_message_count: 0};
+    }
+}
+
 export function activity_rows(current: SplitRoute): ActivityRowContext[] {
-    return listed_activity_items().map((item) => {
+    return shown_activity_items().map((item) => {
         const base = ykphone_activity.row_context(item);
         const message_id = item.message.id;
         let avatar_url = base.avatar_url;
+        const is_unread = is_activity_item_unread(item);
         // A reaction row shows who reacted, not who wrote the message
-        // (the user did), and has no unread state of its own.
-        let is_unread = unread.get_unread_message_ids([message_id]).length > 0;
+        // (the user did).
         if (item.source === "reactions") {
             const reaction = last_reaction_by_other(item.message);
             assert(reaction !== undefined);
             avatar_url = people.small_avatar_url_for_user_id(reaction.user_id);
-            is_unread = false;
         }
         return {
             message_id,
@@ -911,6 +1067,32 @@ function search_known_messages(): RawMessage[] {
     return results === undefined ? [] : [...results.messages, ...results.files];
 }
 
+// ---- Drafts & sent, Later ----
+
+function drafts_narrow_terms(current: SplitRoute, selection: string): NarrowTerm[] | undefined {
+    if (current.tab === "scheduled") {
+        const message = ykphone_drafts_page.find_scheduled(selection);
+        return message === undefined
+            ? undefined
+            : ykphone_drafts_page.scheduled_narrow_terms(message);
+    }
+    if (current.tab === "sent") {
+        const message = ykphone_drafts_page.find_sent_message(Number(selection));
+        return message === undefined ? undefined : ykphone_activity.message_terms(message);
+    }
+    const draft = ykphone_drafts_page.find_draft(selection);
+    return draft === undefined ? undefined : ykphone_drafts_page.draft_narrow_terms(draft);
+}
+
+export function saved_state(current: SplitRoute): SavedState {
+    return ykphone_saved.is_saved_state(current.tab) ? current.tab : "in_progress";
+}
+
+export function saved_narrow_terms(selection: string): NarrowTerm[] | undefined {
+    const message = ykphone_saved.get_message(Number(selection));
+    return message === undefined ? undefined : ykphone_activity.message_terms(message);
+}
+
 // ---- Selection ----
 
 // The narrow the selection stands for, or undefined while the rows it
@@ -929,6 +1111,15 @@ export function narrow_terms(current: SplitRoute): NarrowTerm[] | undefined {
     if (current.page === "search") {
         return ykphone_search.selection_terms(current.selection, search_known_messages());
     }
+    if (current.page === "drafts") {
+        return drafts_narrow_terms(current, current.selection);
+    }
+    if (current.page === "saved") {
+        return saved_narrow_terms(current.selection);
+    }
+    if (current.page === "unreads") {
+        return ykphone_unreads.narrow_terms(current.selection);
+    }
     const row = find_thread_row(Number.parseInt(current.selection, 10));
     return row === undefined ? undefined : thread_narrow_terms(row);
 }
@@ -936,8 +1127,9 @@ export function narrow_terms(current: SplitRoute): NarrowTerm[] | undefined {
 // What the page opens with when nothing is selected: the newest
 // conversation or thread by activity, unless opening it would mark
 // messages read that the user did not choose to read, in which case
-// nothing (the placeholder). The Activity page always waits for a
-// click.
+// nothing (the placeholder). The other pages always wait for a click
+// (opening a saved or unread message would mark it read, and a draft
+// would be put in the composer).
 export function default_selection(current: SplitRoute): string | undefined {
     if (current.page === "dms") {
         const newest = dm_conversations()[0];
@@ -964,7 +1156,8 @@ export function default_selection(current: SplitRoute): string | undefined {
 }
 
 // Whether the rows a selection is looked up in have arrived.
-function rows_loaded(page: SplitPage): boolean {
+function rows_loaded(current: SplitRoute): boolean {
+    const {page} = current;
     if (page === "dms") {
         return true;
     }
@@ -973,6 +1166,19 @@ function rows_loaded(page: SplitPage): boolean {
     }
     if (page === "search") {
         return ykphone_search.get_results() !== undefined;
+    }
+    if (page === "drafts") {
+        // Drafts and scheduled messages are known from the start.
+        return current.tab !== "sent" || ykphone_drafts_page.get_sent_messages() !== undefined;
+    }
+    if (page === "saved") {
+        return (
+            ykphone_saved.is_loaded() &&
+            ykphone_saved.missing_message_ids(saved_state(current)).length === 0
+        );
+    }
+    if (page === "unreads") {
+        return ykphone_unreads.is_loaded();
     }
     return thread_rows !== undefined;
 }
@@ -1036,7 +1242,7 @@ export function resolve_route(current: SplitRoute, opts: {stacked: boolean}): Ro
         if (is_narrow_shown_for(current)) {
             return {type: "keep"};
         }
-        if (!rows_loaded(current.page)) {
+        if (!rows_loaded(current)) {
             return placeholder_visible ? {type: "keep"} : {type: "placeholder", stale: false};
         }
         return fallback(true);
@@ -1061,11 +1267,21 @@ export function refresh_for_messages(messages: Message[]): RefreshPlan {
     if (route.page === "activity") {
         return affects_activity(messages) ? "reload" : undefined;
     }
-    if (route.page === "search") {
+    if (route.page === "search" || route.page === "saved") {
         // A search is a snapshot: new messages do not change what was
         // searched for, and re-running it under the reader would move
-        // the rows they are working through.
+        // the rows they are working through. Saved items change with
+        // the star, not with new messages.
         return undefined;
+    }
+    if (route.page === "drafts") {
+        return route.tab === "sent" &&
+            messages.some((message) => message.sender_id === current_user.user_id)
+            ? "reload"
+            : undefined;
+    }
+    if (route.page === "unreads") {
+        return ykphone_unreads.affects_unreads(messages) ? "reload" : undefined;
     }
     return affects_threads(messages) ? "reload" : undefined;
 }
@@ -1078,6 +1294,7 @@ export function clear_for_testing(): void {
     last_dm_messages.clear();
     activity_items = [];
     activity_loaded = false;
+    activity_unread_only = false;
     thread_rows = undefined;
     threads_load_generation = 0;
 }

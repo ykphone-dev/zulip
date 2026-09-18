@@ -27,6 +27,7 @@ const page_ids = [
     "files",
     "saved",
     "drafts",
+    "unreads",
     "scheduled",
     "reminders",
     "settings",
@@ -158,6 +159,9 @@ function page_info(page: PageId): PageInfo | undefined {
         case "dms":
         case "activity":
         case "threads":
+        case "saved":
+        case "drafts":
+        case "unreads":
             return {
                 title: ykphone_split_view.page_title(page),
                 icon: ykphone_split_view.page_icon(page),
@@ -169,14 +173,6 @@ function page_info(page: PageId): PageInfo | undefined {
                 icon: "ykphone-rail-file",
                 hash: "#narrow/has/attachment",
             };
-        case "saved":
-            return {
-                title: $t({defaultMessage: "Later"}),
-                icon: "bookmark",
-                hash: "#narrow/is/starred",
-            };
-        case "drafts":
-            return {title: $t({defaultMessage: "Drafts"}), icon: "drafts", hash: "#drafts"};
         case "scheduled":
             return {
                 title: $t({defaultMessage: "Scheduled messages"}),

@@ -52,6 +52,7 @@ import * as unread from "./unread.ts";
 import * as unread_ui from "./unread_ui.ts";
 import * as util from "./util.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_saved from "./ykphone_saved.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 import * as ykphone_thread_panel from "./ykphone_thread_panel.ts";
 import * as ykphone_threads from "./ykphone_threads.ts";
@@ -1013,6 +1014,7 @@ export function update_messages(events: UpdateMessageEvent[]): void {
     stream_list.update_streams_sidebar();
     pm_list.update_private_messages();
     ykphone_thread_panel.on_messages_updated(events.flatMap((event) => event.message_ids));
+    ykphone_split_view_ui.on_messages_changed(events.flatMap((event) => event.message_ids));
 }
 
 export function remove_messages(message_ids: number[]): void {
@@ -1032,5 +1034,7 @@ export function remove_messages(message_ids: number[]): void {
     ykphone_threads.on_messages_removed(message_ids);
     ykphone_thread_panel.on_messages_removed(message_ids);
     ykphone_pins.on_messages_removed(message_ids);
+    ykphone_saved.on_messages_removed(message_ids);
+    ykphone_split_view_ui.on_messages_changed(message_ids);
     message_store.remove(message_ids);
 }

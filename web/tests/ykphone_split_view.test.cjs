@@ -94,7 +94,21 @@ mock_esm("../src/timerender", {
     relative_time_string_from_date: (date) => `relative:${date.getTime() / 1000}`,
     get_localized_date_or_time_for_format: (date) => `date:${date.getTime() / 1000}`,
 });
+let unread_topic_ids = new Map();
+let unread_private_ids = [];
 mock_esm("../src/unread", {
+    get_unread_topics() {
+        const topic_counts = new Map();
+        for (const key of unread_topic_ids.keys()) {
+            const [stream_id, topic] = key.split(":");
+            const topics = topic_counts.get(Number(stream_id)) ?? new Map();
+            topics.set(topic, {});
+            topic_counts.set(Number(stream_id), topics);
+        }
+        return {topic_counts};
+    },
+    get_msg_ids_for_topic: (stream_id, topic) => unread_topic_ids.get(`${stream_id}:${topic}`),
+    get_msg_ids_for_private: () => unread_private_ids,
     get_unread_message_ids: (ids) => ids.filter((id) => unread_ids.has(id)),
     num_unread_for_user_ids_string: (s) => unread_by_dm.get(s) ?? 0,
     num_unread_for_topic: (stream_id, topic) => unread_by_topic.get(`${stream_id}:${topic}`) ?? 0,
@@ -103,6 +117,44 @@ mock_esm("../src/ykphone_threads", {
     user_takes_part_in_topic: (stream_id, topic) =>
         participated_topics.has(`${stream_id}:${topic}`),
     get_thread_for_topic: (stream_id, topic) => threads_by_topic.get(`${stream_id}:${topic}`),
+});
+
+// The Drafts & sent, Later and unread messages pages' own data
+// (tested in their modules' tests).
+const fake_drafts = new Map();
+const fake_scheduled = new Map();
+let fake_sent;
+const drafts_tabs = ["drafts", "scheduled", "sent"];
+mock_esm("../src/ykphone_drafts_page", {
+    DRAFTS_TABS: drafts_tabs,
+    is_drafts_tab: (value) => drafts_tabs.includes(value),
+    tab_label: (tab) => `tab:${tab}`,
+    find_draft: (id) => fake_drafts.get(id),
+    draft_narrow_terms: (draft) => draft.terms,
+    find_scheduled: (id) => fake_scheduled.get(id),
+    scheduled_narrow_terms: (message) => message.terms,
+    find_sent_message: (id) => fake_sent?.find((message) => message.id === id),
+    get_sent_messages: () => fake_sent,
+});
+const saved_states = ["in_progress", "completed", "archived"];
+let saved_loaded = false;
+let saved_missing = [];
+const saved_messages = new Map();
+mock_esm("../src/ykphone_saved", {
+    SAVED_STATES: saved_states,
+    is_saved_state: (value) => saved_states.includes(value),
+    state_label: (state) => `state:${state}`,
+    is_loaded: () => saved_loaded,
+    in_progress_count: () => (saved_loaded ? 2 : undefined),
+    get_message: (message_id) => saved_messages.get(message_id),
+    missing_message_ids: () => saved_missing,
+});
+let unreads_loaded = false;
+mock_esm("../src/ykphone_unreads", {
+    is_loaded: () => unreads_loaded,
+    narrow_terms: (selection) =>
+        selection === "70" ? [{operator: "near", operand: "70"}] : undefined,
+    affects_unreads: (messages) => messages.length > 0,
 });
 
 const {set_current_user, set_realm} = zrequire("state_data");
@@ -124,6 +176,8 @@ function reset() {
     message_store.clear_for_testing();
     participated_topics = new Set();
     threads_by_topic = new Map();
+    unread_topic_ids = new Map();
+    unread_private_ids = [];
     presence_disabled = false;
     realm.realm_presence_disabled = presence_disabled;
     can_dm = () => true;
@@ -477,7 +531,6 @@ run_test("activity rows", () => {
             ["mentions", true, "#ykphone/activity/mentions/41"],
             ["threads", false, "#ykphone/activity/threads/41"],
             ["reactions", false, "#ykphone/activity/reactions/41"],
-            ["dm", false, "#ykphone/activity/dm/41"],
         ],
     );
     assert.equal(ykphone_split_view.activity_tab_links(route)[0].label, "translated: All");
@@ -545,6 +598,15 @@ run_test("activity rows", () => {
             [46, "#ykphone/activity/mentions/46", false, false],
         ],
     );
+    // "Unread only" keeps the unread rows (a reaction has no unread
+    // state).
+    assert.ok(!ykphone_split_view.is_activity_unread_only());
+    ykphone_split_view.set_activity_unread_only(true);
+    assert.deepEqual(
+        ykphone_split_view.activity_rows(route).map((row) => row.message_id),
+        [41, 44],
+    );
+    ykphone_split_view.set_activity_unread_only(false);
     // The reaction row shows the reactor; the others their sender.
     assert.equal(rows[0].avatar_url, "/avatar/7/small");
     assert.equal(rows[5].avatar_url, "/avatar/7");
@@ -596,6 +658,52 @@ run_test("activity rows", () => {
     assert.ok(!affects({subject: "Unknown"}));
     assert.ok(!affects({}));
     assert.ok(!ykphone_split_view.affects_activity([]));
+
+    // "Mark all as read" marks every unread message of the tab's kind:
+    // mentions and direct messages by narrow, thread replies (in the
+    // topics the user takes part in, not the general chat) by id.
+    unread_topic_ids = new Map([
+        [`${verona_id}:Ship it`, [70, 71]],
+        [`${verona_id}:Mobile topic`, [72]],
+        [`${verona_id}:Theirs`, [73]],
+        [`${verona_id}:`, [74]],
+    ]);
+    unread_private_ids = [80, 81];
+    const mentions = [
+        {operator: "is", operand: "mentioned"},
+        {operator: "is", operand: "unread"},
+    ];
+    assert.deepEqual(ykphone_split_view.activity_mark_read_plan("mentions"), {
+        narrows: [mentions],
+        message_ids: [],
+        direct_message_count: 0,
+    });
+    assert.deepEqual(ykphone_split_view.activity_mark_read_plan("threads"), {
+        narrows: [],
+        message_ids: [70, 71, 72],
+        direct_message_count: 0,
+    });
+    assert.deepEqual(ykphone_split_view.activity_mark_read_plan("all"), {
+        narrows: [
+            mentions,
+            [
+                {operator: "is", operand: "dm"},
+                {operator: "is", operand: "unread"},
+            ],
+        ],
+        message_ids: [70, 71, 72],
+        direct_message_count: 2,
+    });
+    assert.deepEqual(ykphone_split_view.activity_mark_read_plan("reactions"), {
+        narrows: [],
+        message_ids: [],
+        direct_message_count: 0,
+    });
+
+    // The switch is off again when the page is opened anew.
+    ykphone_split_view.set_activity_unread_only(true);
+    ykphone_split_view.clear_activity_items();
+    assert.ok(!ykphone_split_view.is_activity_unread_only());
 });
 
 run_test("thread rows", (helpers) => {
@@ -1286,5 +1394,212 @@ run_test("what a search result opens", (helpers) => {
                 {operator: "near", operand: "30"},
             ],
         },
+    );
+});
+
+run_test("the Drafts & sent, Later and unread messages pages", () => {
+    reset();
+    fake_drafts.clear();
+    fake_scheduled.clear();
+    fake_sent = undefined;
+    saved_loaded = false;
+    saved_missing = [];
+    saved_messages.clear();
+    unreads_loaded = false;
+
+    // Routes and hashes.
+    assert.deepEqual(ykphone_split_view.parse_hash(["drafts"]), {
+        page: "drafts",
+        tab: "drafts",
+        selection: undefined,
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["drafts", "scheduled", "5"]), {
+        page: "drafts",
+        tab: "scheduled",
+        selection: "5",
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["drafts", "bogus", "5"]), {
+        page: "drafts",
+        tab: "drafts",
+        selection: "5",
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["saved"]), {
+        page: "saved",
+        tab: "in_progress",
+        selection: undefined,
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["saved", "completed", "9"]), {
+        page: "saved",
+        tab: "completed",
+        selection: "9",
+    });
+    assert.deepEqual(ykphone_split_view.parse_hash(["unreads", "70"]), {
+        page: "unreads",
+        tab: "all",
+        selection: "70",
+    });
+    assert.equal(ykphone_split_view.page_hash("drafts"), "#ykphone/drafts");
+    assert.equal(
+        ykphone_split_view.page_hash("drafts", {tab: "sent", selection: "9"}),
+        "#ykphone/drafts/sent/9",
+    );
+    assert.equal(
+        ykphone_split_view.page_hash("drafts", {selection: "a"}),
+        "#ykphone/drafts/drafts/a",
+    );
+    assert.equal(
+        ykphone_split_view.page_hash("saved", {selection: "3"}),
+        "#ykphone/saved/in_progress/3",
+    );
+    assert.equal(ykphone_split_view.page_hash("unreads", {selection: "70"}), "#ykphone/unreads/70");
+    assert.equal(
+        ykphone_split_view.route_hash({page: "saved", tab: "archived", selection: "1"}, "2"),
+        "#ykphone/saved/archived/2",
+    );
+    assert.equal(
+        ykphone_split_view.route_hash({page: "unreads", tab: "all", selection: "1"}, "2"),
+        "#ykphone/unreads/2",
+    );
+    assert.deepEqual(
+        ["drafts", "saved", "unreads"].map((page) => [
+            ykphone_split_view.page_title(page),
+            ykphone_split_view.page_icon(page),
+        ]),
+        [
+            ["translated: Drafts & sent", "drafts"],
+            ["translated: Later", "bookmark"],
+            ["translated: Unread messages", "unread"],
+        ],
+    );
+
+    // Tabs: switching drops the selection; Later counts what is in
+    // progress once the list is known.
+    const drafts_route = {page: "drafts", tab: "scheduled", selection: "5"};
+    assert.deepEqual(
+        ykphone_split_view
+            .page_tab_links(drafts_route)
+            .map((tab) => [tab.id, tab.label, tab.count, tab.active, tab.url]),
+        [
+            ["drafts", "tab:drafts", "", false, "#ykphone/drafts/drafts"],
+            ["scheduled", "tab:scheduled", "", true, "#ykphone/drafts/scheduled"],
+            ["sent", "tab:sent", "", false, "#ykphone/drafts/sent"],
+        ],
+    );
+    const saved_route = {page: "saved", tab: "in_progress", selection: undefined};
+    assert.deepEqual(
+        ykphone_split_view.page_tab_links(saved_route).map((tab) => tab.count),
+        ["", "", ""],
+    );
+    saved_loaded = true;
+    assert.deepEqual(
+        ykphone_split_view
+            .page_tab_links(saved_route)
+            .map((tab) => [tab.id, tab.count, tab.active]),
+        [
+            ["in_progress", "2", true],
+            ["completed", "", false],
+            ["archived", "", false],
+        ],
+    );
+    assert.deepEqual(ykphone_split_view.page_tab_links({page: "dms", tab: "all"}), []);
+    assert.equal(ykphone_split_view.saved_state({page: "saved", tab: "all"}), "in_progress");
+
+    // What a selection opens.
+    const dm_terms = [{operator: "dm", operand: [7]}];
+    fake_drafts.set("a", {terms: dm_terms});
+    fake_scheduled.set("5", {terms: dm_terms});
+    const narrow = (route) => ykphone_split_view.narrow_terms(route);
+    assert.deepEqual(narrow({page: "drafts", tab: "drafts", selection: "a"}), dm_terms);
+    assert.equal(narrow({page: "drafts", tab: "drafts", selection: "b"}), undefined);
+    assert.deepEqual(narrow(drafts_route), dm_terms);
+    assert.equal(narrow({page: "drafts", tab: "scheduled", selection: "6"}), undefined);
+    assert.equal(narrow({page: "drafts", tab: "sent", selection: "12"}), undefined);
+    fake_sent = [raw_message(12, {type: "private"})];
+    assert.deepEqual(narrow({page: "drafts", tab: "sent", selection: "12"}), [
+        ...dm_terms,
+        {operator: "near", operand: "12"},
+    ]);
+    saved_messages.set(20, raw_message(20));
+    assert.deepEqual(narrow({page: "saved", tab: "completed", selection: "20"}), [
+        {operator: "channel", operand: "3"},
+        {operator: "topic", operand: ""},
+        {operator: "near", operand: "20"},
+    ]);
+    assert.equal(narrow({page: "saved", tab: "completed", selection: "21"}), undefined);
+    assert.deepEqual(narrow({page: "unreads", tab: "all", selection: "70"}), [
+        {operator: "near", operand: "70"},
+    ]);
+
+    // The right column: these pages wait for a click; a selection
+    // whose rows are on the way waits too, and is stale once they are
+    // here.
+    const resolve = (route) => ykphone_split_view.resolve_route(route, {stacked: false});
+    assert.deepEqual(resolve({page: "drafts", tab: "drafts", selection: undefined}), {
+        type: "placeholder",
+        stale: false,
+    });
+    assert.deepEqual(resolve({page: "drafts", tab: "drafts", selection: "b"}), {
+        type: "placeholder",
+        stale: true,
+    });
+    fake_sent = undefined;
+    assert.deepEqual(resolve({page: "drafts", tab: "sent", selection: "13"}), {
+        type: "placeholder",
+        stale: false,
+    });
+    saved_loaded = false;
+    assert.deepEqual(resolve({page: "saved", tab: "in_progress", selection: "21"}), {
+        type: "placeholder",
+        stale: false,
+    });
+    saved_loaded = true;
+    saved_missing = [21];
+    assert.deepEqual(resolve({page: "saved", tab: "in_progress", selection: "21"}), {
+        type: "placeholder",
+        stale: false,
+    });
+    saved_missing = [];
+    assert.deepEqual(resolve({page: "saved", tab: "in_progress", selection: "21"}), {
+        type: "placeholder",
+        stale: true,
+    });
+    assert.deepEqual(resolve({page: "unreads", tab: "all", selection: "71"}), {
+        type: "placeholder",
+        stale: false,
+    });
+    unreads_loaded = true;
+    assert.deepEqual(resolve({page: "unreads", tab: "all", selection: "71"}), {
+        type: "placeholder",
+        stale: true,
+    });
+    assert.deepEqual(resolve({page: "unreads", tab: "all", selection: "70"}), {
+        type: "activate",
+        terms: [{operator: "near", operand: "70"}],
+    });
+
+    // A conversation opened from these pages is called a thread.
+    ykphone_split_view.set_route({page: "saved", tab: "in_progress", selection: "20"});
+    assert.ok(ykphone_split_view.is_thread_shown());
+
+    // What new messages change.
+    const mine = stored_message(80, {sender_id: me.user_id});
+    const theirs = stored_message(81);
+    assert.equal(ykphone_split_view.refresh_for_messages([mine]), undefined);
+    ykphone_split_view.set_route({page: "drafts", tab: "sent", selection: undefined});
+    assert.equal(ykphone_split_view.refresh_for_messages([mine]), "reload");
+    assert.equal(ykphone_split_view.refresh_for_messages([theirs]), undefined);
+    ykphone_split_view.set_route({page: "drafts", tab: "drafts", selection: undefined});
+    assert.equal(ykphone_split_view.refresh_for_messages([mine]), undefined);
+    ykphone_split_view.set_route({page: "unreads", tab: "all", selection: undefined});
+    assert.equal(ykphone_split_view.refresh_for_messages([theirs]), "reload");
+    assert.equal(ykphone_split_view.refresh_for_messages([]), undefined);
+
+    // A tab of these pages is fetched on its own.
+    assert.equal(
+        ykphone_split_view.plan_show(
+            {page: "drafts", tab: "drafts", selection: undefined},
+            {page: "drafts", tab: "sent", selection: undefined},
+        ),
+        "tab",
     );
 });

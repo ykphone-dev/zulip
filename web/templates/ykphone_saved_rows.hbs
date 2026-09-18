@@ -1,0 +1,43 @@
+{{! Rows of the Later page (ykphone_saved): one per saved message in the tab's state, with the state's actions. }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{t 'Could not load your saved messages.' }}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows ykphone-saved-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item ykphone-actions-item" data-row-key="{{message_id}}">
+            <a class="ykphone-split-row ykphone-saved-row{{#if is_active}} active{{/if}}" href="{{url}}" data-message-id="{{message_id}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-avatar-cell">
+                    <img class="ykphone-split-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
+                </span>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-saved-context">{{context_label}}</span>
+                    <span class="ykphone-split-meta">
+                        <span class="ykphone-split-name">{{sender_name}}</span>
+                        <span class="ykphone-split-time">{{time_label}}</span>
+                    </span>
+                    <span class="ykphone-split-line">
+                        <span class="ykphone-split-snippet">{{snippet}}</span>
+                    </span>
+                    {{#if has_due}}
+                    <span class="ykphone-saved-due{{#if is_overdue}} overdue{{/if}}">
+                        <i class="zulip-icon zulip-icon-alarm-clock" aria-hidden="true"></i>
+                        <span>{{due_label}}</span>
+                    </span>
+                    {{/if}}
+                </span>
+            </a>
+            <span class="ykphone-row-actions">
+                {{#each actions}}
+                <button type="button" class="ykphone-row-action{{#if (and ../is_menu_open (eq id "due"))}} ykphone-row-action-open{{/if}}" data-ykphone-action="{{id}}" data-message-id="{{../message_id}}" aria-label="{{label}}" title="{{label}}">
+                    <i class="zulip-icon zulip-icon-{{icon}}" aria-hidden="true"></i>
+                </button>
+                {{/each}}
+            </span>
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/if}}

@@ -588,6 +588,8 @@ export async function initialize_everything(state_data) {
             ykphone_files_ui.hide();
         },
         show_narrow: message_view.show,
+        edit_scheduled_message: scheduled_messages_ui.edit_scheduled_message,
+        clear_compose_box: compose.clear_compose_box,
     });
     alert_words.initialize(state_data.alert_words);
     saved_snippets.initialize(state_data.saved_snippets);

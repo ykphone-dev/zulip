@@ -1,0 +1,35 @@
+{{! Rows of the Drafts & sent page (ykphone_drafts_page): drafts, scheduled messages or sent messages, with each tab's actions beside its rows. }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{t 'Could not load your sent messages.' }}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows ykphone-drafts-rows">
+    {{#each rows}}
+        <li class="ykphone-split-item ykphone-actions-item" data-row-key="{{key}}">
+            <a class="ykphone-split-row ykphone-drafts-row{{#if is_active}} active{{/if}}" href="{{url}}" data-ykphone-row-id="{{id}}" {{#if is_active}}aria-current="page"{{/if}}>
+                <span class="ykphone-split-main">
+                    <span class="ykphone-split-meta">
+                        <span class="ykphone-split-name" title="{{recipient}}">{{recipient}}</span>
+                        <span class="ykphone-split-time{{#if failed}} ykphone-drafts-failed{{/if}}">{{time_label}}</span>
+                    </span>
+                    <span class="ykphone-split-line">
+                        <span class="ykphone-split-snippet">{{snippet}}</span>
+                    </span>
+                </span>
+            </a>
+            {{#if has_actions}}
+            <span class="ykphone-row-actions">
+                {{#each actions}}
+                <button type="button" class="ykphone-row-action" data-ykphone-action="{{id}}" data-ykphone-row-id="{{../id}}" aria-label="{{label}}" title="{{label}}">
+                    <i class="zulip-icon zulip-icon-{{icon}}" aria-hidden="true"></i>
+                </button>
+                {{/each}}
+            </span>
+            {{/if}}
+        </li>
+    {{/each}}
+</ul>
+{{else}}
+<div class="ykphone-split-status">{{empty_label}}</div>
+{{/if}}

@@ -25,7 +25,9 @@ import * as ykphone_highlight from "./ykphone_highlight.ts";
 export type ActivitySource = "mentions" | "threads" | "reactions" | "dm";
 export type ActivityTab = "all" | ActivitySource;
 
-export const TABS: ActivityTab[] = ["all", "mentions", "threads", "reactions", "dm"];
+// Slack's Activity has no direct message tab (direct messages are their
+// own page); the All feed still lists the ones the user received.
+export const TABS: ActivityTab[] = ["all", "mentions", "threads", "reactions"];
 const SOURCES: ActivitySource[] = ["mentions", "threads", "reactions", "dm"];
 
 // As many as the server lists for thread replies

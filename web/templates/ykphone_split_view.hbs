@@ -1,4 +1,4 @@
-{{! The list column of the DM, Activity, Threads and search pages (ykphone_split_view_ui); the rows and the search header are rendered separately into their containers. }}
+{{! The list column of the split pages (DM, Activity, Threads, search, Drafts & sent, Later, unreads) (ykphone_split_view_ui); the rows and the search header are rendered separately into their containers. }}
 <div class="ykphone-split-list-card">
     <div class="ykphone-split-list-header">
         <h2 class="ykphone-split-list-title">{{title}}</h2>
@@ -17,11 +17,22 @@
     </div>
     {{/if}}
     {{#if has_tabs}}
-    <nav class="ykphone-activity-tabs" aria-label="{{t 'Activity filters' }}">
+    <nav class="ykphone-activity-tabs" aria-label="{{tabs_label}}">
         {{#each tabs}}
-            <a class="ykphone-activity-tab{{#if active}} active{{/if}}" href="{{url}}" {{#if active}}aria-current="page"{{/if}}>{{label}}</a>
+            <a class="ykphone-activity-tab{{#if active}} active{{/if}}" href="{{url}}" {{#if active}}aria-current="page"{{/if}}>{{label}}{{#if count}} <span class="ykphone-activity-tab-count">{{count}}</span>{{/if}}</a>
         {{/each}}
     </nav>
+    {{/if}}
+    {{#if is_activity}}
+    <div class="ykphone-activity-toolbar">
+        <label class="ykphone-activity-unread-toggle">
+            <input type="checkbox" class="ykphone-activity-unread-only" role="switch" {{#if unread_only}}checked{{/if}} />
+            <span>{{t 'Unread only' }}</span>
+        </label>
+        {{#if can_mark_all_read}}
+        <button type="button" class="ykphone-activity-mark-all">{{t 'Mark all as read' }}</button>
+        {{/if}}
+    </div>
     {{/if}}
     <div class="ykphone-split-list-body"></div>
 </div>

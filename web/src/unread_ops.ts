@@ -180,7 +180,7 @@ function show_read_flag_update_success_banner(
     update_read_flag_banner_displayed = false;
 }
 
-function bulk_update_read_flags_for_narrow(
+export function bulk_update_read_flags_for_narrow(
     narrow: NarrowTerm[],
     op: "add" | "remove",
     {

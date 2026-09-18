@@ -20,12 +20,14 @@ import * as sub_store from "./sub_store.ts";
 import * as timerender from "./timerender.ts";
 import * as ui_util from "./ui_util.ts";
 import * as util from "./util.ts";
+import * as ykphone_drafts_page from "./ykphone_drafts_page.ts";
 import * as ykphone_forward from "./ykphone_forward.ts";
 
 export function set_count(count: number): void {
     const $drafts_li = $(".top_left_drafts");
     ui_util.update_unread_count_in_dom($drafts_li, count);
     $(".drafts-sidebar-menu-icon").toggleClass("hide", count === 0);
+    ykphone_drafts_page.notify_drafts_changed();
 }
 
 function getTimestamp(): number {

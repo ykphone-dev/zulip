@@ -2892,6 +2892,14 @@ body.ykphone-pins-open #ykphone-pins-panel {
     box-shadow: none;
 }
 
+/* Upstream keeps the banners clear of the send controls beside the
+   box (a 116px right margin); here the send button is inside the card,
+   so the banners take the composer's whole width (on a split page the
+   conversation column can be under 300px wide). */
+.message_comp #compose_banners {
+    margin-right: 0;
+}
+
 /* The message box is Slack's bordered card: a formatting row
    (ykphone_compose moves upstream's two formatting groups into it),
    the textarea, and the insert tools with the send button. The border
@@ -5636,6 +5644,323 @@ body.ykphone-split-open #ykphone-split-list {
     height: 0.5714em;
     border-radius: 50%;
     background-color: var(--yk-red);
+}
+
+/* ---- Drafts & sent, Later, unread messages (round 17) ---- */
+
+/* The Later page's count in progress, inside its tab. */
+.ykphone-activity-tab-count {
+    margin-left: 0.25em;
+    color: var(--yk-text-muted);
+    font-weight: 400;
+
+    .ykphone-activity-tab.active & {
+        color: inherit;
+    }
+}
+
+/* The Activity page's "Unread only" switch and "Mark all as read". */
+.ykphone-activity-toolbar {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25em 0.75em;
+    padding: 0.4286em 0.8571em; /* 6px 12px at 14px/em */
+    border-bottom: 1px solid var(--yk-hairline);
+    font-size: 0.9286em; /* 13px at 14px/em */
+}
+
+.ykphone-activity-unread-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4286em;
+    margin: 0;
+    color: var(--color-text-default);
+    cursor: pointer;
+
+    input {
+        margin: 0;
+        accent-color: var(--yk-blue-selected);
+    }
+}
+
+.ykphone-activity-mark-all {
+    padding: 0.2857em 0.5714em;
+    border: none;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--yk-link);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -2px;
+    }
+}
+
+/* A row with buttons of its own (a draft's delete, a scheduled
+   message's edit and cancel, a saved message's complete, archive and
+   due date): the buttons sit over the row's top right corner, on
+   hover and while the row has the keyboard, and always on a touch
+   screen, where there is no hover. */
+.ykphone-actions-item {
+    position: relative;
+}
+
+.ykphone-row-actions {
+    position: absolute;
+    top: 0.2857em; /* 4px at 14px/em */
+    right: 0.2857em;
+    display: none;
+    gap: 0.1429em;
+    padding: 0.1429em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background-color: var(--yk-card-bg);
+    box-shadow: 0 1px 3px var(--yk-shadow-drop-color);
+
+    .ykphone-actions-item:hover &,
+    .ykphone-actions-item:focus-within &,
+    &:has(.ykphone-row-action-open) {
+        display: flex;
+    }
+
+    /* Without hover the buttons would cover the time for good; they
+       get a line of their own under the row instead. */
+    @media (hover: none) {
+        position: static;
+        display: flex;
+        justify-content: flex-end;
+        padding: 0 0.2857em 0.2857em;
+        border: none;
+        background: none;
+        box-shadow: none;
+    }
+}
+
+.ykphone-row-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em; /* 28px at 14px/em */
+    height: 2em;
+    padding: 0;
+    border: none;
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--yk-text-muted);
+    cursor: pointer;
+
+    &:hover,
+    &.ykphone-row-action-open {
+        background-color: var(--yk-row-hover);
+        color: var(--color-text-default);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: -2px;
+    }
+
+    .zulip-icon {
+        font-size: 1.1429em; /* 16px at 14px/em */
+    }
+}
+
+.ykphone-drafts-failed {
+    color: var(--yk-red);
+}
+
+/* A saved message: where it is above the sender's line, and its due
+   date under the message (red once it has passed). */
+.ykphone-saved-context {
+    overflow: hidden;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    line-height: 1.4;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-saved-row .ykphone-split-snippet {
+    color: var(--color-text-default);
+}
+
+.ykphone-saved-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2857em;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+
+    &.overdue {
+        color: var(--yk-red);
+    }
+}
+
+/* The unread messages page: a conversation's name, its count and
+   "Mark as read" above its newest messages. */
+.ykphone-unreads-group {
+    padding-bottom: 0.5714em;
+    border-bottom: 1px solid var(--yk-hairline);
+
+    & + & {
+        padding-top: 0.5714em;
+    }
+}
+
+.ykphone-unreads-group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.2857em 0.5714em;
+}
+
+.ykphone-unreads-group-names {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ykphone-unreads-group-label,
+.ykphone-unreads-group-topic {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-unreads-group-label {
+    font-size: 1.0714em; /* 15px at 14px/em */
+    font-weight: 900;
+}
+
+.ykphone-unreads-group-topic {
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+}
+
+.ykphone-unreads-mark-read {
+    flex-shrink: 0;
+    padding: 0.2143em 0.5714em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    background: none;
+    color: var(--color-text-default);
+    font: inherit;
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--yk-row-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
+}
+
+.ykphone-unreads-group-link {
+    flex-direction: column;
+    gap: 0.5714em;
+}
+
+.ykphone-unreads-message {
+    display: flex;
+    gap: 0.5714em;
+    align-items: flex-start;
+    min-width: 0;
+
+    /* The same sender again: under the text above, past the avatar. */
+    &.continuation {
+        margin-top: -0.2857em; /* 4px at 14px/em */
+        padding-left: 2.2857em; /* 24px avatar + 8px gap at 14px/em */
+    }
+}
+
+.ykphone-unreads-sender {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.ykphone-unreads-message-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ykphone-unreads-snippet {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.ykphone-unreads-more {
+    color: var(--yk-link);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    font-weight: 700;
+}
+
+/* Unread conversations older than the pages the list read. */
+.ykphone-unreads-hidden {
+    margin: 0.5714em;
+    padding: 0.5714em 0.8571em;
+    border: 1px solid var(--yk-hairline);
+    border-radius: var(--yk-radius-sm);
+    color: var(--yk-text-muted);
+    font-size: 0.9286em; /* 13px at 14px/em */
+}
+
+.ykphone-unreads-hidden-text {
+    margin: 0 0 0.4286em;
+}
+
+.ykphone-unreads-hidden-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25em 1em;
+}
+
+.ykphone-unreads-hidden-search {
+    color: var(--yk-link);
+    font-weight: 700;
+}
+
+.ykphone-unreads-hidden-mark-read {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--yk-link);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:focus-visible {
+        outline: 2px solid var(--color-outline-focus);
+        outline-offset: 1px;
+    }
 }
 
 /* Thread rows: the channel, the root (sender and two lines of it),

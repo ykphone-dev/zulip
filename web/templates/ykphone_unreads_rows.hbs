@@ -1,0 +1,55 @@
+{{! Groups of the unread messages page (ykphone_unreads): one per conversation, its newest few messages, and "Mark as read". }}
+{{#if loading}}
+<div class="ykphone-split-status">{{t 'Loading…' }}</div>
+{{else if error}}
+<div class="ykphone-split-status ykphone-split-error">{{t 'Could not load your unread messages.' }}</div>
+{{else if has_rows}}
+<ul class="ykphone-split-rows ykphone-unreads-groups">
+    {{#each groups}}
+        <li class="ykphone-split-item ykphone-unreads-group" data-row-key="{{key}}">
+            <div class="ykphone-unreads-group-header">
+                <span class="ykphone-unreads-group-names">
+                    <span class="ykphone-unreads-group-label">{{label}}</span>
+                    {{#if topic}}
+                    <span class="ykphone-unreads-group-topic">{{topic}}</span>
+                    {{/if}}
+                </span>
+                <span class="ykphone-split-count">{{count}}</span>
+                <button type="button" class="ykphone-unreads-mark-read" data-ykphone-group="{{key}}" aria-label="{{mark_read_label}}">{{t 'Mark as read' }}</button>
+            </div>
+            <a class="ykphone-split-row ykphone-unreads-group-link{{#if is_active}} active{{/if}}" href="{{url}}" data-ykphone-group="{{key}}" {{#if is_active}}aria-current="page"{{/if}}>
+                {{#each messages}}
+                <span class="ykphone-unreads-message{{#if is_continuation}} continuation{{/if}}">
+                    {{#unless is_continuation}}
+                    <img class="ykphone-split-avatar-small" src="{{avatar_url}}" alt="" loading="lazy" />
+                    {{/unless}}
+                    <span class="ykphone-unreads-message-text">
+                        {{#unless is_continuation}}
+                        <span class="ykphone-split-meta">
+                            <span class="ykphone-unreads-sender">{{sender_name}}</span>
+                            <span class="ykphone-split-time">{{time_label}}</span>
+                        </span>
+                        {{/unless}}
+                        <span class="ykphone-unreads-snippet">{{snippet}}</span>
+                    </span>
+                </span>
+                {{/each}}
+                {{#if has_more}}
+                <span class="ykphone-unreads-more">{{more_label}}</span>
+                {{/if}}
+            </a>
+        </li>
+    {{/each}}
+</ul>
+{{else if (not has_hidden)}}
+<div class="ykphone-split-status">{{t 'You have no unread messages.' }}</div>
+{{/if}}
+{{#if has_hidden}}
+<div class="ykphone-unreads-hidden">
+    <p class="ykphone-unreads-hidden-text">{{hidden_label}}</p>
+    <div class="ykphone-unreads-hidden-actions">
+        <a class="ykphone-unreads-hidden-search" href="#narrow/is/unread">{{t 'Search unread messages' }}</a>
+        <button type="button" class="ykphone-unreads-hidden-mark-read">{{t 'Mark them as read' }}</button>
+    </div>
+</div>
+{{/if}}

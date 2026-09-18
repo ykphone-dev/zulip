@@ -228,6 +228,7 @@ run_test("describe pages", () => {
             "files",
             "saved",
             "drafts",
+            "unreads",
             "scheduled",
             "reminders",
             "settings",
@@ -249,11 +250,10 @@ run_test("describe pages", () => {
         [views.files.title, views.files.hash],
         ["translated: Files", "#narrow/has/attachment"],
     );
-    assert.deepEqual(
-        [views.saved.title, views.saved.hash],
-        ["translated: Later", "#narrow/is/starred"],
-    );
-    assert.equal(views.drafts.hash, "#drafts");
+    // Later, Drafts & sent and the unread messages are split pages.
+    assert.deepEqual([views.saved.title, views.saved.hash], ["title:saved", "#ykphone/saved"]);
+    assert.equal(views.drafts.hash, "#ykphone/drafts");
+    assert.equal(views.unreads.hash, "#ykphone/unreads");
     assert.equal(views.scheduled.hash, "#scheduled");
     assert.equal(views.reminders.hash, "#reminders");
     assert.equal(views.settings.hash, "#settings");

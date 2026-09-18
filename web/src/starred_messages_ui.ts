@@ -14,6 +14,7 @@ import * as sub_store from "./sub_store.ts";
 import * as unread_ops from "./unread_ops.ts";
 import {user_settings} from "./user_settings.ts";
 import * as util from "./util.ts";
+import * as ykphone_saved from "./ykphone_saved.ts";
 
 export function toggle_starred_and_update_server(message: Message): void {
     if (message.locally_echoed) {
@@ -58,7 +59,7 @@ export function update_starred_flag(message_id: number, updated_starred_flag: bo
 }
 
 export function rerender_ui(): void {
-    const count = starred_messages.get_count();
+    const count = ykphone_saved.sidebar_count(starred_messages.get_count());
     let hidden = false;
 
     if (!user_settings.starred_message_counts) {

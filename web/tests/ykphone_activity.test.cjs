@@ -86,9 +86,11 @@ run_test("tabs", () => {
             ["mentions", "translated: Mentions"],
             ["threads", "translated: Threads"],
             ["reactions", "translated: Reactions"],
-            ["dm", "translated: Direct messages"],
         ],
     );
+    // No direct message tab (Slack's Activity has none); the All feed
+    // still lists them, under their own label.
+    assert.equal(ykphone_activity.tab_label("dm"), "translated: Direct messages");
 });
 
 run_test("plain_text_snippet", () => {

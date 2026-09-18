@@ -106,6 +106,7 @@ import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as ykphone_channel_details from "./ykphone_channel_details.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
+import * as ykphone_saved from "./ykphone_saved.ts";
 import * as ykphone_shell_theme from "./ykphone_shell_theme.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
 
@@ -203,6 +204,10 @@ export function dispatch_normal_event(event) {
 
         case "ykphone_pin":
             ykphone_pins.handle_event(event);
+            break;
+
+        case "ykphone_saved":
+            ykphone_saved.handle_event(event);
             break;
 
         case "ykphone_preference":
@@ -718,6 +723,7 @@ export function dispatch_normal_event(event) {
                 }
                 // No default
             }
+            ykphone_split_view_ui.on_scheduled_messages_changed();
             break;
 
         case "reminders":
@@ -1145,6 +1151,7 @@ export function dispatch_normal_event(event) {
                     for (const message_id of event.messages) {
                         starred_messages_ui.update_starred_flag(message_id, new_value);
                     }
+                    ykphone_saved.apply_star_change(event.messages, new_value, new Date());
 
                     if (event.op === "add") {
                         starred_messages.add(event.messages);
