@@ -59,9 +59,11 @@ class StatusExpiryTest(ZulipTestCase):
         self.clear_expired()
         self.assertEqual(get_user_status(hamlet)["status_text"], "In a meeting")
 
-        with time_machine.travel(timezone_now() + timedelta(minutes=31), tick=False):
-            with self.capture_send_event_calls(expected_num_events=2) as events:
-                self.clear_expired()
+        with (
+            time_machine.travel(timezone_now() + timedelta(minutes=31), tick=False),
+            self.capture_send_event_calls(expected_num_events=2) as events,
+        ):
+            self.clear_expired()
         self.assertEqual(get_user_status(hamlet), {})
         # The expiry going away, then Zulip's own user_status event.
         self.assertEqual(events[0]["event"]["clear_at"], None)
@@ -109,9 +111,7 @@ class StatusExpiryTest(ZulipTestCase):
         # Changing only the deprecated "away" flag keeps it.
         self.set_status(hamlet, "Out sick", "sick")
         self.assert_json_success(self.set_expiry(hamlet, self.in_minutes(60)))
-        self.assert_json_success(
-            self.api_post(hamlet, "/api/v1/users/me/status", {"away": "true"})
-        )
+        self.assert_json_success(self.api_post(hamlet, "/api/v1/users/me/status", {"away": "true"}))
         self.assertTrue(StatusExpiry.objects.filter(user=hamlet).exists())
 
         # "Don't clear" removes it.

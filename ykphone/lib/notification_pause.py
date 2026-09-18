@@ -165,9 +165,7 @@ def get_pause(user_profile: UserProfile) -> NotificationPause | None:
 
 
 def user_is_paused(user_profile: UserProfile, now: datetime | None = None) -> bool:
-    return is_paused(
-        get_pause(user_profile), now or timezone_now(), user_timezone(user_profile)
-    )
+    return is_paused(get_pause(user_profile), now or timezone_now(), user_timezone(user_profile))
 
 
 def skip_paused_notification(user_profile: UserProfile, kind: str) -> bool:
@@ -180,7 +178,7 @@ def skip_paused_notification(user_profile: UserProfile, kind: str) -> bool:
     aborting the caller's transaction (the email worker sends a whole
     batch of users in one)."""
     try:
-        with transaction.atomic(savepoint=True):
+        with transaction.atomic(savepoint=True):  # intentional use of savepoint=True
             paused = user_is_paused(user_profile)
     except Exception:
         logging.exception("ykphone: pause lookup failed for user %s", user_profile.id)
@@ -227,9 +225,7 @@ def paused_user_ids(user_profile: UserProfile) -> list[int]:
         )
     now = timezone_now()
     return sorted(
-        pause.user_id
-        for pause in pauses
-        if is_paused(pause, now, user_timezone(pause.user))
+        pause.user_id for pause in pauses if is_paused(pause, now, user_timezone(pause.user))
     )
 
 
@@ -318,4 +314,3 @@ def announce_paused_flips(now: datetime | None = None) -> list[int]:
                 continue
             pause.save(update_fields=["paused_until", "announced_paused"])
     return flipped
-

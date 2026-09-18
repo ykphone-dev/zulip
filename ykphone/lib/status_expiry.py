@@ -121,4 +121,3 @@ def status_expiries(user_profile: UserProfile) -> dict[str, int]:
         str(user_id): datetime_to_timestamp(clear_at)
         for user_id, clear_at in expiries.values_list("user_id", "clear_at")
     }
-

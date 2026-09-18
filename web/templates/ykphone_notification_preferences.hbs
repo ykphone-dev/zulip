@@ -10,10 +10,10 @@ full settings stay below under "Show advanced settings". }}
     <fieldset class="ykphone-notify-level input-group">
         <legend class="settings-field-label">{{t "Notify me about" }}</legend>
         {{#each level_options}}
-        <label class="ykphone-radio">
-            <input type="radio" name="ykphone_notify_level" value="{{value}}" {{#if checked}}checked{{/if}} />
-            <span>{{text}}</span>
-        </label>
+            <label class="ykphone-radio">
+                <input type="radio" name="ykphone_notify_level" value="{{value}}" {{#if checked}}checked{{/if}} />
+                <span>{{text}}</span>
+            </label>
         {{/each}}
         <p class="ykphone-settings-hint ykphone-notify-nothing-hint {{#unless is_nothing}}hidden{{/unless}}">{{t "Notifications you set for a channel of its own are kept." }}</p>
     </fieldset>
@@ -30,10 +30,11 @@ full settings stay below under "Show advanced settings". }}
         <p class="ykphone-settings-hint">{{t "You are notified when a message contains one of these words." }}</p>
         <div class="ykphone-alert-word-list">
             {{#each alert_words}}
-            <span class="ykphone-alert-word">{{this}}</span>
-            {{else}}
-            <span class="ykphone-settings-hint">{{t "No alert words yet." }}</span>
+                <span class="ykphone-alert-word">{{this}}</span>
             {{/each}}
+            {{#unless alert_words.length}}
+            <span class="ykphone-settings-hint">{{t "No alert words yet." }}</span>
+            {{/unless}}
         </div>
         <a class="ykphone-edit-alert-words" href="#settings/alert-words">{{t "Edit alert words" }}</a>
     </div>
@@ -49,10 +50,10 @@ full settings stay below under "Show advanced settings". }}
         <div class="ykphone-schedule-fields {{#unless schedule.enabled}}ykphone-schedule-off{{/unless}}">
             <div class="ykphone-schedule-days" role="group" aria-label="{{t 'Days' }}">
                 {{#each days}}
-                <label class="ykphone-schedule-day">
-                    <input type="checkbox" class="ykphone-schedule-day-input" name="ykphone_schedule_day" value="{{day}}" {{#if checked}}checked{{/if}} {{#unless ../schedule.enabled}}disabled{{/unless}} />
-                    <span>{{label}}</span>
-                </label>
+                    <label class="ykphone-schedule-day">
+                        <input type="checkbox" class="ykphone-schedule-day-input" name="ykphone_schedule_day" value="{{day}}" {{#if checked}}checked{{/if}} {{#unless ../schedule.enabled}}disabled{{/unless}} />
+                        <span>{{label}}</span>
+                    </label>
                 {{/each}}
             </div>
             <div class="ykphone-schedule-hours">
@@ -72,7 +73,7 @@ full settings stay below under "Show advanced settings". }}
         <div class="input-element-with-control">
             <select id="ykphone-notification-sound" class="settings_select bootstrap-focus-style">
                 {{#each sound_options}}
-                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
+                    <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
                 {{/each}}
             </select>
             <button type="button" class="ykphone-play-sound tippy-zulip-tooltip" aria-label="{{t 'Play sound' }}" data-tippy-content="{{t 'Play sound' }}">
@@ -110,7 +111,7 @@ full settings stay below under "Show advanced settings". }}
         <label for="ykphone-email-delay" class="settings-field-label">{{t "Delay before sending message notification emails" }}</label>
         <select id="ykphone-email-delay" class="settings_select bootstrap-focus-style" {{#unless email}}disabled{{/unless}}>
             {{#each email_delay_options}}
-            <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
             {{/each}}
         </select>
     </div>

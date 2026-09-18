@@ -177,26 +177,19 @@ function bind_handlers(): void {
             }
         },
     );
-    $root.on(
-        "change",
-        ".ykphone_enable_online_push_notifications",
-        function (this: HTMLInputElement) {
-            save_settings({enable_online_push_notifications: this.checked});
-        },
-    );
-    $root.on(
-        "change",
-        ".ykphone_enable_offline_email_notifications",
-        function (this: HTMLInputElement) {
-            save_settings({enable_offline_email_notifications: this.checked});
-        },
-    );
-    $root.on("change", "#ykphone-email-delay", function (this: HTMLSelectElement) {
-        save_settings({email_notifications_batching_period_seconds: Number(this.value)});
+    $root.on("change", ".ykphone_enable_online_push_notifications", function (this: HTMLElement) {
+        save_settings({enable_online_push_notifications: $(this).prop("checked") === true});
     });
-    $root.on("change", "#ykphone-notification-sound", function (this: HTMLSelectElement) {
-        save_settings({notification_sound: this.value});
-        play_sound(this.value);
+    $root.on("change", ".ykphone_enable_offline_email_notifications", function (this: HTMLElement) {
+        save_settings({enable_offline_email_notifications: $(this).prop("checked") === true});
+    });
+    $root.on("change", "#ykphone-email-delay", function (this: HTMLElement) {
+        save_settings({email_notifications_batching_period_seconds: Number($(this).val())});
+    });
+    $root.on("change", "#ykphone-notification-sound", function (this: HTMLElement) {
+        const sound = String($(this).val());
+        save_settings({notification_sound: sound});
+        play_sound(sound);
     });
     $root.on("click", ".ykphone-play-sound", (e) => {
         e.preventDefault();
@@ -244,9 +237,13 @@ export function update(): void {
     const $fresh = $(render_ykphone_notification_preferences(render_context()));
     // Checkboxes, radio buttons and time fields take their new values.
     $root.find("input").each(function (this: HTMLInputElement) {
-        const selector =
-            this.id === "" ? `input[name='${this.name}'][value='${this.value}']` : `#${this.id}`;
-        const fresh = $fresh.find<HTMLInputElement>(selector).get(0);
+        const fresh = $fresh
+            .find<HTMLInputElement>(
+                this.id === ""
+                    ? `input[name='${this.name}'][value='${this.value}']`
+                    : `#${this.id}`,
+            )
+            .get(0);
         if (fresh === undefined) {
             return;
         }
@@ -266,7 +263,9 @@ export function update(): void {
         "#ykphone-notification-sound",
         "#ykphone-email-delay",
     ]) {
-        $root.find(selector).html($fresh.find(selector).html());
+        // `$(selector, context)` rather than `.find(selector)`, which
+        // eslint mistakes for Array.prototype.find with a callback.
+        $(selector, $root).html($(selector, $fresh).html());
     }
     $root
         .find("#ykphone-email-delay")

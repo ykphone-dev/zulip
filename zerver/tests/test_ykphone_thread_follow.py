@@ -12,7 +12,9 @@ NEVER = UserProfile.AUTOMATICALLY_CHANGE_VISIBILITY_POLICY_NEVER
 class ThreadFollowTest(ZulipTestCase):
     def use_fork_defaults(self, *users: UserProfile) -> None:
         for user in users:
-            do_change_user_setting(user, "automatically_follow_topics_policy", NEVER, acting_user=None)
+            do_change_user_setting(
+                user, "automatically_follow_topics_policy", NEVER, acting_user=None
+            )
             do_change_user_setting(
                 user, "automatically_follow_topics_where_mentioned", False, acting_user=None
             )
@@ -37,7 +39,9 @@ class ThreadFollowTest(ZulipTestCase):
             self.subscribe(user, "Verona")
 
         # Posting in general chat, and being mentioned there, follows nothing.
-        root_id = self.send_stream_message(othello, "Verona", "the plan @**Cordelia, Lear's daughter**", "")
+        root_id = self.send_stream_message(
+            othello, "Verona", "the plan @**Cordelia, Lear's daughter**", ""
+        )
         self.assertEqual(self.followed(othello), [])
         self.assertEqual(self.followed(cordelia), [])
 

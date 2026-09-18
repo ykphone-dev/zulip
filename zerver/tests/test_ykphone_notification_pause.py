@@ -23,10 +23,7 @@ from ykphone.models import NotificationPause
 from zerver.actions.user_settings import do_change_user_setting
 from zerver.lib.email_notifications import MissedMessageData, handle_missedmessage_emails
 from zerver.lib.events import apply_events
-from zerver.lib.push_notifications import (
-    handle_push_notification,
-    handle_remove_push_notification,
-)
+from zerver.lib.push_notifications import handle_push_notification, handle_remove_push_notification
 from zerver.lib.test_classes import PushNotificationTestCase, ZulipTestCase
 from zerver.lib.test_helpers import activate_push_notification_service
 from zerver.lib.timestamp import datetime_to_timestamp
@@ -69,9 +66,7 @@ class IsPausedTest(ZulipTestCase):
         self.assertFalse(is_paused(pause_with(paused_until=now - timedelta(minutes=1)), now, UTC))
         # A pause wins over the schedule's hours.
         self.assertTrue(
-            is_paused(
-                pause_with(WEEKDAYS_9_TO_18, paused_until=now + timedelta(hours=1)), now, UTC
-            )
+            is_paused(pause_with(WEEKDAYS_9_TO_18, paused_until=now + timedelta(hours=1)), now, UTC)
         )
 
     def test_day_window(self) -> None:
@@ -130,9 +125,7 @@ class IsPausedTest(ZulipTestCase):
         now = at(UTC, 2026, 9, 14, 3, 0)
         self.assertTrue(is_paused(pause_with(WEEKDAYS_9_TO_18), now, UTC))
         self.assertFalse(is_paused(pause_with(WEEKDAYS_9_TO_18), now, None))
-        self.assertTrue(
-            is_paused(pause_with(paused_until=now + timedelta(minutes=1)), now, None)
-        )
+        self.assertTrue(is_paused(pause_with(paused_until=now + timedelta(minutes=1)), now, None))
         # A stored schedule that no longer reads counts as off.
         self.assertFalse(is_paused(pause_with({"enabled": True}), now, UTC))
 
@@ -191,7 +184,8 @@ class NotificationPauseAPITest(ZulipTestCase):
         self.assertEqual(events[0]["users"], [hamlet.id])
         # Everyone hears the flag, not the end time.
         self.assertEqual(
-            events[1]["event"], {"type": "ykphone_paused_users", "user_id": hamlet.id, "paused": True}
+            events[1]["event"],
+            {"type": "ykphone_paused_users", "user_id": hamlet.id, "paused": True},
         )
         self.assertIn(othello.id, events[1]["users"])
         self.assertEqual(self.get_state(othello)["paused_user_ids"], [hamlet.id])
@@ -275,7 +269,9 @@ class NotificationPauseAPITest(ZulipTestCase):
         self.assertFalse(NotificationPause.objects.filter(user=hamlet).exists())
         # Logged out: no access.
         result = self.client_get("/json/ykphone/notification_pause")
-        self.assert_json_error(result, "Not logged in: API authentication or user session required", 401)
+        self.assert_json_error(
+            result, "Not logged in: API authentication or user session required", 401
+        )
 
     def test_empty_time_zone(self) -> None:
         # Users created other than by the signup form have no zone; for a
@@ -324,9 +320,7 @@ class NotificationPauseAPITest(ZulipTestCase):
         monday_17_59 = at(SEOUL, 2026, 9, 14, 17, 59)
         with time_machine.travel(monday_17_59, tick=False):
             self.assert_json_success(self.patch(hamlet, schedule=WEEKDAYS_9_TO_18))
-            self.assert_json_success(
-                self.patch(othello, until=int(monday_17_59.timestamp()) + 90)
-            )
+            self.assert_json_success(self.patch(othello, until=int(monday_17_59.timestamp()) + 90))
             # Nothing changed by itself yet.
             with self.capture_send_event_calls(expected_num_events=0):
                 self.assertEqual(announce_paused_flips(), [])
@@ -476,7 +470,7 @@ class PausedEmailNotificationTest(ZulipTestCase):
         # Sent once and forgotten: nothing is sent again.
         self.assertFalse(ScheduledMessageNotificationEmail.objects.exists())
         failures = [line for line in logs.output if "pause lookup failed" in line]
-        self.assertEqual(len(failures), 1)
+        self.assert_length(failures, 1)
         self.assertIn(f"user {hamlet.id}", failures[0])
 
 
@@ -595,4 +589,3 @@ class PausedPushNotificationTest(PushNotificationTestCase):
                 user_profile=user_profile, message=message
             ).flags.active_mobile_push_notification
         )
-

@@ -42,7 +42,8 @@ function notify(): void {
 }
 
 export function is_clear_after(value: string): value is ClearAfter {
-    return CLEAR_AFTER.some((option) => option === value);
+    const options: readonly string[] = CLEAR_AFTER;
+    return options.includes(value);
 }
 
 export function get_clear_at(user_id: number): number | undefined {

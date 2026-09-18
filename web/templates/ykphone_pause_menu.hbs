@@ -12,12 +12,12 @@ resuming when paused, and the notification schedule in the settings. }}
             <span class="popover-menu-label">{{t "Pause notifications for…" }}</span>
         </li>
         {{#each presets}}
-        <li role="none" class="link-item popover-menu-list-item">
-            <a role="menuitem" class="ykphone-pause-preset popover-menu-link" data-ykphone-preset="{{id}}" tabindex="0">
-                <span class="popover-menu-label">{{text}}</span>
-                {{#if hint}}<span class="ykphone-pause-menu-hint">{{hint}}</span>{{/if}}
-            </a>
-        </li>
+            <li role="none" class="link-item popover-menu-list-item">
+                <a role="menuitem" class="ykphone-pause-preset popover-menu-link" data-ykphone-preset="{{id}}" tabindex="0">
+                    <span class="popover-menu-label">{{text}}</span>
+                    {{#if hint}}<span class="ykphone-pause-menu-hint">{{hint}}</span>{{/if}}
+                </a>
+            </li>
         {{/each}}
         <li role="none" class="link-item popover-menu-list-item">
             <a role="menuitem" class="ykphone-pause-custom popover-menu-link" tabindex="0">

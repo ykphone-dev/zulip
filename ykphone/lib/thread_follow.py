@@ -59,8 +59,11 @@ def follow_thread_on_send(sender: UserProfile, stream: Stream, message: Message)
     if not follows_threads_itself(sender):
         return
     topic_name = message.topic_name()
-    if topic_name == "" or not MessageThread.objects.filter(
-        stream_id=stream.id, topic_name__iexact=topic_name
-    ).exists():
+    if (
+        topic_name == ""
+        or not MessageThread.objects.filter(
+            stream_id=stream.id, topic_name__iexact=topic_name
+        ).exists()
+    ):
         return
     follow_thread(sender, stream, topic_name)

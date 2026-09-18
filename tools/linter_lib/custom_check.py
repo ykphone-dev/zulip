@@ -504,6 +504,12 @@ python_rules = RuleList(
                     "zproject/backends.py",
                     "@transaction.atomic(savepoint=True)  # intentional use of savepoint=True",
                 ),
+                # Fails open inside the missed-message email worker's
+                # batch transaction: a lookup error must not abort it.
+                (
+                    "ykphone/lib/notification_pause.py",
+                    "with transaction.atomic(savepoint=True):  # intentional use of savepoint=True",
+                ),
             },
         },
         *whitespace_rules,
