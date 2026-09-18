@@ -140,6 +140,9 @@ const saved_states = ["in_progress", "completed", "archived"];
 let saved_loaded = false;
 let saved_missing = [];
 const saved_messages = new Map();
+mock_esm("../src/ykphone_notification_pause", {
+    dm_row_paused: (user_ids_string) => user_ids_string === "7",
+});
 mock_esm("../src/ykphone_saved", {
     SAVED_STATES: saved_states,
     is_saved_state: (value) => saved_states.includes(value),
@@ -370,6 +373,7 @@ run_test("dm rows", (helpers) => {
     assert.deepEqual(hamlet.avatar_urls, []);
     assert.equal(hamlet.user_circle_class, "user-circle-7");
     assert.equal(hamlet.dm_user_id, 7);
+    assert.ok(hamlet.notifications_paused);
     assert.ok(!hamlet.is_group);
     // The stored message gives its snippet at once, with the "You:"
     // prefix for one's own.
@@ -378,10 +382,13 @@ run_test("dm rows", (helpers) => {
     assert.deepEqual(group.avatar_urls, ["/avatar/7", "/avatar/8"]);
     assert.equal(group.user_circle_class, undefined);
     assert.equal(group.dm_user_id, undefined);
+    // A group has no one paused state.
+    assert.ok(!group.notifications_paused);
     assert.equal(group.snippet, "translated: You: message 20");
     assert.equal(group.time_label, `relative:${1_700_000_020}`);
     assert.ok(!group.has_unread);
     assert.equal(self.user_circle_class, "user-circle-5");
+    assert.ok(!self.notifications_paused);
     assert.equal(gone.user_circle_class, "user-circle-deactivated");
 
     // The answer fills the rest in.

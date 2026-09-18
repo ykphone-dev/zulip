@@ -11,6 +11,7 @@ import * as keydown_util from "./keydown_util.ts";
 import * as people from "./people.ts";
 import * as user_status from "./user_status.ts";
 import type {UserStatusEmojiInfo} from "./user_status.ts";
+import * as ykphone_status_expiry_ui from "./ykphone_status_expiry_ui.ts";
 
 let selected_emoji_info: Partial<UserStatusEmojiInfo> = {};
 let default_status_messages_and_emoji_info: {status_text: string; emoji: EmojiRenderingDetails}[];
@@ -61,6 +62,7 @@ export function submit_new_status(): void {
         old_status_text === new_status_text &&
         !emoji_status_fields_changed(selected_emoji_info, old_emoji_info)
     ) {
+        ykphone_status_expiry_ui.save_clear_after(new_status_text, selected_emoji_info.emoji_name);
         dialog_widget.close();
         return;
     }
@@ -71,6 +73,10 @@ export function submit_new_status(): void {
         emoji_code: selected_emoji_info.emoji_code ?? "",
         reaction_type: selected_emoji_info.reaction_type ?? "",
         success() {
+            ykphone_status_expiry_ui.save_clear_after(
+                new_status_text,
+                selected_emoji_info.emoji_name,
+            );
             dialog_widget.close();
         },
     });
@@ -86,7 +92,8 @@ export function update_button(): void {
 
     if (
         old_status_text === new_status_text &&
-        !emoji_status_fields_changed(selected_emoji_info, old_emoji_info)
+        !emoji_status_fields_changed(selected_emoji_info, old_emoji_info) &&
+        !ykphone_status_expiry_ui.clear_after_changed()
     ) {
         $button.prop("disabled", true);
     } else {
@@ -151,6 +158,7 @@ function user_status_post_render(): void {
     const $button = submit_button();
     $button.prop("disabled", true);
 
+    ykphone_status_expiry_ui.status_modal_post_render(update_button);
     $("#set-user-status-modal .user-status-value").on("click", (event) => {
         event.stopPropagation();
         const user_status_value = $(event.currentTarget).text().trim();

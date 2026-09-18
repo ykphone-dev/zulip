@@ -131,6 +131,7 @@ test("get_conversations", ({override}) => {
             },
             has_unread_mention: true,
             avatar_url: "/avatar/103",
+            ykphone_notifications_paused: false,
         },
         {
             recipients: "Alice, Bob",
@@ -147,6 +148,7 @@ test("get_conversations", ({override}) => {
             status_emoji_info: undefined,
             has_unread_mention: false,
             avatar_url: undefined,
+            ykphone_notifications_paused: false,
         },
     ];
 
@@ -180,6 +182,7 @@ test("get_conversations", ({override}) => {
         is_bot: false,
         has_unread_mention: false,
         avatar_url: "/avatar/106",
+        ykphone_notifications_paused: false,
     });
     set_pm_with_filter([iago.user_id]);
     pm_data = pm_list_data.get_conversations();
@@ -223,6 +226,7 @@ test("get_conversations bot", ({override}) => {
             is_bot: true,
             has_unread_mention: false,
             avatar_url: "/avatar/314",
+            ykphone_notifications_paused: false,
         },
         {
             recipients: "Alice, Bob",
@@ -239,6 +243,7 @@ test("get_conversations bot", ({override}) => {
             is_bot: false,
             has_unread_mention: false,
             avatar_url: undefined,
+            ykphone_notifications_paused: false,
         },
     ];
 

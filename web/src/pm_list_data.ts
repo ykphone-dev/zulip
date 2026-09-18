@@ -7,6 +7,7 @@ import * as pm_conversations from "./pm_conversations.ts";
 import * as unread from "./unread.ts";
 import * as user_status from "./user_status.ts";
 import type {UserStatusEmojiInfo} from "./user_status.ts";
+import * as ykphone_notification_pause from "./ykphone_notification_pause.ts";
 
 // Maximum number of conversation threads to show in default view.
 const max_conversations_to_show = 8;
@@ -54,6 +55,7 @@ export type DisplayObject = {
     has_unread_mention: boolean;
     includes_deactivated_user: boolean;
     avatar_url: string | undefined;
+    ykphone_notifications_paused: boolean;
 };
 
 export function get_conversations(search_string = ""): DisplayObject[] {
@@ -132,6 +134,10 @@ export function get_conversations(search_string = ""): DisplayObject[] {
             includes_deactivated_user,
             is_current_user,
             avatar_url,
+            ykphone_notifications_paused: ykphone_notification_pause.dm_row_paused(
+                user_ids_string,
+                new Date(),
+            ),
         };
         display_objects.push(display_object);
     }

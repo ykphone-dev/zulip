@@ -20,6 +20,7 @@ import * as settings_realm_user_settings_defaults from "./settings_realm_user_se
 import * as settings_streams from "./settings_streams.ts";
 import * as settings_user_topics from "./settings_user_topics.ts";
 import * as settings_users from "./settings_users.ts";
+import * as ykphone_notification_settings_ui from "./ykphone_notification_settings_ui.ts";
 
 const load_func_dict = new Map<string, () => void>(); // key is a group
 const loaded_groups = new Set();
@@ -62,6 +63,7 @@ export function initialize(): void {
     load_func_dict.set("notifications", () => {
         assert(settings_notifications.user_settings_panel !== undefined);
         settings_notifications.set_up(settings_notifications.user_settings_panel);
+        ykphone_notification_settings_ui.set_up();
     });
     load_func_dict.set("alert-words", alert_words_ui.set_up_alert_words);
     load_func_dict.set("uploaded-files", attachments_ui.set_up_attachments);

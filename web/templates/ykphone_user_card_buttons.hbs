@@ -18,6 +18,15 @@ deactivated account — the list is shown from the start
     {{#unless show_placeholder_for_status_text}}
     <span class="ykphone-user-card-status-text">{{status_text}}</span>
     {{/unless}}
+    {{#if ykphone_availability.status_until}}
+    <span class="ykphone-user-card-status-until">{{ykphone_availability.status_until}}</span>
+    {{/if}}
+</div>
+{{/if}}
+{{#if ykphone_availability.notifications_paused}}
+<div class="ykphone-user-card-paused">
+    <i class="zulip-icon zulip-icon-bell" aria-hidden="true"></i>
+    <span>{{t "Notifications paused" }}</span>
 </div>
 {{/if}}
 {{#if (and is_active user_time)}}

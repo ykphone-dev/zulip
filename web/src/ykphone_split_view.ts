@@ -41,6 +41,7 @@ import type {ActivityItem, ActivityTab} from "./ykphone_activity.ts";
 import * as ykphone_drafts_page from "./ykphone_drafts_page.ts";
 import type {DraftsTab} from "./ykphone_drafts_page.ts";
 import * as ykphone_files from "./ykphone_files.ts";
+import * as ykphone_notification_pause from "./ykphone_notification_pause.ts";
 import * as ykphone_saved from "./ykphone_saved.ts";
 import type {SavedState} from "./ykphone_saved.ts";
 import * as ykphone_search from "./ykphone_search.ts";
@@ -343,6 +344,7 @@ export type DmRowContext = {
     avatar_urls: string[];
     user_circle_class: string | undefined;
     dm_user_id: number | undefined;
+    notifications_paused: boolean;
     snippet: string;
     time_label: string;
     unread: number;
@@ -501,6 +503,10 @@ export function dm_rows(search: string, selection: string | undefined): DmRowCon
                 : [],
             user_circle_class: is_group ? undefined : presence_class(user_ids[0]!),
             dm_user_id: is_group ? undefined : user_ids[0],
+            notifications_paused: ykphone_notification_pause.dm_row_paused(
+                user_ids_string,
+                new Date(),
+            ),
             snippet: dm_snippet(last),
             time_label:
                 last === undefined

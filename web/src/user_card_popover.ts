@@ -52,6 +52,7 @@ import {user_settings} from "./user_settings.ts";
 import * as user_status from "./user_status.ts";
 import * as user_status_ui from "./user_status_ui.ts";
 import {the} from "./util.ts";
+import * as ykphone_status_expiry from "./ykphone_status_expiry.ts";
 
 let current_user_sidebar_user_id: number | undefined;
 
@@ -244,6 +245,7 @@ type UserCardPopoverData = {
     show_last_active_status: boolean;
     // Whether the fork's card offers a call button (ykphone_user_card_buttons).
     ykphone_show_call: boolean;
+    ykphone_availability: ykphone_status_expiry.CardAvailability;
 };
 
 export let fetch_presence_for_popover = (user_id: number): void => {
@@ -397,6 +399,7 @@ function get_user_card_popover_data(
         is_imported_stub: user.is_imported_stub,
         show_last_active_status: is_active && !user.is_bot && !user.is_imported_stub,
         ykphone_show_call: compose_call.compute_show_video_chat_button(),
+        ykphone_availability: ykphone_status_expiry.card_availability(user.user_id, new Date()),
     };
 
     if (user.is_bot) {

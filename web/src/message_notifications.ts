@@ -16,6 +16,7 @@ import * as ui_util from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
+import * as ykphone_notification_pause from "./ykphone_notification_pause.ts";
 
 type TestNotificationMessage = {
     id: number;
@@ -442,6 +443,9 @@ export function received_messages(messages: (Message | TestNotificationMessage)[
         }
 
         message.notification_sent = true;
+        if (ykphone_notification_pause.holds_back_notifications(message, new Date())) {
+            continue;
+        }
 
         if (should_send_desktop_notification(message)) {
             process_notification({

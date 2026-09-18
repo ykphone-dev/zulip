@@ -105,10 +105,13 @@ import * as user_status from "./user_status.ts";
 import * as user_topics from "./user_topics.ts";
 import * as user_topics_ui from "./user_topics_ui.ts";
 import * as ykphone_channel_details from "./ykphone_channel_details.ts";
+import * as ykphone_notification_pause from "./ykphone_notification_pause.ts";
+import * as ykphone_notification_settings_ui from "./ykphone_notification_settings_ui.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_saved from "./ykphone_saved.ts";
 import * as ykphone_shell_theme from "./ykphone_shell_theme.ts";
 import * as ykphone_split_view_ui from "./ykphone_split_view_ui.ts";
+import * as ykphone_status_expiry from "./ykphone_status_expiry.ts";
 
 export function dispatch_normal_event(event) {
     const noop = function () {
@@ -119,6 +122,7 @@ export function dispatch_normal_event(event) {
         case "alert_words":
             alert_words.set_words(event.alert_words);
             alert_words_ui.rerender_alert_words_ui();
+            ykphone_notification_settings_ui.update();
             break;
 
         case "attachment":
@@ -212,6 +216,18 @@ export function dispatch_normal_event(event) {
 
         case "ykphone_preference":
             ykphone_shell_theme.handle_event(event);
+            break;
+
+        case "ykphone_notification_pause":
+            ykphone_notification_pause.handle_pause_event(event);
+            break;
+
+        case "ykphone_paused_users":
+            ykphone_notification_pause.handle_paused_users_event(event);
+            break;
+
+        case "ykphone_status_expiry":
+            ykphone_status_expiry.handle_event(event);
             break;
 
         case "has_zoom_token":
@@ -938,6 +954,7 @@ export function dispatch_normal_event(event) {
                     );
                 }
                 settings_notifications.update_page(settings_notifications.user_settings_panel);
+                ykphone_notification_settings_ui.update();
                 break;
             }
 

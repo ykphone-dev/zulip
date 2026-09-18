@@ -42,6 +42,8 @@ import * as ykphone_history from "./ykphone_history.ts";
 import * as ykphone_keyboard_nav from "./ykphone_keyboard_nav.ts";
 import * as ykphone_layout from "./ykphone_layout.ts";
 import * as ykphone_message_toolbar from "./ykphone_message_toolbar.ts";
+import * as ykphone_notification_pause_ui from "./ykphone_notification_pause_ui.ts";
+import * as ykphone_notification_settings_ui from "./ykphone_notification_settings_ui.ts";
 import * as ykphone_pane_header from "./ykphone_pane_header.ts";
 import * as ykphone_pins from "./ykphone_pins.ts";
 import * as ykphone_pins_ui from "./ykphone_pins_ui.ts";
@@ -156,6 +158,8 @@ export function initialize(): void {
     ykphone_channel_details_ui.initialize();
     ykphone_files_ui.initialize();
     ykphone_shell_theme_ui.initialize();
+    ykphone_notification_pause_ui.initialize();
+    ykphone_notification_settings_ui.initialize();
     ykphone_conversation.update_body_class();
     // The label on the "new messages" line is drawn by the theme CSS.
     document.documentElement.style.setProperty(

@@ -7422,3 +7422,296 @@ body.ykphone-files-view #ykphone-files-view {
         max-width: 7em;
     }
 }
+
+/* ---- Paused notifications, status "Clear after", notification settings (round 18) ---- */
+
+/* Slack's "z" on the avatar of someone whose notifications are paused:
+   a small tile at the top-right corner, where it does not meet the
+   presence dot at the bottom-right. */
+.ykphone-rail-pause-badge,
+.ykphone-paused-badge {
+    position: absolute;
+    top: -0.2143em; /* -3px at 14px/em */
+    right: -0.2857em; /* -4px at 14px/em */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1em;
+    height: 1em;
+    padding: 0 0.1429em;
+    border-radius: var(--yk-radius-sm);
+    box-shadow: 0 0 0 2px var(--yk-presence-ring, var(--color-background));
+    background-color: var(--yk-text-muted);
+    color: var(--yk-pane-bg);
+    font-size: 0.7143em; /* 10px at 14px/em */
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: auto;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.ykphone-rail-avatar .ykphone-rail-pause-badge {
+    --yk-presence-ring: var(--yk-frame-bg);
+}
+
+/* On a DM row the badge takes the avatar's grid cell, like the
+   presence dot, and sits over the avatar's top-right corner: centred
+   in the row, it is lifted by half the bottom margin (8.5px, from the
+   centre to 3px above the 20px avatar's top, less half its own 9px). */
+#direct-messages-list .dm-list-item .ykphone-paused-badge,
+#modal-direct-messages-list .dm-list-item .ykphone-paused-badge {
+    position: static;
+    grid-area: starting-anchor-element;
+    place-self: center end;
+    z-index: 1;
+    margin: 0 -4px 17px 0;
+    font-size: 9px;
+}
+
+.ykphone-split-avatar-cell .ykphone-paused-badge {
+    --yk-presence-ring: var(--yk-pane-bg);
+}
+
+/* The personal menu's "Pause notifications": the state on a second
+   line under the label. */
+.ykphone-pause-menu-label {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ykphone-pause-menu-state {
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+
+    &:empty {
+        display: none;
+    }
+}
+
+.ykphone-pause-menu {
+    min-width: 15em;
+
+    .ykphone-pause-menu-heading,
+    .ykphone-pause-menu-current {
+        color: var(--yk-text-muted);
+        font-size: 0.8571em;
+    }
+
+    .ykphone-pause-menu-current {
+        color: var(--yk-text);
+        font-weight: 600;
+    }
+
+    .ykphone-pause-menu-hint {
+        margin-left: auto;
+        padding-left: 1em;
+        color: var(--yk-text-muted);
+        font-size: 0.8571em;
+        white-space: nowrap;
+    }
+}
+
+/* "Until 3:00 PM" after a status (the user card, the personal menu). */
+.ykphone-user-card-status-until,
+.ykphone-status-until {
+    flex-shrink: 0;
+    color: var(--yk-text-muted);
+    font-size: 0.8571em; /* 12px at 14px/em */
+    white-space: nowrap;
+}
+
+.personal-menu-status-wrapper .ykphone-status-until {
+    margin-left: 0.4286em;
+}
+
+#user_card_popover .ykphone-user-card-paused {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3571em;
+    padding: 0 1.1429em 0.2857em;
+    font-size: 0.9286em; /* 13px at 14px/em */
+    color: var(--yk-text-muted);
+}
+
+/* The status modal's "Clear after", under the presets. */
+#set-user-status-modal .ykphone-status-clear-after {
+    display: flex;
+    align-items: center;
+    gap: 0.5714em;
+    margin-top: 0.8571em;
+
+    .settings-field-label {
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    select {
+        width: auto;
+        max-width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+}
+
+/* Settings → Notifications: the fork's section, then upstream's form
+   under "Show advanced settings". */
+.ykphone-notification-preferences {
+    .ykphone-notify-level {
+        margin: 0 0 1em;
+        padding: 0;
+        border: none;
+
+        legend {
+            margin-bottom: 0.3571em;
+            border: none;
+        }
+    }
+
+    .ykphone-radio {
+        display: flex;
+        align-items: center;
+        gap: 0.5em;
+        margin: 0.2857em 0;
+        cursor: pointer;
+    }
+
+    .ykphone-settings-hint {
+        margin: 0.2143em 0 0.4286em;
+        color: var(--yk-text-muted);
+        font-size: 0.9286em;
+    }
+
+    .ykphone-alert-word-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3571em;
+        margin-bottom: 0.4286em;
+    }
+
+    .ykphone-alert-word {
+        max-width: 100%;
+        padding: 0.1429em 0.5714em;
+        overflow: hidden;
+        border: 1px solid var(--yk-hairline);
+        border-radius: var(--yk-radius-sm);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ykphone-edit-alert-words {
+        color: var(--yk-link);
+    }
+
+    /* The time fields dim as disabled inputs do; the day chips, which
+       are labels, dim along with them. */
+    .ykphone-schedule-off .ykphone-schedule-day span {
+        opacity: 0.5;
+    }
+
+    .ykphone-schedule-days {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3571em;
+        margin: 0.4286em 0;
+    }
+
+    .ykphone-schedule-day {
+        position: relative;
+        cursor: pointer;
+
+        span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 2.2857em;
+            height: 2.2857em;
+            padding: 0 0.4286em;
+            border: 1px solid var(--yk-border);
+            border-radius: var(--yk-radius-md);
+        }
+
+        input:checked + span {
+            border-color: var(--yk-green);
+            background-color: var(--yk-green);
+            color: hsl(0deg 0% 100%);
+        }
+
+        input:focus-visible + span {
+            outline: 2px solid var(--color-outline-focus);
+            outline-offset: 2px;
+        }
+
+        input:disabled + span {
+            cursor: default;
+        }
+    }
+
+    .ykphone-schedule-error {
+        margin: 0.4286em 0 0;
+        color: var(--yk-red);
+        font-weight: 600;
+    }
+
+    .ykphone-schedule-hours {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5714em;
+
+        input[type="time"] {
+            width: auto;
+            margin: 0;
+        }
+    }
+
+    .ykphone-play-sound {
+        padding: 0 0.4286em;
+        border: none;
+        background: none;
+        color: var(--yk-text-muted);
+        font-size: 1.2857em;
+        cursor: pointer;
+
+        &:hover {
+            color: var(--yk-text);
+        }
+    }
+
+    .ykphone-advanced-notifications {
+        margin-top: 1.4286em;
+
+        > summary {
+            color: var(--yk-link);
+            cursor: pointer;
+        }
+
+        > .notification-settings-form {
+            margin-top: 0.7143em;
+        }
+    }
+}
+
+/* The day chips' checkboxes are hidden behind the chips; the id beats
+   the dark theme's dimming of read-only inputs (which checkboxes
+   always are). */
+#user-notification-settings .ykphone-schedule-day input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* With topics hidden behind threads, upstream's topic notification
+   section (following and unmuting topics, the resolved-topic notice)
+   and the marketing emails checkbox have no place. */
+#user-notification-settings.ykphone-simple-notifications {
+    .topic_notifications,
+    .input-group:has(> label > .enable_marketing_emails),
+    .input-group:has(.enable_marketing_emails_label) {
+        display: none;
+    }
+}

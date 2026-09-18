@@ -1,0 +1,121 @@
+{{! Slack's notification preferences (the 옆커폰 fork), at the top of
+Settings → Notifications. Each control saves at once; the mapping onto
+Zulip's settings is in ykphone_notification_settings.ts, and upstream's
+full settings stay below under "Show advanced settings". }}
+<div class="ykphone-notification-preferences subsection-parent">
+    <div class="subsection-header">
+        <h3>{{t "Notifications" }}</h3>
+    </div>
+
+    <fieldset class="ykphone-notify-level input-group">
+        <legend class="settings-field-label">{{t "Notify me about" }}</legend>
+        {{#each level_options}}
+        <label class="ykphone-radio">
+            <input type="radio" name="ykphone_notify_level" value="{{value}}" {{#if checked}}checked{{/if}} />
+            <span>{{text}}</span>
+        </label>
+        {{/each}}
+        <p class="ykphone-settings-hint ykphone-notify-nothing-hint {{#unless is_nothing}}hidden{{/unless}}">{{t "Notifications you set for a channel of its own are kept." }}</p>
+    </fieldset>
+
+    {{> settings/settings_checkbox
+      setting_name="ykphone_notify_threads"
+      is_checked=threads
+      label=(t "Notify me about replies in threads I follow")
+      skip_prop_element=true
+      prefix="" }}
+
+    <div class="input-group ykphone-alert-words">
+        <div class="settings-field-label">{{t "Alert words" }}</div>
+        <p class="ykphone-settings-hint">{{t "You are notified when a message contains one of these words." }}</p>
+        <div class="ykphone-alert-word-list">
+            {{#each alert_words}}
+            <span class="ykphone-alert-word">{{this}}</span>
+            {{else}}
+            <span class="ykphone-settings-hint">{{t "No alert words yet." }}</span>
+            {{/each}}
+        </div>
+        <a class="ykphone-edit-alert-words" href="#settings/alert-words">{{t "Edit alert words" }}</a>
+    </div>
+
+    <div class="input-group ykphone-notification-schedule">
+        <div class="settings-field-label">{{t "Notification schedule" }}</div>
+        {{> settings/settings_checkbox
+          setting_name="ykphone_schedule_enabled"
+          is_checked=schedule.enabled
+          label=(t "Only notify me during these hours")
+          skip_prop_element=true
+          prefix="" }}
+        <div class="ykphone-schedule-fields {{#unless schedule.enabled}}ykphone-schedule-off{{/unless}}">
+            <div class="ykphone-schedule-days" role="group" aria-label="{{t 'Days' }}">
+                {{#each days}}
+                <label class="ykphone-schedule-day">
+                    <input type="checkbox" class="ykphone-schedule-day-input" name="ykphone_schedule_day" value="{{day}}" {{#if checked}}checked{{/if}} {{#unless ../schedule.enabled}}disabled{{/unless}} />
+                    <span>{{label}}</span>
+                </label>
+                {{/each}}
+            </div>
+            <div class="ykphone-schedule-hours">
+                <label for="ykphone-schedule-start">{{t "Start time" }}</label>
+                <input type="time" id="ykphone-schedule-start" class="ykphone-schedule-time settings_text_input" value="{{schedule.start}}" {{#unless schedule.enabled}}disabled{{/unless}} />
+                <label for="ykphone-schedule-end">{{t "End time" }}</label>
+                <input type="time" id="ykphone-schedule-end" class="ykphone-schedule-time settings_text_input" value="{{schedule.end}}" {{#unless schedule.enabled}}disabled{{/unless}} />
+            </div>
+            <p class="ykphone-schedule-error hidden" role="alert"></p>
+            <p class="ykphone-settings-hint">{{t "Outside these hours your notifications are paused. An end before the start runs past midnight." }}</p>
+            <p class="ykphone-settings-hint ykphone-schedule-zone">{{t "Times are in {zone_label}." }} <a href="#settings/preferences">{{t "Change time zone" }}</a></p>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="ykphone-notification-sound" class="settings-field-label">{{t "Notification sound" }}</label>
+        <div class="input-element-with-control">
+            <select id="ykphone-notification-sound" class="settings_select bootstrap-focus-style">
+                {{#each sound_options}}
+                <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
+                {{/each}}
+            </select>
+            <button type="button" class="ykphone-play-sound tippy-zulip-tooltip" aria-label="{{t 'Play sound' }}" data-tippy-content="{{t 'Play sound' }}">
+                <i class="notification-sound-icon fa fa-play-circle" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <div class="settings-field-label">{{t "Mobile notifications" }}</div>
+        {{> settings/settings_checkbox
+          setting_name="ykphone_notify_mobile"
+          is_checked=mobile
+          is_disabled=push_disabled
+          label=(t "Send notifications to my mobile devices")
+          skip_prop_element=true
+          prefix="" }}
+        {{> settings/settings_checkbox
+          setting_name="ykphone_enable_online_push_notifications"
+          is_checked=online_push
+          is_disabled=push_disabled
+          label=(t "Even when I'm active on the computer")
+          skip_prop_element=true
+          prefix="" }}
+    </div>
+
+    <div class="input-group">
+        <div class="settings-field-label">{{t "Email notifications" }}</div>
+        {{> settings/settings_checkbox
+          setting_name="ykphone_enable_offline_email_notifications"
+          is_checked=email
+          label=(t "Email me about direct messages and mentions when I'm away")
+          skip_prop_element=true
+          prefix="" }}
+        <label for="ykphone-email-delay" class="settings-field-label">{{t "Delay before sending message notification emails" }}</label>
+        <select id="ykphone-email-delay" class="settings_select bootstrap-focus-style" {{#unless email}}disabled{{/unless}}>
+            {{#each email_delay_options}}
+            <option value="{{value}}" {{#if selected}}selected{{/if}}>{{text}}</option>
+            {{/each}}
+        </select>
+    </div>
+
+    <details class="ykphone-advanced-notifications">
+        <summary>{{t "Show advanced settings" }}</summary>
+    </details>
+</div>

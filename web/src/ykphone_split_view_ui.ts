@@ -55,6 +55,7 @@ import * as views_util from "./views_util.ts";
 import * as ykphone_activity from "./ykphone_activity.ts";
 import * as ykphone_drafts_page from "./ykphone_drafts_page.ts";
 import * as ykphone_files from "./ykphone_files.ts";
+import * as ykphone_notification_pause from "./ykphone_notification_pause.ts";
 import * as ykphone_places from "./ykphone_places.ts";
 import * as ykphone_quick_switcher from "./ykphone_quick_switcher.ts";
 import * as ykphone_recents from "./ykphone_recents.ts";
@@ -1319,6 +1320,12 @@ export function initialize({
             }
         });
     }
+    // The DM rows mark people whose notifications are paused.
+    ykphone_notification_pause.on_change(() => {
+        if (ykphone_split_view.get_route()?.page === "dms") {
+            render_rows();
+        }
+    });
     // Unread counts drawn by upstream (and the sidebar badges) change
     // the rows' bold names, counts and dots.
     ykphone_unread_badges.on_counts_updated(() => {

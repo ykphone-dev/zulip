@@ -12,6 +12,7 @@ import {current_user} from "./state_data.ts";
 import {parse_html} from "./ui_util.ts";
 import {user_settings} from "./user_settings.ts";
 import * as user_status from "./user_status.ts";
+import * as ykphone_notification_pause_ui from "./ykphone_notification_pause_ui.ts";
 
 export function initialize(): void {
     popover_menus.register_popover_menu("#personal-menu, #ykphone-rail-avatar", {
@@ -35,6 +36,7 @@ export function initialize(): void {
         onMount(instance) {
             const $popper = $(instance.popper);
             popover_menus.popover_instances.personal_menu = instance;
+            ykphone_notification_pause_ui.on_personal_menu_mount(instance);
 
             $popper.on("change", "input[name='theme-select']", (e) => {
                 const new_theme_code = $(e.currentTarget).attr("data-theme-code");

@@ -6,6 +6,7 @@
         {{else}}
         <img class="ykphone-dm-avatar" src="{{avatar_url}}" alt="" loading="lazy" />
         <span class="conversation-partners-icon zulip-icon zulip-icon-{{user_circle_class}} {{user_circle_class}} user-circle"></span>
+        {{#if ykphone_notifications_paused}}{{> ykphone_paused_badge}}{{/if}}
         {{/if}}
 
         <span class="conversation-partners" title="{{recipients}}">

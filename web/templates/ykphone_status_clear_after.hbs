@@ -1,0 +1,15 @@
+{{! The status modal's "Clear after" (the 옆커폰 fork). The values are
+ykphone_status_expiry's ClearAfter; ykphone_status_expiry_ui sets the
+choice when the modal opens and saves it after the status. }}
+<div class="ykphone-status-clear-after">
+    <label for="ykphone-status-clear-after" class="settings-field-label">{{t "Clear after" }}</label>
+    <select id="ykphone-status-clear-after" class="modal_select bootstrap-focus-style">
+        <option value="never">{{t "Don't clear" }}</option>
+        <option value="30m">{{t "30 minutes" }}</option>
+        <option value="1h">{{t "1 hour" }}</option>
+        <option value="4h">{{t "4 hours" }}</option>
+        <option value="today">{{t "Today" }}</option>
+        <option value="week">{{t "This week" }}</option>
+        <option value="custom">{{t "Custom time" }}</option>
+    </select>
+</div>

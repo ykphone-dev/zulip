@@ -1,0 +1,12 @@
+{{! The personal menu's "Pause notifications" (the 옆커폰 fork): opens
+the pause menu; the line under the label says until when the user is
+paused, filled in by ykphone_notification_pause_ui when the menu opens. }}
+<li role="none" class="link-item hidden-for-spectators popover-menu-list-item">
+    <a role="menuitem" tabindex="0" class="ykphone-open-pause-menu popover-menu-link" aria-haspopup="menu">
+        <i class="popover-menu-icon zulip-icon zulip-icon-bell" aria-hidden="true"></i>
+        <span class="popover-menu-label ykphone-pause-menu-label">
+            <span>{{t "Pause notifications" }}</span>
+            <span class="ykphone-pause-menu-state"></span>
+        </span>
+    </a>
+</li>
