@@ -7661,6 +7661,23 @@ msgstr "이 메시지는 이미 스레드에 속해 있습니다."
 msgid "This channel does not allow threads."
 msgstr "이 채널에서는 스레드를 사용할 수 없습니다."
 
+#: ykphone/lib/saved.py
+#, python-brace-format
+msgid "Invalid state: {state}"
+msgstr "잘못된 상태입니다: {state}"
+
+#: ykphone/lib/saved.py
+msgid "This message is not saved."
+msgstr "저장하지 않은 메시지입니다."
+
+#: ykphone/lib/saved.py
+msgid "Invalid due date: it must be a time in seconds."
+msgstr "기한이 올바르지 않습니다. 초 단위 시각이어야 합니다."
+
+#: ykphone/lib/saved.py
+msgid "Set a due date or clear it, not both."
+msgstr "기한을 설정하거나 삭제하세요. 둘 다 할 수는 없습니다."
+
 #, fuzzy
 #~| msgid "Already has an account."
 #~ msgid "Don't have an account?"
