@@ -457,6 +457,10 @@ SYSTEM_BOT_REALM = "zulipinternal"
 # than a separate app.
 EXTRA_INSTALLED_APPS = ["analytics", "ykphone"]
 
+# The 옆커폰 chat app's push: every message is pushed through Expo to the
+# tokens the app registered (ykphone.lib.expo_push). Off switch.
+YKPHONE_EXPO_PUSH = True
+
 # Used to construct URLs to point to the Zulip server.  Since we
 # only support HTTPS in production, this is just for development.
 EXTERNAL_URI_SCHEME = "https://"

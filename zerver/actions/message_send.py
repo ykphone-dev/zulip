@@ -1313,11 +1313,12 @@ def do_send_messages(
         send_event_on_commit(send_request.realm, event, users)
 
         # The 옆커폰 chat app's push, for every message (ykphone.lib.expo_push).
-        expo_event = expo_push_event(
-            send_request.realm, wide_message_dict, send_request.active_user_ids, sender.id
-        )
-        if expo_event is not None:
-            queue_event_on_commit("deferred_work", expo_event)
+        if settings.YKPHONE_EXPO_PUSH:
+            expo_event = expo_push_event(
+                send_request.realm, wide_message_dict, send_request.active_user_ids, sender.id
+            )
+            if expo_event is not None:
+                queue_event_on_commit("deferred_work", expo_event)
 
         if send_request.links_for_embed:
             event_data = {

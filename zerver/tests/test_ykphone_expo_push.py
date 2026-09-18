@@ -4,6 +4,7 @@ from unittest import mock
 
 import orjson
 import responses
+from django.test import override_settings
 from django.utils.timezone import now as timezone_now
 
 from ykphone.lib.expo_push import EXPO_PUSH_URL, expo_push_event, send_expo_push
@@ -114,6 +115,7 @@ class ExpoPushEventTest(ZulipTestCase):
             expo_push_event(iago.realm, self.message_dict(message_id), {iago.id}, iago.id)
         )
 
+    @override_settings(YKPHONE_EXPO_PUSH=True)
     def test_queued_on_send(self) -> None:
         iago = self.example_user("iago")
         hamlet = self.example_user("hamlet")
@@ -123,6 +125,13 @@ class ExpoPushEventTest(ZulipTestCase):
         self.assert_length(events, 1)
         self.assertEqual(events[0]["type"], "ykphone_expo_push")
         self.assertEqual(events[0]["user_ids"], [hamlet.id])
+
+    def test_off_switch(self) -> None:
+        # Off in the test settings, as the upstream tests need.
+        iago = self.example_user("iago")
+        with mock.patch("zerver.actions.message_send.queue_event_on_commit") as queue:
+            self.send_personal_message(iago, self.example_user("hamlet"), "hello")
+        self.assertNotIn("deferred_work", [call.args[0] for call in queue.call_args_list])
 
 
 class SendExpoPushTest(ZulipTestCase):
