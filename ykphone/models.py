@@ -139,3 +139,24 @@ class StatusExpiry(models.Model):
     status_text = models.TextField(default="")
     emoji_name = models.TextField(default="")
     emoji_code = models.TextField(default="")
+
+
+class ExpoPushToken(models.Model):
+    """An Expo push token of the 옆커폰 chat app (a WebView around this
+    web app, ykphone-dev/ykphone-chat-app), registered by the app from
+    the logged-in page. ykphone.lib.expo_push sends to it through Expo's
+    push service for every message the user receives, instead of
+    Zulip's own mobile push, which only reaches the official apps.
+
+    PROTECT rather than CASCADE: Zulip deactivates users rather than
+    deleting them, and a hard delete that meets a token should stop
+    instead of dropping rows silently."""
+
+    user = models.ForeignKey(
+        UserProfile, on_delete=models.PROTECT, related_name="ykphone_expo_push_tokens"
+    )
+    # "ExponentPushToken[...]"; unique so that a phone that changes hands
+    # moves its token to the new user instead of pushing to both.
+    token = models.CharField(max_length=255, unique=True)
+    date_created = models.DateTimeField(default=timezone_now)
+    last_registered = models.DateTimeField(default=timezone_now)

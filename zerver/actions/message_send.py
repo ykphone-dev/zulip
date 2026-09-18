@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
 from django_stubs_ext import WithAnnotations
 
+from ykphone.lib.expo_push import expo_push_event
 from ykphone.lib.thread_follow import follow_thread_on_send
 from zerver.actions.uploads import do_claim_attachments
 from zerver.actions.user_topics import (
@@ -1310,6 +1311,13 @@ def do_send_messages(
         if send_request.sender_queue_id is not None:
             event["sender_queue_id"] = send_request.sender_queue_id
         send_event_on_commit(send_request.realm, event, users)
+
+        # The 옆커폰 chat app's push, for every message (ykphone.lib.expo_push).
+        expo_event = expo_push_event(
+            send_request.realm, wide_message_dict, send_request.active_user_ids, sender.id
+        )
+        if expo_event is not None:
+            queue_event_on_commit("deferred_work", expo_event)
 
         if send_request.links_for_embed:
             event_data = {

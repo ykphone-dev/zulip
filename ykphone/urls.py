@@ -2,6 +2,7 @@ from django.urls import include, path
 from django.urls.resolvers import URLPattern, URLResolver
 
 from ykphone.views import (
+    add_expo_push_token,
     add_pin,
     add_saved_item,
     create_thread,
@@ -15,6 +16,7 @@ from ykphone.views import (
     get_thread_activity,
     get_threads,
     patch_saved_item,
+    remove_expo_push_token,
     remove_pin,
     set_status_expiry,
     update_notification_pause,
@@ -37,6 +39,7 @@ v1_api_and_json_patterns = [
         "ykphone/notification_pause", GET=get_notification_pause, PATCH=update_notification_pause
     ),
     rest_path("ykphone/status_expiry", GET=get_status_expiries, PUT=set_status_expiry),
+    rest_path("ykphone/expo_push_token", POST=add_expo_push_token, DELETE=remove_expo_push_token),
 ]
 
 i18n_urlpatterns: list[URLPattern | URLResolver] = []
