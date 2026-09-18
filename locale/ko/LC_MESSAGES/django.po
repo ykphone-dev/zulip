@@ -7678,6 +7678,42 @@ msgstr "기한이 올바르지 않습니다. 초 단위 시각이어야 합니�
 msgid "Set a due date or clear it, not both."
 msgstr "기한을 설정하거나 삭제하세요. 둘 다 할 수는 없습니다."
 
+#: ykphone/lib/notification_pause.py
+msgid "Invalid notification schedule."
+msgstr "알림 일정이 올바르지 않습니다."
+
+#: ykphone/lib/notification_pause.py
+msgid "Invalid notification schedule: days must be numbers from 0 to 6."
+msgstr "알림 일정이 올바르지 않습니다. 요일은 0부터 6까지의 숫자여야 합니다."
+
+#: ykphone/lib/notification_pause.py
+msgid "Invalid notification schedule: times must look like 09:00."
+msgstr "알림 일정이 올바르지 않습니다. 시각은 09:00 형식이어야 합니다."
+
+#: ykphone/lib/notification_pause.py
+msgid "Invalid pause end: it must be a time in seconds."
+msgstr "일시 중지 종료 시각이 올바르지 않습니다. 초 단위 시각이어야 합니다."
+
+#: ykphone/lib/notification_pause.py
+msgid "Choose at least one day."
+msgstr "요일을 하나 이상 선택하세요."
+
+#: ykphone/views.py
+msgid "Pass either until or clear_until, not both."
+msgstr "until과 clear_until 중 하나만 보내야 합니다."
+
+#: ykphone/lib/status_expiry.py
+msgid "Invalid time: it must be a time in seconds."
+msgstr "시각이 올바르지 않습니다. 초 단위 시각이어야 합니다."
+
+#: ykphone/lib/status_expiry.py
+msgid "The time to clear the status must be in the future."
+msgstr "상태를 지울 시각은 미래여야 합니다."
+
+#: ykphone/lib/status_expiry.py
+msgid "You have no status to clear."
+msgstr "지울 상태가 없습니다."
+
 #, fuzzy
 #~| msgid "Already has an account."
 #~ msgid "Don't have an account?"
