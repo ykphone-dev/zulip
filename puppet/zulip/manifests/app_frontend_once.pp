@@ -21,6 +21,11 @@ class zulip::app_frontend_once {
     notify  => Service[$zulip::common::supervisor_service],
   }
 
+  # Every minute: the 옆커폰 fork's status "Clear after".
+  zulip::cron { 'ykphone-clear-expired-statuses':
+    minute => '*',
+  }
+
   # Every-hour
   zulip::cron { 'update-analytics-counts':
     minute => '5',

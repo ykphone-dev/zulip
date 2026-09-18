@@ -23,6 +23,7 @@ from lxml.html import builder as e
 from markupsafe import Markup
 
 from confirmation.models import one_click_unsubscribe_link
+from ykphone.lib.notification_pause import skip_paused_notification
 from zerver.lib.display_recipient import get_display_recipient
 from zerver.lib.markdown.fenced_code import FENCE_RE
 from zerver.lib.message import bulk_access_messages
@@ -664,6 +665,8 @@ def handle_missedmessage_emails(
     # Bots don't have real email addresses, and should have been
     # filtered previously.
     assert not user_profile.is_bot
+    if skip_paused_notification(user_profile, "email"):
+        return
 
     if not user_profile.enable_offline_email_notifications:
         # BUG: Investigate why it's possible to get here.

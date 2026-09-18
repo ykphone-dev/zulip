@@ -33,6 +33,7 @@ from pydantic import TypeAdapter
 from typing_extensions import TypedDict, override
 
 from analytics.lib.counts import COUNT_STATS, do_increment_logging_stat
+from ykphone.lib.notification_pause import skip_paused_notification
 from zerver.actions.realm_settings import (
     do_set_push_notifications_enabled_end_timestamp,
     do_set_realm_property,
@@ -1701,6 +1702,8 @@ def handle_push_notification(user_profile_id: int, missed_message: dict[str, Any
     ):
         # BUG: Investigate why it's possible to get here.
         return  # nocoverage
+    if skip_paused_notification(user_profile, "push"):
+        return
 
     required_message_fields = OnlyMessageFields(
         select_related=["sender", "realm", "recipient"],

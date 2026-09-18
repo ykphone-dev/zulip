@@ -115,6 +115,7 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
         # 1:1 DM
         # query count : source
         # * 1 : `get_user_profile_by_id`
+        # * 1 : the 옆커폰 fork's paused-notifications check
         # * 2 : `access_message_and_usermessage` (Fetch Message + UserMessage)
         # * 1 : update fetched user_message flag
         # * 2 : fetch PushDeviceToken + Device
@@ -127,7 +128,7 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
             "message_id": message_id,
             "trigger": NotificationTriggers.DIRECT_MESSAGE,
         }
-        test_end_to_end(missed_message, db_query_count=9)
+        test_end_to_end(missed_message, db_query_count=10)
 
         # Group DM
         message_id = self.send_group_direct_message(
@@ -137,7 +138,7 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
             "message_id": message_id,
             "trigger": NotificationTriggers.DIRECT_MESSAGE,
         }
-        test_end_to_end(missed_message, db_query_count=9)
+        test_end_to_end(missed_message, db_query_count=10)
 
         # Channel message
         # 2 extra queries than 1:1 DM
@@ -149,7 +150,7 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
             aaron, "Verona", skip_capture_on_commit_callbacks=True
         )
         missed_message = {"message_id": message_id, "trigger": NotificationTriggers.STREAM_PUSH}
-        test_end_to_end(missed_message, db_query_count=11)
+        test_end_to_end(missed_message, db_query_count=12)
 
         # Channel message: private channel + user-group mention
         # 3 extra queries than prev:
@@ -167,7 +168,7 @@ class SendPushNotificationTest(E2EEPushNotificationTestCase):
             "trigger": NotificationTriggers.MENTION,
             "mentioned_user_group_id": user_group.id,
         }
-        test_end_to_end(missed_message, db_query_count=14)
+        test_end_to_end(missed_message, db_query_count=15)
 
     def test_no_registered_device(self) -> None:
         aaron = self.example_user("aaron")

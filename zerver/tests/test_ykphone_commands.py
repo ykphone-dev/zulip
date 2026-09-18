@@ -8,10 +8,12 @@ from ykphone.lib.preferences import do_set_shell_theme, get_shell_theme
 from ykphone.models import RealmPreference, UserPreference
 from zerver.actions.realm_settings import do_set_realm_property, do_set_realm_user_default_setting
 from zerver.actions.user_settings import do_change_avatar_fields, do_change_user_setting
+from zerver.actions.user_topics import do_set_user_topic_visibility_policy
 from zerver.actions.users import do_deactivate_user
 from zerver.lib.test_classes import ZulipTestCase
-from zerver.models import Realm, RealmUserDefault, UserProfile
+from zerver.models import Realm, RealmUserDefault, UserProfile, UserTopic
 from zerver.models.realms import get_realm
+from zerver.models.streams import get_stream
 
 
 class ApplySlackDefaultsTest(ZulipTestCase):
@@ -87,7 +89,7 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         self.assertEqual(self.realm_message_time_limits(), (600, 600))
         self.assertFalse(hamlet.enter_sends)
 
-        with self.capture_send_event_calls(expected_num_events=8) as events:
+        with self.capture_send_event_calls(expected_num_events=10) as events:
             output = self.run_command("--realm=zulip")
         self.assertIn("for new users of zulip", output)
         # Open clients learn about the lifted time limits.
@@ -119,6 +121,14 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         self.assertEqual(self.realm_default_avatar_source(), UserProfile.AVATAR_FROM_GRAVATAR)
         self.assertTrue(self.realm_link_previews())
         self.assertEqual(self.realm_message_time_limits(), (None, None))
+        # New users follow threads through the fork, not Zulip's
+        # automatic following (which would follow general chats).
+        realm_user_default = RealmUserDefault.objects.get(realm=get_realm("zulip"))
+        self.assertEqual(
+            realm_user_default.automatically_follow_topics_policy,
+            UserProfile.AUTOMATICALLY_CHANGE_VISIBILITY_POLICY_NEVER,
+        )
+        self.assertFalse(realm_user_default.automatically_follow_topics_where_mentioned)
         # Existing users are untouched without --existing-users.
         hamlet.refresh_from_db()
         self.assertFalse(hamlet.enter_sends)
@@ -154,8 +164,24 @@ class ApplySlackDefaultsTest(ZulipTestCase):
         patterned_count = patterned_users.count()
         self.assertGreater(patterned_count, 1)
 
+        # General chat followed automatically goes; a thread stays.
+        verona = get_stream("Verona", hamlet.realm)
+        for topic_name in ["", "a thread"]:
+            do_set_user_topic_visibility_policy(
+                hamlet, verona, topic_name, visibility_policy=UserTopic.VisibilityPolicy.FOLLOWED
+            )
+
         output = self.run_command("--realm=zulip", "--existing-users")
         self.assertIn("existing users", output)
+        self.assertIn("unfollowed 1 general chats", output)
+        self.assertEqual(
+            list(
+                UserTopic.objects.filter(
+                    user_profile=hamlet, visibility_policy=UserTopic.VisibilityPolicy.FOLLOWED
+                ).values_list("topic_name", flat=True)
+            ),
+            ["a thread"],
+        )
         self.assertIn(f"replaced {patterned_count} generated profile pictures", output)
         self.assertFalse(patterned_users.exists())
 
@@ -168,6 +194,11 @@ class ApplySlackDefaultsTest(ZulipTestCase):
             self.assertEqual(
                 user.desktop_icon_count_display, UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION
             )
+            self.assertEqual(
+                user.automatically_follow_topics_policy,
+                UserProfile.AUTOMATICALLY_CHANGE_VISIBILITY_POLICY_NEVER,
+            )
+            self.assertFalse(user.automatically_follow_topics_where_mentioned)
         self.assertEqual(hamlet.avatar_source, UserProfile.AVATAR_FROM_GRAVATAR)
         self.assertEqual(hamlet.avatar_version, hamlet_avatar_version + 1)
         self.assertEqual(cordelia.avatar_source, UserProfile.AVATAR_FROM_USER)

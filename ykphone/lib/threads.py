@@ -7,6 +7,7 @@ from django.db.models import Count, Exists, F, Max, Min, OuterRef, Q, QuerySet
 from django.db.models.functions import Upper
 from django.utils.translation import gettext as _
 
+from ykphone.lib.thread_follow import follow_new_thread
 from ykphone.models import MessageThread
 from zerver.lib.exceptions import JsonableError
 from zerver.lib.message import access_message, messages_for_ids
@@ -146,13 +147,16 @@ def get_or_create_thread(user_profile: UserProfile, message_id: int) -> MessageT
         if thread is not None:
             return thread
         topic_name = unique_thread_topic_name(stream, thread_topic_snippet(message.content))
-        return MessageThread.objects.create(
+        thread = MessageThread.objects.create(
             realm=stream.realm,
             stream=stream,
             root_message=message,
             topic_name=topic_name,
             creator=user_profile,
         )
+    # Outside the durable transaction, which the topic API opens itself.
+    follow_new_thread(thread, user_profile)
+    return thread
 
 
 def readable_messages(user_profile: UserProfile, stream: Stream) -> QuerySet[Message]:

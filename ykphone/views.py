@@ -1,6 +1,14 @@
 from django.http import HttpRequest, HttpResponse
+from django.utils.translation import gettext as _
 from pydantic import Json
 
+from ykphone.lib.notification_pause import (
+    check_schedule,
+    do_set_notification_pause,
+    get_pause,
+    pause_dict,
+    paused_user_ids,
+)
 from ykphone.lib.pins import pin_dict, pin_message, pins_for_stream, unpin_message
 from ykphone.lib.preferences import check_shell_theme, do_set_shell_theme, get_shell_theme
 from ykphone.lib.saved import (
@@ -10,6 +18,7 @@ from ykphone.lib.saved import (
     saved_items,
     update_saved_item,
 )
+from ykphone.lib.status_expiry import do_set_status_expiry, status_expiries
 from ykphone.lib.threads import (
     get_or_create_thread,
     my_threads,
@@ -18,6 +27,8 @@ from ykphone.lib.threads import (
     threads_for_stream,
     unthreaded_participated_topics,
 )
+from zerver.decorator import human_users_only
+from zerver.lib.exceptions import JsonableError
 from zerver.lib.response import json_success
 from zerver.lib.streams import access_stream_by_id
 from zerver.lib.typed_endpoint import PathOnly, typed_endpoint, typed_endpoint_without_parameters
@@ -136,4 +147,59 @@ def delete_saved_item(
     request: HttpRequest, user_profile: UserProfile, *, message_id: PathOnly[int]
 ) -> HttpResponse:
     remove_saved_item(user_profile, message_id)
+    return json_success(request)
+
+
+@human_users_only
+@typed_endpoint_without_parameters
+def get_notification_pause(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    return json_success(
+        request,
+        data={
+            **pause_dict(get_pause(user_profile), user_profile),
+            "paused_user_ids": paused_user_ids(user_profile),
+        },
+    )
+
+
+@human_users_only
+@typed_endpoint
+def update_notification_pause(
+    request: HttpRequest,
+    user_profile: UserProfile,
+    *,
+    until: Json[int | None] = None,
+    clear_until: Json[bool] = False,
+    schedule: Json[dict[str, object]] | None = None,
+    mobile: Json[bool] | None = None,
+) -> HttpResponse:
+    """``until`` (seconds) pauses until then; ``clear_until`` resumes;
+    ``schedule`` replaces the notification schedule; ``mobile`` is the
+    settings page's mobile notifications choice."""
+    if until is not None and clear_until:
+        raise JsonableError(_("Pass either until or clear_until, not both."))
+    if until is None and not clear_until and schedule is None and mobile is None:
+        raise JsonableError(_("Nothing to change."))
+    pause = do_set_notification_pause(
+        user_profile,
+        until=until,
+        set_until=until is not None or clear_until,
+        schedule=None if schedule is None else check_schedule(schedule),
+        mobile=mobile,
+    )
+    return json_success(request, data=dict(pause_dict(pause, user_profile)))
+
+
+@human_users_only
+@typed_endpoint_without_parameters
+def get_status_expiries(request: HttpRequest, user_profile: UserProfile) -> HttpResponse:
+    return json_success(request, data={"expiries": status_expiries(user_profile)})
+
+
+@human_users_only
+@typed_endpoint
+def set_status_expiry(
+    request: HttpRequest, user_profile: UserProfile, *, clear_at: Json[int | None]
+) -> HttpResponse:
+    do_set_status_expiry(user_profile, clear_at)
     return json_success(request)

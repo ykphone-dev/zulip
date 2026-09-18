@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import override as override_language
 from django_stubs_ext import WithAnnotations
 
+from ykphone.lib.thread_follow import follow_thread_on_send
 from zerver.actions.uploads import do_claim_attachments
 from zerver.actions.user_topics import (
     bulk_do_set_user_topic_visibility_policy,
@@ -1082,6 +1083,7 @@ def do_send_messages(
                         visibility_policy=new_visibility_policy,
                     )
                     send_request.automatic_new_visibility_policy = new_visibility_policy
+            follow_thread_on_send(sender, send_request.stream, send_request.message)
 
             # Set the visibility_policy of the users mentioned in the message
             # to "FOLLOWED" if "automatically_follow_topics_where_mentioned" is "True".

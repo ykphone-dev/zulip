@@ -6,12 +6,40 @@ from typing_extensions import override
 from ykphone.lib.preferences import SHELL_THEMES, do_set_realm_default_shell_theme
 from zerver.actions.realm_settings import do_set_realm_property, do_set_realm_user_default_setting
 from zerver.actions.user_settings import bulk_change_user_setting, set_avatar_to_default
+from zerver.actions.user_topics import do_set_user_topic_visibility_policy
 from zerver.lib.management import ZulipBaseCommand
-from zerver.models import RealmUserDefault, UserProfile
+from zerver.models import RealmUserDefault, UserProfile, UserTopic
 
 # The base size the theme scales everything from; a step below Slack's
 # 15px, which read as too large.
 SLACK_FONT_SIZE_PX = 14
+
+AUTO_FOLLOW_OFF: dict[str, int | bool] = {
+    "automatically_follow_topics_policy": UserProfile.AUTOMATICALLY_CHANGE_VISIBILITY_POLICY_NEVER,
+    "automatically_follow_topics_where_mentioned": False,
+}
+
+
+def unfollow_general_chats(users: list[UserProfile]) -> int:
+    """Stops following the general chats (the empty topic) that Zulip
+    followed for the users automatically; they cannot be told apart from
+    ones followed by hand, which the fork's UI does not offer. Returns
+    how many were unfollowed."""
+    followed = UserTopic.objects.filter(
+        user_profile__in=users,
+        topic_name="",
+        visibility_policy=UserTopic.VisibilityPolicy.FOLLOWED,
+    ).select_related("user_profile", "stream")
+    count = 0
+    for user_topic in followed:
+        do_set_user_topic_visibility_policy(
+            user_topic.user_profile,
+            user_topic.stream,
+            "",
+            visibility_policy=UserTopic.VisibilityPolicy.INHERIT,
+        )
+        count += 1
+    return count
 
 
 class Command(ZulipBaseCommand):
@@ -21,7 +49,9 @@ Sets the organization's defaults so that new users send with Enter
 (Shift+Enter inserts a newline), read at a compact font size, see a
 count rather than a list of names on an emoji reaction, see only
 direct messages and mentions in the unread count of the browser tab
-and app icon, get the neutral default profile picture instead of a
+and app icon, follow threads rather than every topic they post in
+(so that followed-topic notifications are thread replies, not a
+channel's general chat), get the neutral default profile picture instead of a
 generated pattern, and see a preview card under links, as in Slack.
 Messages can be edited and deleted at any time after sending, as in
 Slack (who may delete still follows the organization's permissions).
@@ -31,7 +61,9 @@ picked a theme see it. With --existing-users the settings are also
 applied to every active human user of the organization, and the
 generated pattern pictures those users still have are replaced by the
 default one; for --shell-theme that means their own theme choices are
-removed, so that they follow the organization's default from then on."""
+removed, so that they follow the organization's default from then on.
+Existing users also stop following the channels' general chats that
+Zulip followed for them."""
 
     @override
     def add_arguments(self, parser: ArgumentParser) -> None:
@@ -75,6 +107,15 @@ removed, so that they follow the organization's default from then on."""
             UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION,
             acting_user=None,
         )
+        # Followed topics are the fork's threads: Zulip's automatic
+        # following would also follow a channel's general chat (a topic)
+        # whenever the user posts there first or is mentioned there, and
+        # "replies in threads I follow" would then ring for all of it.
+        # The fork follows threads itself (ykphone.lib.thread_follow).
+        for setting_name, value in AUTO_FOLLOW_OFF.items():
+            do_set_realm_user_default_setting(
+                realm_user_default, setting_name, value, acting_user=None
+            )
         do_set_realm_property(
             realm, "default_avatar_source", UserProfile.AVATAR_FROM_GRAVATAR, acting_user=None
         )
@@ -118,12 +159,16 @@ removed, so that they follow the organization's default from then on."""
                 UserProfile.DESKTOP_ICON_COUNT_DISPLAY_DM_MENTION,
                 acting_user=None,
             )
+            for setting_name, value in AUTO_FOLLOW_OFF.items():
+                bulk_change_user_setting(realm, users, setting_name, value, acting_user=None)
+            unfollowed = unfollow_general_chats(users)
             patterned = [
                 user for user in users if user.avatar_source == UserProfile.AVATAR_FROM_JDENTICON
             ]
             for user in patterned:
                 set_avatar_to_default(user, acting_user=None)
             self.stdout.write(
-                f"Applied the Slack defaults to {len(users)} existing users and replaced "
-                f"{len(patterned)} generated profile pictures."
+                f"Applied the Slack defaults to {len(users)} existing users, replaced "
+                f"{len(patterned)} generated profile pictures and unfollowed "
+                f"{unfollowed} general chats."
             )

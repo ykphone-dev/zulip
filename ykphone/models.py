@@ -93,3 +93,49 @@ class SavedItem(models.Model):
                 fields=["user", "message"], name="ykphone_saveditem_user_message"
             ),
         ]
+
+
+class NotificationPause(models.Model):
+    """A user's "pause notifications" state (Slack's do not disturb).
+
+    ``paused_until`` pauses everything until that time; ``schedule`` is
+    the notification schedule, the hours (in the user's own time zone)
+    in which notifications are allowed: ``{"enabled": bool, "days":
+    [0-6, Monday = 0], "start": "HH:MM", "end": "HH:MM"}``, where an end
+    at or before the start runs past midnight. ykphone.lib.notification_pause
+    decides from both whether mobile push and email notifications are
+    held back; nothing is sent later for what a pause held back.
+    """
+
+    user = models.OneToOneField(
+        UserProfile, on_delete=CASCADE, related_name="ykphone_notification_pause"
+    )
+    paused_until = models.DateTimeField(null=True)
+    schedule = models.JSONField(default=dict)
+    # Whether the others were last told the user is paused
+    # (ykphone_paused_users); the per-minute job compares it with the
+    # state now, so pauses that run out, schedule boundaries and time
+    # zone changes reach them too.
+    announced_paused = models.BooleanField(default=False)
+    # The settings page's "send notifications to my mobile devices",
+    # kept here because Zulip's push settings cannot hold it while
+    # nothing is to be pushed ("Nothing"); None until first chosen.
+    mobile_notifications = models.BooleanField(null=True)
+
+
+class StatusExpiry(models.Model):
+    """When a user's status (Zulip's UserStatus) is to be cleared, from
+    the status modal's "Clear after". The management command
+    ykphone_clear_expired_statuses clears it once ``clear_at`` has
+    passed, if the status is still the one the time was set for;
+    setting or clearing the status by hand forgets the row."""
+
+    user = models.OneToOneField(
+        UserProfile, on_delete=CASCADE, related_name="ykphone_status_expiry"
+    )
+    clear_at = models.DateTimeField(db_index=True)
+    # The status the time was set for: only that status is cleared, so a
+    # status saved in the moment before the job runs is left alone.
+    status_text = models.TextField(default="")
+    emoji_name = models.TextField(default="")
+    emoji_code = models.TextField(default="")

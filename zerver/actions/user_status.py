@@ -1,5 +1,6 @@
 from django.db import transaction
 
+from ykphone.lib.status_expiry import forget_status_expiry
 from zerver.actions.user_settings import do_change_user_setting
 from zerver.lib.user_status import update_user_status
 from zerver.lib.users import get_user_ids_who_can_access_user
@@ -36,6 +37,7 @@ def do_update_user_status(
         emoji_code=emoji_code,
         reaction_type=reaction_type,
     )
+    forget_status_expiry(user_profile, status_text, emoji_name)
 
     event = dict(
         type="user_status",

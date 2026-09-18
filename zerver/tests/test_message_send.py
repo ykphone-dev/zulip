@@ -1785,7 +1785,9 @@ class StreamMessagesTest(ZulipTestCase):
             setting_value=UserProfile.AUTOMATICALLY_CHANGE_VISIBILITY_POLICY_NEVER,
             acting_user=None,
         )
-        with self.assert_database_query_count(15):
+        # +1: with automatic following off, the 옆커폰 fork checks
+        # whether the topic is a thread, to follow it for the sender.
+        with self.assert_database_query_count(16):
             check_send_stream_message(
                 sender=sender,
                 client=sending_client,

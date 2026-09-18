@@ -7,13 +7,17 @@ from ykphone.views import (
     create_thread,
     delete_saved_item,
     get_my_threads,
+    get_notification_pause,
     get_pins,
     get_preferences,
     get_saved_items,
+    get_status_expiries,
     get_thread_activity,
     get_threads,
     patch_saved_item,
     remove_pin,
+    set_status_expiry,
+    update_notification_pause,
     update_preferences,
 )
 from zerver.lib.rest import rest_path
@@ -29,6 +33,10 @@ v1_api_and_json_patterns = [
     rest_path("ykphone/saved", GET=get_saved_items, POST=add_saved_item),
     rest_path("ykphone/saved/<int:message_id>", PATCH=patch_saved_item, DELETE=delete_saved_item),
     rest_path("ykphone/preferences", GET=get_preferences, PATCH=update_preferences),
+    rest_path(
+        "ykphone/notification_pause", GET=get_notification_pause, PATCH=update_notification_pause
+    ),
+    rest_path("ykphone/status_expiry", GET=get_status_expiries, PUT=set_status_expiry),
 ]
 
 i18n_urlpatterns: list[URLPattern | URLResolver] = []
